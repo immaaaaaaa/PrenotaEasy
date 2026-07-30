@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { fmtTime, dayKey, fmtWhen } from "@/lib/time";
 import { addDaysStr, dayTitle, relLabel } from "@/lib/days";
-import { formatPrice } from "@/lib/constants";
+import { formatPrice, WEEKDAYS_LONG } from "@/lib/constants";
 import type { Appointment, Business, Employee, Service } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -70,6 +70,90 @@ function getISOWeekNumber(d: Date): number {
   }
   return 1 + Math.ceil((firstThursday - date.getTime()) / 604800000);
 }
+
+const timeToPercent = (timeStr: string): number => {
+  const [h, m] = timeStr.split(":").map(Number);
+  const startTotalMinutes = 8 * 60; // 08:00
+  const endTotalMinutes = 20 * 60; // 20:00
+  const totalMinutes = endTotalMinutes - startTotalMinutes; // 720 min
+  
+  const currentMinutes = h * 60 + m;
+  const offset = currentMinutes - startTotalMinutes;
+  
+  return Math.max(0, Math.min(100, (offset / totalMinutes) * 100));
+};
+
+const computeOverlappingSlots = (dayAppts: Appointment[]) => {
+  const sorted = [...dayAppts].sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+  const groups: Appointment[][] = [];
+  
+  for (const appt of sorted) {
+    let placed = false;
+    for (const group of groups) {
+      const apptStart = new Date(appt.starts_at).getTime();
+      const apptEnd = new Date(appt.ends_at).getTime();
+      
+      const overlaps = group.some(g => {
+        const gStart = new Date(g.starts_at).getTime();
+        const gEnd = new Date(g.ends_at).getTime();
+        return apptStart < gEnd && gStart < apptEnd;
+      });
+      
+      if (overlaps) {
+        group.push(appt);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      groups.push([appt]);
+    }
+  }
+  
+  const apptStyles = new Map<string, { left: number; width: number }>();
+  
+  for (const group of groups) {
+    const lanes: (Appointment | null)[] = [];
+    
+    for (const appt of group) {
+      const apptStart = new Date(appt.starts_at).getTime();
+      const apptEnd = new Date(appt.ends_at).getTime();
+      
+      let laneIndex = 0;
+      while (true) {
+        const lastApptInLane = lanes[laneIndex];
+        if (!lastApptInLane) {
+          lanes[laneIndex] = appt;
+          break;
+        }
+        
+        const laneStart = new Date(lastApptInLane.starts_at).getTime();
+        const laneEnd = new Date(lastApptInLane.ends_at).getTime();
+        
+        if (apptStart >= laneEnd) {
+          lanes[laneIndex] = appt;
+          break;
+        }
+        
+        laneIndex++;
+      }
+      
+      apptStyles.set(appt.id, {
+        left: laneIndex,
+        width: 1,
+      });
+    }
+    
+    const totalLanes = lanes.length;
+    for (const appt of group) {
+      const style = apptStyles.get(appt.id)!;
+      style.left = (style.left / totalLanes) * 100;
+      style.width = (1 / totalLanes) * 100;
+    }
+  }
+  
+  return apptStyles;
+};
 
 const formatDateLocal = (d: Date) => {
   const year = d.getFullYear();
@@ -145,7 +229,7 @@ export function AgendaView({
   // Calendar states
   const [currentYear, setCurrentYear] = useState(new Date(date).getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date(date).getMonth());
-  const [calendarView, setCalendarView] = useState<"week" | "month">("month");
+  const [calendarView, setCalendarView] = useState<"day" | "week" | "month">("week");
 
   // Client list states
   const [allClients, setAllClients] = useState<any[]>([]);
@@ -297,6 +381,27 @@ export function AgendaView({
       return employeeFilter === "all" || a.employee_id === employeeFilter;
     });
   }, [monthAppts, employeeFilter]);
+
+  const currentWeekDays = useMemo(() => {
+    const cursor = new Date(date);
+    const dayNum = (cursor.getDay() + 6) % 7; // Monday = 0, ..., Sunday = 6
+    const monday = new Date(cursor.setDate(cursor.getDate() - dayNum));
+    
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      days.push(new Date(monday));
+      monday.setDate(monday.getDate() + 1);
+    }
+    return days;
+  }, [date]);
+
+  useEffect(() => {
+    const d = new Date(date);
+    if (!isNaN(d.getTime())) {
+      setCurrentYear(d.getFullYear());
+      setCurrentMonth(d.getMonth());
+    }
+  }, [date]);
 
   const loadTodayStats = useCallback(async () => {
     try {
@@ -913,16 +1018,32 @@ export function AgendaView({
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center justify-between sm:justify-start gap-4">
                   <h3 className="text-base sm:text-lg font-extrabold text-[#4D5A46] tracking-tight">
-                    {MONTH_LABELS[currentMonth]} {currentYear}
+                    {calendarView === "month" ? (
+                      `${MONTH_LABELS[currentMonth]} ${currentYear}`
+                    ) : calendarView === "week" ? (
+                      `Settimana ${getISOWeekNumber(currentWeekDays[0])} · ${MONTH_LABELS[currentWeekDays[0].getMonth()]} ${currentWeekDays[0].getFullYear()}`
+                    ) : (
+                      dayTitle(date)
+                    )}
                   </h3>
                   <div className="flex gap-1">
                     <button
                       onClick={() => {
-                        if (currentMonth === 0) {
-                          setCurrentMonth(11);
-                          setCurrentYear(y => y - 1);
+                        if (calendarView === "month") {
+                          if (currentMonth === 0) {
+                            setCurrentMonth(11);
+                            setCurrentYear(y => y - 1);
+                          } else {
+                            setCurrentMonth(m => m - 1);
+                          }
+                        } else if (calendarView === "week") {
+                          const d = new Date(date);
+                          d.setDate(d.getDate() - 7);
+                          setDate(formatDateLocal(d));
                         } else {
-                          setCurrentMonth(m => m - 1);
+                          const d = new Date(date);
+                          d.setDate(d.getDate() - 1);
+                          setDate(formatDateLocal(d));
                         }
                       }}
                       className="p-1.5 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined border-none bg-transparent cursor-pointer text-[#4D5A46]"
@@ -931,11 +1052,21 @@ export function AgendaView({
                     </button>
                     <button
                       onClick={() => {
-                        if (currentMonth === 11) {
-                          setCurrentMonth(0);
-                          setCurrentYear(y => y + 1);
+                        if (calendarView === "month") {
+                          if (currentMonth === 11) {
+                            setCurrentMonth(0);
+                            setCurrentYear(y => y + 1);
+                          } else {
+                            setCurrentMonth(m => m + 1);
+                          }
+                        } else if (calendarView === "week") {
+                          const d = new Date(date);
+                          d.setDate(d.getDate() + 7);
+                          setDate(formatDateLocal(d));
                         } else {
-                          setCurrentMonth(m => m + 1);
+                          const d = new Date(date);
+                          d.setDate(d.getDate() + 1);
+                          setDate(formatDateLocal(d));
                         }
                       }}
                       className="p-1.5 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined border-none bg-transparent cursor-pointer text-[#4D5A46]"
@@ -948,9 +1079,20 @@ export function AgendaView({
                 <div className="flex justify-center">
                   <div className="bg-[#F4F1EB] p-1 rounded-full flex gap-1 shadow-sm border border-[var(--line)]">
                     <button
+                      onClick={() => setCalendarView("day")}
+                      className={cn(
+                        "px-4 py-1.5 rounded-full text-xs font-bold transition-all border-none cursor-pointer whitespace-nowrap",
+                        calendarView === "day"
+                          ? "bg-[#4D5A46] text-white shadow-sm"
+                          : "bg-transparent text-[#8C9A86] hover:text-[#4D5A46]"
+                      )}
+                    >
+                      Giorno
+                    </button>
+                    <button
                       onClick={() => setCalendarView("week")}
                       className={cn(
-                        "px-5 py-1.5 rounded-full text-xs font-bold transition-all border-none cursor-pointer whitespace-nowrap",
+                        "px-4 py-1.5 rounded-full text-xs font-bold transition-all border-none cursor-pointer whitespace-nowrap",
                         calendarView === "week"
                           ? "bg-[#4D5A46] text-white shadow-sm"
                           : "bg-transparent text-[#8C9A86] hover:text-[#4D5A46]"
@@ -961,7 +1103,7 @@ export function AgendaView({
                     <button
                       onClick={() => setCalendarView("month")}
                       className={cn(
-                        "px-5 py-1.5 rounded-full text-xs font-bold transition-all border-none cursor-pointer whitespace-nowrap",
+                        "px-4 py-1.5 rounded-full text-xs font-bold transition-all border-none cursor-pointer whitespace-nowrap",
                         calendarView === "month"
                           ? "bg-[#4D5A46] text-white shadow-sm"
                           : "bg-transparent text-[#8C9A86] hover:text-[#4D5A46]"
@@ -974,283 +1116,362 @@ export function AgendaView({
               </div>
             </div>
 
-            {/* Conditionally Render Month View VS Week View */}
+            {/* Conditionally Render Day / Week / Month Views */}
             {calendarView === "month" ? (
-              <>
-                {/* iOS Calendar Month Picker (Grid) */}
-                <div className="mb-6 ios-card rounded-2xl p-5 border border-[var(--line)] shadow-sm bg-white">
+              /* MONTH VIEW (Google Calendar style with appt lists in cell grids) */
+              <div className="mb-6 ios-card rounded-2xl p-5 border border-[var(--line)] shadow-sm bg-white overflow-x-auto">
+                <div className="min-w-[700px]">
                   {/* Days Grid Header */}
                   <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-[#8C9A86] tracking-wider mb-2">
                     {WEEKDAY_SHORT_LABELS.map((w, idx) => (
-                      <div key={idx}>{w}</div>
+                      <div key={idx} className="py-1">{w}</div>
                     ))}
                   </div>
 
                   {/* Days Cells */}
-                  <div className="grid grid-cols-7 gap-1 text-center font-medium">
+                  <div className="grid grid-cols-7 gap-1 font-medium auto-rows-[120px]">
                     {monthDays.map((day, idx) => {
-                      if (!day) return <div key={`empty-${idx}`} />;
+                      if (!day) return <div key={`empty-${idx}`} className="bg-[#FAF8F5]/20 rounded-2xl border border-transparent" />;
                       const isSelected = date === formatDateLocal(day);
                       const isToday = todayStr === formatDateLocal(day);
                       const dayKeyStr = formatDateLocal(day);
 
                       const isHoliday = holidays.some(h => dayKeyStr >= h.start_date && dayKeyStr <= h.end_date);
 
-                      const hasAppts = monthAppts.some(a => {
-                        const aDateStr = a.starts_at.slice(0, 10);
-                        if (aDateStr !== dayKeyStr) return false;
-                        return employeeFilter === "all" || a.employee_id === employeeFilter;
-                      });
+                      // Day appts list
+                      const dayAppts = filteredMonthAppts.filter(a => a.starts_at.slice(0, 10) === dayKeyStr);
 
                       return (
-                        <button
+                        <div
                           key={day.toISOString()}
-                          onClick={() => selectCalendarDate(day)}
+                          onClick={() => {
+                            selectCalendarDate(day);
+                            setCalendarView("day");
+                          }}
                           className={cn(
-                            "h-10 w-full rounded-full flex flex-col items-center justify-center relative text-sm active:scale-95 transition-all cursor-pointer border-none",
+                            "rounded-2xl border p-2 flex flex-col justify-between transition-all cursor-pointer overflow-hidden",
                             isSelected
-                              ? "bg-[#4D5A46] text-white font-extrabold"
+                              ? "border-[#4D5A46] bg-[#FAF8F5]/60"
                               : isToday
-                              ? "bg-transparent text-[#ba1a1a] border border-[#ba1a1a]/40 font-bold"
+                              ? "border-[#ba1a1a]/40 bg-[#ba1a1a]/5"
                               : isHoliday
-                              ? "bg-[#FFEBEB] text-[#ba1a1a] font-bold hover:bg-[#FFD6D6]"
-                              : "bg-transparent text-[#4D5A46] hover:bg-[#F4F1EB]"
+                              ? "border-[#ba1a1a]/20 bg-[#FFEBEB]/40"
+                              : "border-[var(--line)] hover:border-[var(--line-strong)] bg-white"
                           )}
                         >
-                          <span className={isSelected ? "text-white font-extrabold" : ""}>{day.getDate()}</span>
-                          {/* Dynamic colored dot representing scheduled appointments for selected operator */}
-                          {hasAppts && !isSelected && (
-                            <span
-                              className="absolute bottom-1 w-1.5 h-1.5 rounded-full"
-                              style={{
-                                backgroundColor:
-                                  employeeFilter !== "all"
-                                    ? (employees.find((e) => e.id === employeeFilter)?.color ?? "#4a6243")
-                                    : "#8C9A86",
-                              }}
-                            />
-                          )}
-                          {isToday && !isSelected && !hasAppts && (
-                            <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-[#ba1a1a]"></span>
-                          )}
-                        </button>
+                          <div className="flex justify-between items-start">
+                            <span className={cn(
+                              "text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full",
+                              isToday ? "bg-[#ba1a1a] text-white" : isSelected ? "bg-[#4D5A46] text-white" : "text-[#4D5A46]"
+                            )}>
+                              {day.getDate()}
+                            </span>
+                            {dayAppts.length > 0 && (
+                              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-[#FAF8F5] border border-[var(--line)] text-[#8C9A86]">
+                                {dayAppts.length}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex-1 mt-1.5 space-y-1 overflow-hidden">
+                            {dayAppts.slice(0, 3).map(a => {
+                              const emp = empById.get(a.employee_id);
+                              return (
+                                <button
+                                  key={a.id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActive(a);
+                                  }}
+                                  style={{
+                                    borderLeft: `2.5px solid ${emp?.color ?? "#8C9A86"}`,
+                                    backgroundColor: emp?.color ? `${emp.color}12` : "#FAF8F5"
+                                  }}
+                                  className="w-full text-left rounded px-1.5 py-0.5 text-[9px] font-bold text-[#4D5A46] truncate hover:opacity-85 transition-opacity border-none flex items-center justify-between"
+                                >
+                                  <span className="truncate flex-1 pr-1">
+                                    {fmtTime(new Date(a.starts_at), tz)} · {a.customer_name}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                            {dayAppts.length > 3 && (
+                              <div className="text-[8px] font-extrabold text-[#8C9A86] tracking-wider pl-1.5">
+                                + {dayAppts.length - 3} altri
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
                 </div>
-
-                {/* Drag and Drop Hourly Timeline Grid Board */}
-                <div className="mt-8">
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="text-base font-bold text-[#4D5A46] tracking-tight">Tabella Orari per {dayTitle(date)}</h4>
-                    <p className="text-xs text-[#8C9A86]">Trascina gli appuntamenti sui blocchi liberi per riprogrammare.</p>
+              </div>
+            ) : calendarView === "week" ? (
+              /* WEEK VIEW (Google Calendar style hourly grid timeline) */
+              <div className="ios-card rounded-2xl p-4 sm:p-5 border border-[var(--line)] shadow-sm bg-white overflow-x-auto">
+                <div className="min-w-[850px] relative">
+                  {/* Grid header */}
+                  <div className="grid grid-cols-[60px_1fr] border-b border-[var(--line)] pb-3">
+                    <div />
+                    <div className="grid grid-cols-7 text-center">
+                      {currentWeekDays.map((day, idx) => {
+                        const dayKeyStr = formatDateLocal(day);
+                        const isToday = todayStr === dayKeyStr;
+                        const isSelected = date === dayKeyStr;
+                        return (
+                          <div
+                            key={day.toISOString()}
+                            onClick={() => selectCalendarDate(day)}
+                            className="flex flex-col items-center justify-center py-1.5 cursor-pointer hover:bg-[#F4F1EB] rounded-2xl transition-all"
+                          >
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C9A86]">
+                              {WEEKDAY_SHORT_LABELS[idx]}
+                            </span>
+                            <span className={cn(
+                              "text-base font-extrabold w-8 h-8 flex items-center justify-center rounded-full mt-1",
+                              isToday ? "bg-[#ba1a1a] text-white" : isSelected ? "bg-[#4D5A46] text-white" : "text-[#4D5A46]"
+                            )}>
+                              {day.getDate()}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  {(() => {
-                    const currentHoliday = holidays.find(h => date >= h.start_date && date <= h.end_date);
-                    if (!currentHoliday) return null;
-                    return (
-                      <div className="mb-4 p-3.5 rounded-xl bg-[#FFEBEB] border border-[#ba1a1a]/20 flex items-center gap-2.5 text-[#ba1a1a]">
-                        <span className="material-symbols-outlined text-lg shrink-0">event_busy</span>
-                        <div className="text-xs">
-                          <span className="font-extrabold block">Giorno di Chiusura Straordinaria</span>
-                          {currentHoliday.description && (
-                            <span className="font-medium block mt-0.5 opacity-90">{currentHoliday.description}</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()}
+                  {/* Hourly Scrollable timeline */}
+                  <div className="relative h-[650px] overflow-y-auto no-scrollbar grid grid-cols-[60px_1fr] mt-3">
+                    {/* Time Y-axis Labels */}
+                    <div className="relative h-full border-r border-[var(--line)]">
+                      {Array.from({ length: 13 }).map((_, idx) => {
+                        const top = (idx / 12) * 100;
+                        return (
+                          <div
+                            key={idx}
+                            style={{ top: `${top}%` }}
+                            className="absolute right-3 -translate-y-1/2 text-[10px] font-bold text-[#8C9A86]"
+                          >
+                            {String(idx + 8).padStart(2, "0")}:00
+                          </div>
+                        );
+                      })}
+                    </div>
 
-                  {(() => {
-                    const filteredEmployees = restrictToEmployeeId
-                      ? employees.filter(e => e.id === restrictToEmployeeId)
-                      : (employeeFilter === "all"
-                        ? employees
-                        : employees.filter(e => e.id === employeeFilter));
+                    {/* Week Columns with absolute appointments overlay */}
+                    <div className="grid grid-cols-7 relative h-full bg-[linear-gradient(to_bottom,var(--line)_1px,transparent_1px)] bg-[size:100%_54.16px]">
+                      {currentWeekDays.map((day) => {
+                        const dayKeyStr = formatDateLocal(day);
+                        const isToday = todayStr === dayKeyStr;
+                        
+                        const dayAppts = filteredMonthAppts.filter(a => a.starts_at.slice(0, 10) === dayKeyStr);
+                        const positionStyles = computeOverlappingSlots(dayAppts);
 
-                    const skipCells = new Set<string>();
+                        // Render 24 half-hour slot drop targets/click creators
+                        const halfHourSlots = Array.from({ length: 24 }).map((_, idx) => {
+                          const h = Math.floor(idx / 2) + 8;
+                          const m = (idx % 2) * 30;
+                          return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+                        });
 
-                    return (
-                      <div className={cn(
-                        "ios-card rounded-2xl border border-[var(--line)] shadow-sm bg-white overflow-hidden",
-                        (employeeFilter !== "all" || employees.length <= 2) ? "w-full" : "overflow-x-auto"
-                      )}>
-                        <table className="w-full border-collapse" style={{ minWidth: (employeeFilter === "all" && employees.length > 1) ? "600px" : "100%" }}>
-                          <thead>
-                            <tr className="bg-[#F4F1EB] border-b border-[var(--line)] text-left">
-                              <th className="p-3 text-xs font-bold text-[#8C9A86] w-20 border-r border-[var(--line)] sticky top-0 bg-[#F4F1EB] z-20 text-center">Ora</th>
-                              {filteredEmployees.map(e => (
-                                <th key={e.id} className="p-3 text-xs font-bold text-[#4D5A46] border-r border-[var(--line)] text-center sticky top-0 bg-[#F4F1EB] z-20">
-                                  <div className="flex items-center justify-center gap-2">
-                                    {e.avatar_url ? (
-                                      <img src={e.avatar_url} alt={e.name} className="w-5 h-5 rounded-full object-cover shadow-sm" />
-                                    ) : (
-                                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: e.color }} />
-                                    )}
-                                    {e.name}
-                                  </div>
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {TIMELINE_SLOTS.map((slot, rowIndex) => (
-                              <tr key={slot} className="border-b border-[var(--line)] h-16">
-                                <td className="p-3 text-xs font-bold text-[#8C9A86] text-center border-r border-[var(--line)] bg-[#FAF8F5]/50">
-                                  {slot}
-                                </td>
-                                {filteredEmployees.map(e => {
-                                  const cellKey = `${e.id}-${slot}`;
-                                  if (skipCells.has(cellKey)) {
-                                    return null;
-                                  }
-
-                                  const apptStart = getApptStartSlot(e.id, slot);
-
-                                  if (apptStart) {
-                                    const span = Math.ceil(apptStart.duration_min / 30);
-                                    for (let k = 1; k < span; k++) {
-                                      if (rowIndex + k < TIMELINE_SLOTS.length) {
-                                        skipCells.add(`${e.id}-${TIMELINE_SLOTS[rowIndex + k]}`);
-                                      }
-                                    }
-
-                                    return (
-                                      <td
-                                        key={cellKey}
-                                        rowSpan={span}
-                                        className="p-2 border-r border-[var(--line)] relative"
-                                      >
-                                        <div
-                                          draggable
-                                          onDragStart={(event) => handleDragStart(event, apptStart.id)}
-                                          onClick={() => setActive(apptStart)}
-                                          className="absolute inset-2 rounded-2xl p-3 text-xs cursor-grab active:cursor-grabbing border shadow-sm transition-all flex flex-col justify-between bg-white border-[var(--line)] hover:border-[var(--ink)] hover:shadow-md min-h-[44px]"
-                                        >
-                                          <div className="flex justify-between items-start font-bold">
-                                            <span className="text-[#4D5A46] truncate">{apptStart.customer_name}</span>
-                                            <span className="text-[9px] bg-[#FAF8F5] border border-[var(--line)] px-1 py-0.5 rounded text-[#8C9A86] scale-90">
-                                              {apptStart.duration_min}m
-                                            </span>
-                                          </div>
-                                          <span className="text-[10px] text-[#8C9A86] truncate mt-1">{apptStart.service_name}</span>
-                                        </div>
-                                      </td>
-                                    );
-                                  }
-
-                                  return (
-                                    <td
-                                      key={cellKey}
-                                      onDragOver={(e) => e.preventDefault()}
-                                      onDrop={(event) => handleDrop(event, e.id, slot)}
-                                      className="p-2 border-r border-[var(--line)] relative vertical-align-middle"
-                                    >
-                                      <div className="h-full w-full border border-dashed border-[var(--line-strong)] rounded-xl flex items-center justify-center text-[10px] text-[#8C9A86]/70 hover:bg-[var(--surface-2)]/50 hover:border-[var(--ink)] transition-all select-none min-h-[44px]">
-                                        Disp.
-                                      </div>
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </>
-            ) : (
-              /* Week View Layout */
-              <div className="space-y-8">
-                {weeksOfTabMonth.map((week, wIdx) => {
-                  const weekNum = getISOWeekNumber(week[0]);
-
-                  const weekApptsList = filteredMonthAppts.filter(a => {
-                    const aDateStr = a.starts_at.slice(0, 10);
-                    return week.some(d => formatDateLocal(d) === aDateStr);
-                  });
-
-                  const totalRevenueWeek = weekApptsList.reduce((sum, a) => sum + (a.price_cents ?? 0), 0) / 100;
-
-                  return (
-                    <div key={wIdx} className="space-y-4">
-                      {/* Week Header */}
-                      <div className="flex items-center justify-between border-b border-[var(--line)] pb-2">
-                        <div className="flex items-center gap-1.5">
-                          <h4 className="text-base font-extrabold text-[#4D5A46]">
-                            Settimana {weekNum}
-                          </h4>
-                          <span className="material-symbols-outlined text-[#8C9A86] text-sm">chevron_right</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#FAF8F5] border border-[var(--line)] text-[#8C9A86]">
-                            {weekApptsList.length} appuntamenti
-                          </span>
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#EBF5F0] border border-[#4D5A46]/20 text-[#4D5A46]">
-                            € {totalRevenueWeek.toFixed(0)}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Horizontal Columns Grid scrollable on mobile */}
-                      <div className="flex lg:grid lg:grid-cols-7 gap-3 overflow-x-auto lg:overflow-visible pb-3 no-scrollbar w-full">
-                        {week.map((day, dIdx) => {
-                          const dayKeyStr = formatDateLocal(day);
-                          const isToday = todayStr === dayKeyStr;
-
-                          const dayAppts = weekApptsList.filter(a => a.starts_at.slice(0, 10) === dayKeyStr);
-
-                          return (
-                            <div
-                              key={day.toISOString()}
-                              className={cn(
-                                "flex-1 min-w-[185px] lg:min-w-0 flex flex-col rounded-2xl p-2.5 transition-all border",
-                                isToday
-                                  ? "bg-[#EBF5F0]/60 border-[#4D5A46]/30 shadow-sm"
-                                  : "bg-[#FAF8F5]/40 border-[var(--line)]/50"
-                              )}
-                            >
-                              {/* Day Header Button */}
-                              <button
-                                onClick={() => selectCalendarDate(day)}
-                                className="w-full flex items-center justify-between text-[#4D5A46] font-bold text-xs mb-3 py-1 px-1.5 hover:bg-[#F4F1EB] rounded-lg transition-all border-none bg-transparent cursor-pointer"
+                        return (
+                          <div
+                            key={day.toISOString()}
+                            className={cn(
+                              "relative h-full border-r border-[var(--line)]/50",
+                              isToday && "bg-[#ba1a1a]/5"
+                            )}
+                          >
+                            {/* Background interactive slot cells */}
+                            {halfHourSlots.map((slot, idx) => (
+                              <div
+                                key={slot}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => handleDrop(e, dayKeyStr, slot)}
+                                onClick={() => {
+                                  setDate(dayKeyStr);
+                                  setNewOpen(true);
+                                }}
+                                style={{
+                                  top: `${(idx / 24) * 100}%`,
+                                  height: `${(1 / 24) * 100}%`,
+                                }}
+                                className="absolute left-0 right-0 border-b border-[var(--line)]/5 hover:bg-[#4D5A46]/5 transition-all z-0 cursor-pointer text-[8px] text-transparent hover:text-[#8C9A86]/20 flex items-start px-1 pt-0.5 select-none font-bold"
                               >
-                                <span className={cn(isToday && "text-[#ba1a1a] font-extrabold")}>
-                                  {WEEKDAY_SHORT_LABELS[dIdx]} {day.getDate()}
-                                </span>
-                                <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-                              </button>
+                                + clicca per prenotare
+                              </div>
+                            ))}
 
-                              {/* Appointments List */}
-                              <div className="space-y-2 flex-1 min-h-[50px]">
-                                {dayAppts.map(a => (
-                                  <button
-                                    key={a.id}
-                                    onClick={() => setActive(a)}
-                                    className="w-full text-left rounded-xl p-2.5 bg-white border border-[var(--line)] hover:border-[var(--ink)] hover:shadow-sm transition-all cursor-pointer flex flex-col gap-0.5 text-xs shadow-sm"
-                                  >
-                                    <span className="text-[#8C9A86] text-[9px] font-extrabold tracking-tight">
-                                      {fmtTime(new Date(a.starts_at), tz)}
+                            {/* Absolutely positioned appointments overlay */}
+                            {dayAppts.map((a) => {
+                              const emp = empById.get(a.employee_id);
+                              const startStr = fmtTime(new Date(a.starts_at), tz);
+                              const endStr = fmtTime(new Date(a.ends_at), tz);
+                              const topPercent = timeToPercent(startStr);
+                              const endPercent = timeToPercent(endStr);
+                              const heightPercent = Math.max(6, endPercent - topPercent);
+
+                              const style = positionStyles.get(a.id) || { left: 0, width: 100 };
+
+                              return (
+                                <div
+                                  key={a.id}
+                                  draggable
+                                  onDragStart={(e) => handleDragStart(e, a.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActive(a);
+                                  }}
+                                  style={{
+                                    top: `${topPercent}%`,
+                                    height: `${heightPercent}%`,
+                                    left: `${style.left}%`,
+                                    width: `${style.width - 2}%`,
+                                    borderLeft: `3.5px solid ${emp?.color ?? "#8C9A86"}`,
+                                    backgroundColor: emp?.color ? `${emp.color}15` : "#FAF8F5",
+                                    borderColor: emp?.color ? `${emp.color}25` : "var(--line)"
+                                  }}
+                                  className="absolute rounded-xl p-2 text-xs shadow-sm cursor-grab active:cursor-grabbing border transition-all flex flex-col justify-start overflow-hidden z-10 hover:shadow-md hover:brightness-95"
+                                >
+                                  <div className="flex flex-col gap-0.5 select-none">
+                                    <span className="text-[9px] font-extrabold text-[#8C9A86]">
+                                      {startStr} - {endStr}
                                     </span>
                                     <span className="font-extrabold text-[#4D5A46] truncate">
                                       {a.customer_name}
                                     </span>
-                                    <span className="text-[10px] text-[#8C9A86] truncate">
-                                      {a.service_name}
+                                    <span className="text-[9px] text-[#8C9A86] truncate">
+                                      {a.service_name} {emp ? ` · ${emp.name}` : ""}
                                     </span>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* DAY VIEW (Google Calendar style single day grid timeline) */
+              <div className="ios-card rounded-2xl p-4 sm:p-5 border border-[var(--line)] shadow-sm bg-white overflow-x-auto">
+                <div className="min-w-[500px] relative">
+                  {/* Grid header */}
+                  <div className="grid grid-cols-[60px_1fr] border-b border-[var(--line)] pb-3">
+                    <div />
+                    <div className="text-center py-1.5 flex flex-col items-center">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C9A86]">
+                        {WEEKDAYS_LONG[new Date(date).getDay()]}
+                      </span>
+                      <span className="text-lg font-extrabold w-9 h-9 flex items-center justify-center rounded-full mt-1 bg-[#4D5A46] text-white shadow-sm">
+                        {new Date(date).getDate()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Hourly Scrollable timeline */}
+                  <div className="relative h-[650px] overflow-y-auto no-scrollbar grid grid-cols-[60px_1fr] mt-3">
+                    {/* Time Y-axis Labels */}
+                    <div className="relative h-full border-r border-[var(--line)]">
+                      {Array.from({ length: 13 }).map((_, idx) => {
+                        const top = (idx / 12) * 100;
+                        return (
+                          <div
+                            key={idx}
+                            style={{ top: `${top}%` }}
+                            className="absolute right-3 -translate-y-1/2 text-[10px] font-bold text-[#8C9A86]"
+                          >
+                            {String(idx + 8).padStart(2, "0")}:00
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Day Column background and overlay */}
+                    {(() => {
+                      const dayKeyStr = date;
+                      const dayAppts = filteredMonthAppts.filter(a => a.starts_at.slice(0, 10) === dayKeyStr);
+                      const positionStyles = computeOverlappingSlots(dayAppts);
+
+                      const halfHourSlots = Array.from({ length: 24 }).map((_, idx) => {
+                        const h = Math.floor(idx / 2) + 8;
+                        const m = (idx % 2) * 30;
+                        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+                      });
+
+                      return (
+                        <div className="relative h-full bg-[linear-gradient(to_bottom,var(--line)_1px,transparent_1px)] bg-[size:100%_54.16px]">
+                          {/* Background drop targets */}
+                          {halfHourSlots.map((slot, idx) => (
+                            <div
+                              key={slot}
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={(e) => handleDrop(e, dayKeyStr, slot)}
+                              onClick={() => {
+                                setNewOpen(true);
+                              }}
+                              style={{
+                                top: `${(idx / 24) * 100}%`,
+                                height: `${(1 / 24) * 100}%`,
+                              }}
+                              className="absolute left-0 right-0 border-b border-[var(--line)]/5 hover:bg-[#4D5A46]/5 transition-all z-0 cursor-pointer text-[8px] text-transparent hover:text-[#8C9A86]/20 flex items-start px-1 pt-0.5 select-none font-bold"
+                            >
+                              + clicca per prenotare
+                            </div>
+                          ))}
+
+                          {/* Overlay appointments */}
+                          {dayAppts.map((a) => {
+                            const emp = empById.get(a.employee_id);
+                            const startStr = fmtTime(new Date(a.starts_at), tz);
+                            const endStr = fmtTime(new Date(a.ends_at), tz);
+                            const topPercent = timeToPercent(startStr);
+                            const endPercent = timeToPercent(endStr);
+                            const heightPercent = Math.max(6, endPercent - topPercent);
+
+                            const style = positionStyles.get(a.id) || { left: 0, width: 100 };
+
+                            return (
+                              <div
+                                key={a.id}
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, a.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActive(a);
+                                }}
+                                style={{
+                                  top: `${topPercent}%`,
+                                  height: `${heightPercent}%`,
+                                  left: `${style.left}%`,
+                                  width: `${style.width - 1}%`,
+                                  borderLeft: `4px solid ${emp?.color ?? "#8C9A86"}`,
+                                  backgroundColor: emp?.color ? `${emp.color}15` : "#FAF8F5",
+                                  borderColor: emp?.color ? `${emp.color}25` : "var(--line)"
+                                }}
+                                className="absolute rounded-xl p-3 text-xs shadow-sm cursor-grab active:cursor-grabbing border transition-all flex flex-col justify-start overflow-hidden z-10 hover:shadow-md hover:brightness-95"
+                              >
+                                <div className="flex flex-col gap-0.5 select-none">
+                                  <span className="text-[10px] font-extrabold text-[#8C9A86]">
+                                    {startStr} - {endStr}
+                                  </span>
+                                  <span className="font-extrabold text-sm text-[#4D5A46] truncate">
+                                    {a.customer_name}
+                                  </span>
+                                  <span className="text-xs text-[#8C9A86] truncate mt-0.5">
+                                    {a.service_name} {emp ? ` · ${emp.name}` : ""}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
               </div>
             )}
           </div>
