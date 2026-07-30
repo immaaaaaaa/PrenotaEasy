@@ -1,17 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { normalizePhone } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
 
 // GET: Fetch client's appointment history by phone and business slug
 export async function GET(req: NextRequest) {
   const p = req.nextUrl.searchParams;
-  const phone = p.get("phone");
+  const phoneParam = p.get("phone");
   const slug = p.get("slug");
 
-  if (!phone || !slug) {
+  if (!phoneParam || !slug) {
     return NextResponse.json({ error: "Parametri mancanti" }, { status: 400 });
   }
+
+  const phone = normalizePhone(phoneParam);
 
   const supa = createAdminClient();
 
@@ -32,6 +35,22 @@ export async function GET(req: NextRequest) {
     .eq("customer_phone", phone)
     .order("starts_at", { ascending: false });
 
+  let customerNotes: string | null = null;
+  try {
+    const { data: customer } = await supa
+      .from("customers")
+      .select("notes")
+      .eq("business_id", business.id)
+      .eq("phone", phone)
+      .maybeSingle();
+
+    if (customer) {
+      customerNotes = (customer as any).notes ?? null;
+    }
+  } catch (err) {
+    // Ignore if column does not exist yet
+  }
+
   // Handle case where database migration for owner_notes has not run yet
   if (queryResult.error && queryResult.error.message.includes("owner_notes")) {
     const fallbackResult = await supa
@@ -44,14 +63,22 @@ export async function GET(req: NextRequest) {
     if (fallbackResult.error) {
       return NextResponse.json({ error: fallbackResult.error.message }, { status: 500 });
     }
-    return NextResponse.json({ appointments: fallbackResult.data ?? [] });
+    return NextResponse.json({
+      appointments: fallbackResult.data ?? [],
+      customerNotes,
+    });
   }
+
+  let dummyNotes = customerNotes; // Unused but kept to align types
 
   if (queryResult.error) {
     return NextResponse.json({ error: queryResult.error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ appointments: queryResult.data ?? [] });
+  return NextResponse.json({
+    appointments: queryResult.data ?? [],
+    customerNotes,
+  });
 }
 
 // POST: Securely cancel or reschedule appointment from the client view

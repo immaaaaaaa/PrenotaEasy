@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function AgendaPage() {
   const { supa, business } = await requireBusiness();
 
-  const [{ data: employees }, { data: services }] = await Promise.all([
+  const [{ data: employees }, { data: services }, { data: holidays }] = await Promise.all([
     supa
       .from("employees")
       .select("*")
@@ -23,6 +23,11 @@ export default async function AgendaPage() {
       .eq("business_id", business.id)
       .eq("active", true)
       .order("sort"),
+    supa
+      .from("business_holidays")
+      .select("*")
+      .eq("business_id", business.id)
+      .order("start_date"),
   ]);
 
   const todayStr = formatInTimeZone(new Date(), business.timezone, "yyyy-MM-dd");
@@ -34,6 +39,7 @@ export default async function AgendaPage() {
       employees={(employees ?? []) as Employee[]}
       services={(services ?? []) as Service[]}
       todayStr={todayStr}
+      holidays={(holidays ?? []) as any[]}
     />
   );
 }

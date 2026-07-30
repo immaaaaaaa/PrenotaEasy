@@ -74,18 +74,26 @@ export function BookingFlow({
   employees,
   todayStr,
   closedWeekdays,
+  holidays = [],
 }: {
   business: Business;
   services: Service[];
   employees: Employee[];
   todayStr: string;
   closedWeekdays: number[];
+  holidays?: { start_date: string; end_date: string }[];
 }) {
   const [currentTab, setCurrentTab] = useState<"book" | "history" | "profile">("book");
 
   // Booking states
   const [service, setService] = useState<Service | null>(null);
-  const [operator, setOperator] = useState<string>("any");
+  const [operator, setOperator] = useState<string>(() => {
+    return employees.length === 1 ? employees[0].id : "any";
+  });
+
+  const isDateHoliday = useCallback((dStr: string) => {
+    return holidays.some((h) => dStr >= h.start_date && dStr <= h.end_date);
+  }, [holidays]);
 
   const days = useMemo(
     () => buildDays(todayStr, business.booking_horizon_days),
@@ -93,8 +101,8 @@ export function BookingFlow({
   );
   const closedSet = useMemo(() => new Set(closedWeekdays), [closedWeekdays]);
   const firstOpen = useMemo(
-    () => days.find((d) => !closedSet.has(d.weekday0)) ?? days[0],
-    [days, closedSet],
+    () => days.find((d) => !closedSet.has(d.weekday0) && !isDateHoliday(d.dateStr)) ?? days[0],
+    [days, closedSet, isDateHoliday],
   );
 
   const [dateStr, setDateStr] = useState<string>(firstOpen?.dateStr ?? todayStr);
@@ -120,6 +128,7 @@ export function BookingFlow({
 
   // Appointment history states
   const [history, setHistory] = useState<any[]>([]);
+  const [customerNotes, setCustomerNotes] = useState<string | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -228,6 +237,7 @@ export function BookingFlow({
         setHistoryError(data.error ?? "Errore nel caricamento della cronologia.");
       } else {
         setHistory(data.appointments ?? []);
+        setCustomerNotes(data.customerNotes ?? null);
       }
     } catch {
       setHistoryError("Impossibile connettersi al server.");
@@ -436,11 +446,11 @@ export function BookingFlow({
       {/* Header */}
       <header className="w-full top-0 sticky z-50 bg-[#FAF8F5]/90 backdrop-blur-md flex justify-between items-center px-6 py-6 border-b border-[#E8E4DE]/30">
         <div className="flex flex-col gap-0.5 cursor-pointer active:scale-95 duration-200 transition-opacity hover:opacity-80">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-[24px]">spa</span>
-            <h1 className="font-serif text-2xl font-semibold tracking-tight">PrenotaEasy</h1>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Logo" className="h-12 w-12 rounded-xl object-contain" />
+            <h1 className="font-bold text-xl tracking-tight">PrenotaEasy</h1>
           </div>
-          <p className="text-[11px] font-sans font-semibold uppercase tracking-[0.1em] text-[#8C9A86] ml-8">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8C9A86] ml-[60px]">
             {business.name}
           </p>
         </div>
@@ -452,10 +462,10 @@ export function BookingFlow({
           <div>
             {/* Hero Section */}
             <section className="mt-8 mb-10">
-              <h2 className="font-serif text-3xl md:text-4xl font-semibold text-primary mb-2">
+              <h2 className="text-3xl md:text-4xl font-extrabold text-primary mb-2 tracking-tight">
                 Prenota il tuo Rituale
               </h2>
-              <p className="text-[#8C9A86] font-medium max-w-[85%]">
+              <p className="text-[#8C9A86] font-medium max-w-[85%] text-sm">
                 Seleziona i servizi e l'orario che preferisci per un'esperienza di bellezza personalizzata.
               </p>
             </section>
@@ -463,8 +473,8 @@ export function BookingFlow({
             {/* Select Service Section */}
             <section id="services-section" className="mb-10">
               <div className="flex justify-between items-baseline mb-6">
-                <h3 className="font-serif text-xl font-medium text-primary">Seleziona Servizio</h3>
-                <span className="text-xs font-semibold text-primary uppercase border-b border-primary/30 pb-0.5">
+                <h3 className="text-lg font-bold text-primary">Seleziona Servizio</h3>
+                <span className="text-xs font-bold text-primary uppercase border-b border-primary/30 pb-0.5">
                   Menu completo
                 </span>
               </div>
@@ -477,24 +487,28 @@ export function BookingFlow({
                       key={s.id}
                       onClick={() => selectService(s)}
                       className={cn(
-                        "group flex items-center p-4 rounded-2xl border cursor-pointer transition-all duration-300",
+                        "group flex items-start p-5 rounded-2xl border cursor-pointer transition-all duration-200 active:scale-[0.99] ios-card",
                         isSelected
-                          ? "bg-white border-[#4D5A46] service-card-active"
-                          : "bg-[#F4F1EB] border-transparent hover:bg-white hover:shadow-sm"
+                          ? "bg-white border-[var(--ink)] shadow-md"
+                          : "bg-[var(--surface-2)]/60 border-transparent hover:bg-white hover:border-[var(--line-strong)]"
                       )}
                     >
-                      <div className="w-16 h-16 rounded-xl overflow-hidden bg-[#FAF8F5] mr-4 flex items-center justify-center text-primary/70 shrink-0">
-                        <span className="material-symbols-outlined text-[32px]">{iconName}</span>
+                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-white mr-4 flex items-center justify-center text-[#4D5A46]/80 shrink-0 border border-[#E8E4DE]/50 shadow-inner">
+                        <span className="material-symbols-outlined text-[28px]">{iconName}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-serif text-[18px] text-[#4D5A46] font-bold truncate">{s.name}</p>
-                        <p className="text-sm text-[#8C9A86] font-medium">
-                          {formatDuration(s.duration_min)} · {formatPrice(s.price_cents)}
+                        <p className="text-base text-[#4D5A46] font-bold tracking-wide leading-snug">{s.name}</p>
+                        {s.description && (
+                          <p className="text-[12px] text-[#8C9A86] mt-1 mb-2 leading-relaxed font-medium line-clamp-2 pr-2">
+                            {s.description}
+                          </p>
+                        )}
+                        <p className="text-xs text-[#8C9A86] font-semibold mt-1.5 flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[14px]">schedule</span> {formatDuration(s.duration_min)}
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#8C9A86]/40"></span>
+                          <span className="text-[#4D5A46] font-bold text-sm">{formatPrice(s.price_cents)}</span>
                         </p>
                       </div>
-                      <span className={cn("material-symbols-outlined transition-colors", isSelected ? "text-primary" : "text-[#8C9A86] group-hover:text-primary")}>
-                        {iconName}
-                      </span>
                     </div>
                   );
                 })}
@@ -503,22 +517,24 @@ export function BookingFlow({
 
             {/* Choose Professional Section */}
             <section id="professional-section" className={cn("mb-10 transition-opacity duration-300", !service && "opacity-40 pointer-events-none")}>
-              <h3 className="font-serif text-xl font-medium text-primary mb-6">Scegli l'Operatore</h3>
+              <h3 className="text-lg font-bold text-primary mb-6">Scegli l'Operatore</h3>
               {!service && (
                 <p className="text-sm text-[#8C9A86] italic mb-4">Seleziona prima un servizio per scegliere l'operatore.</p>
               )}
               <div className="flex gap-8 overflow-x-auto no-scrollbar py-2">
-                <div className="flex flex-col items-center gap-3 cursor-pointer group shrink-0" onClick={() => selectOperator("any")}>
-                  <div
-                    className={cn(
-                      "w-16 h-16 rounded-full flex items-center justify-center bg-[#F4F1EB] text-primary transition-all duration-300",
-                      operator === "any" ? "professional-avatar-active shadow-md" : "group-hover:scale-105"
-                    )}
-                  >
-                    <span className="material-symbols-outlined text-[28px]">shuffle</span>
+                {employees.length > 1 && (
+                  <div className="flex flex-col items-center gap-3 cursor-pointer group shrink-0" onClick={() => selectOperator("any")}>
+                    <div
+                      className={cn(
+                        "w-16 h-16 rounded-full flex items-center justify-center bg-[#F4F1EB] text-primary transition-all duration-200 border border-transparent",
+                        operator === "any" ? "professional-avatar-active shadow-sm" : "group-hover:scale-105"
+                      )}
+                    >
+                      <span className="material-symbols-outlined text-[28px]">shuffle</span>
+                    </div>
+                    <span className="text-xs font-semibold text-on-surface">Qualsiasi</span>
                   </div>
-                  <span className="text-xs font-semibold text-on-surface">Qualsiasi</span>
-                </div>
+                )}
 
                 {employees.map((e) => {
                   const isSelected = operator === e.id;
@@ -527,8 +543,8 @@ export function BookingFlow({
                       <div
                         style={{ backgroundColor: e.color }}
                         className={cn(
-                          "w-16 h-16 rounded-full flex items-center justify-center text-white font-serif text-2xl font-bold transition-all duration-300",
-                          isSelected ? "professional-avatar-active shadow-md" : "group-hover:scale-105"
+                          "w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-black transition-all duration-200 border border-transparent",
+                          isSelected ? "professional-avatar-active shadow-sm" : "group-hover:scale-105"
                         )}
                       >
                         {e.name.charAt(0).toUpperCase()}
@@ -543,10 +559,10 @@ export function BookingFlow({
             {/* Date Selector Section */}
             <section id="date-section" className={cn("mb-10 transition-opacity duration-300", !service && "opacity-40 pointer-events-none")}>
               <div className="flex justify-between items-baseline mb-6">
-                <h3 className="font-serif text-xl font-medium text-primary">Scegli la Data</h3>
+                <h3 className="text-lg font-bold text-primary">Scegli la Data</h3>
                 <button
                   onClick={() => setClientCalendarOpen(true)}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-primary uppercase border-b border-primary/30 pb-0.5 cursor-pointer hover:opacity-85 active:scale-95 transition-all"
+                  className="flex items-center gap-1.5 text-xs font-bold text-primary uppercase border-b border-primary/30 pb-0.5 cursor-pointer hover:opacity-85 active:scale-95 transition-all"
                 >
                   <span className="material-symbols-outlined text-sm">calendar_month</span>
                   Vedi Calendario
@@ -557,7 +573,8 @@ export function BookingFlow({
               )}
               <div className="flex overflow-x-auto no-scrollbar gap-4 pb-4 -mx-1 px-1 snap-x">
                 {days.map((day) => {
-                  const isClosed = closedSet.has(day.weekday0);
+                  const isHoliday = isDateHoliday(day.dateStr);
+                  const isClosed = closedSet.has(day.weekday0) || isHoliday;
                   const isSelected = dateStr === day.dateStr;
 
                   return (
@@ -573,13 +590,13 @@ export function BookingFlow({
                           : "border border-[#E8E4DE]/50 bg-[#F4F1EB] hover:bg-white hover:border-[#4D5A46]/30"
                       )}
                     >
-                      <span className={cn("text-[10px] font-semibold uppercase tracking-widest", isSelected ? "text-white/80" : "text-[#8C9A86]")}>
+                      <span className={cn("text-[10px] font-bold uppercase tracking-widest", isSelected ? "text-white/80" : "text-[#8C9A86]")}>
                         {day.monthLabel}
                       </span>
-                      <span className="font-serif text-[24px] font-bold leading-none my-1">
+                      <span className="text-2xl font-extrabold leading-none my-1 tracking-tight">
                         {day.dayNum}
                       </span>
-                      <span className={cn("text-[10px] font-semibold uppercase tracking-wider", isSelected ? "text-white/80" : "text-[#8C9A86]")}>
+                      <span className={cn("text-[10px] font-bold uppercase tracking-wider", isSelected ? "text-white/80" : "text-[#8C9A86]")}>
                         {day.weekdayLabel}
                       </span>
                     </div>
@@ -590,7 +607,7 @@ export function BookingFlow({
 
             {/* Time Grid Section */}
             <section id="time-section" className={cn("mb-10 transition-opacity duration-300", (!service || !dateStr) && "opacity-40 pointer-events-none")}>
-              <h3 className="font-serif text-xl font-medium text-primary mb-6">Scegli l'Orario</h3>
+              <h3 className="text-lg font-bold text-primary mb-6">Scegli l'Orario</h3>
               {loadingSlots ? (
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
                   {Array.from({ length: 8 }).map((_, i) => (
@@ -606,7 +623,7 @@ export function BookingFlow({
                   {/* Mattino */}
                   {morningSlots.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-[#8C9A86] uppercase tracking-widest mb-4 flex items-center gap-2">
+                      <p className="text-xs font-bold text-[#8C9A86] uppercase tracking-widest mb-4 flex items-center gap-2">
                         <span className="material-symbols-outlined text-[16px]">light_mode</span> Mattino
                       </p>
                       <div className="flex flex-wrap gap-3">
@@ -622,6 +639,7 @@ export function BookingFlow({
                                   ? "border-[#4D5A46] time-chip-active text-white bg-[#4D5A46]"
                                   : "border-[#E8E4DE]/50 bg-[#F4F1EB] text-[#4D5A46] hover:border-[#4D5A46]"
                               )}
+                              style={isSelected ? { color: "#FAF8F5" } : undefined}
                             >
                               {sl.time}
                             </button>
@@ -634,7 +652,7 @@ export function BookingFlow({
                   {/* Pomeriggio */}
                   {afternoonSlots.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-[#8C9A86] uppercase tracking-widest mb-4 flex items-center gap-2">
+                      <p className="text-xs font-bold text-[#8C9A86] uppercase tracking-widest mb-4 flex items-center gap-2">
                         <span className="material-symbols-outlined text-[16px]">dark_mode</span> Pomeriggio
                       </p>
                       <div className="flex flex-wrap gap-3">
@@ -650,6 +668,7 @@ export function BookingFlow({
                                   ? "border-[#4D5A46] time-chip-active text-white bg-[#4D5A46]"
                                   : "border-[#E8E4DE]/50 bg-[#F4F1EB] text-[#4D5A46] hover:border-[#4D5A46]"
                               )}
+                              style={isSelected ? { color: "#FAF8F5" } : undefined}
                             >
                               {sl.time}
                             </button>
@@ -667,7 +686,7 @@ export function BookingFlow({
               <div className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-[#FAF8F5] via-[#FAF8F5]/95 to-transparent pt-16 pb-24 z-40 flex justify-center">
                 <button
                   onClick={() => setDetailsOpen(true)}
-                  className="w-full max-w-screen-sm h-14 rounded-full satin-gold font-sans text-xs font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-[0.98] transition-transform duration-200 cursor-pointer"
+                  className="w-full max-w-screen-sm ios-btn-primary font-sans text-xs font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3"
                 >
                   Prenota Ora
                   <span className="material-symbols-outlined text-[20px]">check_circle</span>
@@ -680,16 +699,16 @@ export function BookingFlow({
         {/* Tab 2: HISTORY (Cronologia & Reschedule / Cancel) */}
         {currentTab === "history" && (
           <div className="mt-8">
-            <h2 className="font-serif text-2xl font-bold text-primary mb-2">I miei Appuntamenti</h2>
+            <h2 className="text-2xl font-extrabold text-primary mb-2 tracking-tight">I miei Appuntamenti</h2>
             <p className="text-[#8C9A86] text-sm mb-6">Visualizza i dettagli delle tue prenotazioni e le formule del salone.</p>
 
             {!phone ? (
-              <div className="glass-card rounded-2xl p-6 text-center space-y-4">
+              <div className="ios-card rounded-2xl p-6 text-center space-y-4">
                 <span className="material-symbols-outlined text-4xl text-[#8C9A86]">account_box</span>
                 <p className="text-sm font-medium">Non hai configurato il tuo profilo. Inserisci il tuo numero per vedere la cronologia.</p>
                 <button
                   onClick={() => setCurrentTab("profile")}
-                  className="px-6 h-11 rounded-full bg-[#4D5A46] text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-95 transition-all cursor-pointer"
+                  className="px-6 h-11 rounded-full bg-[#4D5A46] text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-95 transition-all cursor-pointer border-none"
                 >
                   Imposta Profilo
                 </button>
@@ -703,32 +722,43 @@ export function BookingFlow({
             ) : historyError ? (
               <p className="text-sm text-[#ba1a1a] font-semibold">{historyError}</p>
             ) : history.length === 0 ? (
-              <div className="glass-card rounded-2xl p-8 text-center space-y-3 text-[#8C9A86]">
+              <div className="ios-card rounded-2xl p-8 text-center space-y-3 text-[#8C9A86]">
                 <span className="material-symbols-outlined text-4xl">calendar_today</span>
                 <p className="text-sm font-medium">Nessuna prenotazione trovata per il numero {phone}.</p>
                 <button
                   onClick={() => setCurrentTab("book")}
-                  className="mt-2 text-xs font-bold text-[#4D5A46] uppercase tracking-wider border-b border-[#4D5A46]/30 pb-0.5 cursor-pointer"
+                  className="mt-2 text-xs font-bold text-[#4D5A46] uppercase tracking-wider border-b border-[#4D5A46]/30 pb-0.5 cursor-pointer border-none bg-transparent"
                 >
                   Prenota il tuo primo rituale →
                 </button>
               </div>
             ) : (
               <div className="space-y-8">
+                {/* General Customer Notes ("cose da ricordare assolutamente") */}
+                {customerNotes && (
+                  <div className="ios-card bg-[#4D5A46]/5 rounded-2xl p-5 border border-[#4D5A46]/10 text-sm">
+                    <div className="flex items-center gap-2 text-[#4D5A46] font-bold mb-1.5">
+                      <span className="material-symbols-outlined text-lg">assignment</span>
+                      <span>Da Ricordare Assolutamente (Note Tecniche)</span>
+                    </div>
+                    <p className="text-[#4D5A46] italic leading-relaxed whitespace-pre-wrap">{customerNotes}</p>
+                  </div>
+                )}
+
                 {/* Upcoming Bookings */}
                 {upcomingAppts.length > 0 && (
                   <div>
-                    <h3 className="font-serif text-lg font-bold text-[#4D5A46] mb-4 border-b border-[#E8E4DE]/50 pb-1 flex items-center gap-2">
+                    <h3 className="text-base font-bold text-[#4D5A46] mb-4 border-b border-[#E8E4DE]/50 pb-1 flex items-center gap-2">
                       <span className="material-symbols-outlined text-md">event</span> Prossimi Appuntamenti
                     </h3>
                     <div className="space-y-4">
                       {upcomingAppts.map((a) => {
                         const emp = employees.find((e) => e.id === a.employee_id);
                         return (
-                          <div key={a.id} className="glass-card rounded-2xl p-5 shadow-sm space-y-4 relative border border-[#4D5A46]/10">
+                          <div key={a.id} className="ios-card rounded-2xl p-5 shadow-sm space-y-4 relative border border-[#4D5A46]/10">
                             <div className="flex justify-between items-start">
                               <div>
-                                <h4 className="font-serif text-lg font-bold text-[#4D5A46]">{a.service_name}</h4>
+                                <h4 className="text-base font-bold text-[#4D5A46]">{a.service_name}</h4>
                                 <p className="text-xs text-[#8C9A86] mt-0.5">{formatHistoryDate(a.starts_at)} · Con {emp?.name ?? "Primo disponibile"}</p>
                               </div>
                               <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#b3cea7]/30 text-[#4D5A46]">Confermato</span>
@@ -747,14 +777,14 @@ export function BookingFlow({
                                   setClientRescheduleAppt(a);
                                   setClientRescheduleDate(a.starts_at.slice(0, 10));
                                 }}
-                                className="h-10 px-5 rounded-full border border-[#4D5A46] text-[#4D5A46] hover:bg-[#F4F1EB] text-xs font-bold cursor-pointer transition-colors active:scale-95 duration-200"
+                                className="h-9 px-4 rounded-full border border-[#4D5A46] text-[#4D5A46] hover:bg-[#F4F1EB] text-xs font-bold cursor-pointer transition-colors active:scale-95 duration-200 bg-transparent"
                               >
                                 Modifica
                               </button>
                               <button
                                 disabled={cancellingId === a.id}
                                 onClick={() => clientCancelAppointment(a.id)}
-                                className="h-10 px-5 rounded-full border border-[#ba1a1a] text-[#ba1a1a] hover:bg-[#ba1a1a]/5 text-xs font-bold cursor-pointer transition-colors active:scale-95 duration-200"
+                                className="h-9 px-4 rounded-full border border-[#ba1a1a] text-[#ba1a1a] hover:bg-[#ba1a1a]/5 text-xs font-bold cursor-pointer transition-colors active:scale-95 duration-200 bg-transparent"
                               >
                                 {cancellingId === a.id ? "Annullamento..." : "Disdici"}
                               </button>
@@ -769,7 +799,7 @@ export function BookingFlow({
                 {/* Past & Cancelled Bookings */}
                 {pastAppts.length > 0 && (
                   <div>
-                    <h3 className="font-serif text-lg font-bold text-[#4D5A46] mb-4 border-b border-[#E8E4DE]/50 pb-1 flex items-center gap-2">
+                    <h3 className="text-base font-bold text-[#4D5A46] mb-4 border-b border-[#E8E4DE]/50 pb-1 flex items-center gap-2">
                       <span className="material-symbols-outlined text-md">history</span> Storico Appuntamenti
                     </h3>
                     <div className="space-y-4">
@@ -777,10 +807,10 @@ export function BookingFlow({
                         const emp = employees.find((e) => e.id === a.employee_id);
                         const isCancelled = a.status === "cancelled";
                         return (
-                          <div key={a.id} className="glass-card rounded-2xl p-5 shadow-sm space-y-4 opacity-75">
+                          <div key={a.id} className="ios-card rounded-2xl p-5 shadow-sm space-y-4 opacity-75">
                             <div className="flex justify-between items-start">
                               <div>
-                                <h4 className="font-serif text-lg font-bold text-[#4D5A46]">{a.service_name}</h4>
+                                <h4 className="text-base font-bold text-[#4D5A46]">{a.service_name}</h4>
                                 <p className="text-xs text-[#8C9A86] mt-0.5">{formatHistoryDate(a.starts_at)} · Con {emp?.name ?? "Primo disponibile"}</p>
                               </div>
                               <span className={cn(
@@ -802,12 +832,11 @@ export function BookingFlow({
                               <div className="flex justify-end pt-1">
                                 <button
                                   onClick={() => {
-                                    // Pre-populate service selection and go to book tab
                                     const s = services.find((sv) => sv.name === a.service_name);
                                     if (s) setService(s);
                                     setCurrentTab("book");
                                   }}
-                                  className="px-4 py-2 rounded-lg border border-[#4D5A46] text-[#4D5A46] hover:bg-[#4D5A46]/5 text-xs font-bold cursor-pointer transition-colors active:scale-95 duration-200"
+                                  className="px-4 py-2 rounded-lg border border-[#4D5A46] text-[#4D5A46] hover:bg-[#4D5A46]/5 text-xs font-bold cursor-pointer transition-colors active:scale-95 duration-200 bg-transparent"
                                 >
                                   Prenota di nuovo
                                 </button>
@@ -827,10 +856,10 @@ export function BookingFlow({
         {/* Tab 3: PROFILE (Inserimento dati personali) */}
         {currentTab === "profile" && (
           <div className="mt-8 max-w-sm mx-auto">
-            <h2 className="font-serif text-2xl font-bold text-primary mb-2">Profilo Personale</h2>
+            <h2 className="text-2xl font-extrabold text-primary mb-2 tracking-tight">Profilo Personale</h2>
             <p className="text-[#8C9A86] text-sm mb-6">Salva i tuoi contatti per visualizzare la cronologia ed evitare di digitarli ogni volta.</p>
 
-            <form onSubmit={saveProfile} className="space-y-4 glass-card rounded-2xl p-6 border border-[#c3c8bd]/30 shadow-sm">
+            <form onSubmit={saveProfile} className="space-y-4 ios-card rounded-2xl p-6 border border-[#c3c8bd]/30 shadow-sm">
               <div>
                 <label className="block text-xs font-bold text-[#4D5A46] mb-1.5 px-1 uppercase tracking-wider">
                   Nome e cognome
@@ -864,7 +893,7 @@ export function BookingFlow({
 
               <button
                 type="submit"
-                className="w-full h-12 rounded-xl bg-[#4D5A46] text-white font-semibold text-sm active:scale-[0.98] transition-transform duration-200 cursor-pointer hover:opacity-95"
+                className="w-full h-12 rounded-xl bg-[#D4AF37] hover:bg-[#C59B27] !text-white font-semibold text-sm active:scale-[0.98] transition-transform duration-200 cursor-pointer shadow-md border-none"
               >
                 Salva Profilo
               </button>
@@ -883,7 +912,7 @@ export function BookingFlow({
                       setHistory([]);
                     }
                   }}
-                  className="text-xs font-bold text-[#ba1a1a] uppercase tracking-wider cursor-pointer hover:opacity-80"
+                  className="text-xs font-bold text-[#ba1a1a] uppercase tracking-wider cursor-pointer hover:opacity-80 border-none bg-transparent"
                 >
                   Scollega account locale
                 </button>
@@ -933,7 +962,7 @@ export function BookingFlow({
           <div className="rounded-2xl bg-[#F4F1EB] p-5 border border-[#E8E4DE] space-y-3 shadow-sm">
             <div className="flex justify-between items-center text-sm">
               <span className="text-[#8C9A86] font-semibold">Servizio:</span>
-              <span className="font-bold font-serif text-[#4D5A46]">
+              <span className="font-bold text-[#4D5A46]">
                 {service?.name} ({formatPrice(service?.price_cents ?? 0)})
               </span>
             </div>
@@ -1003,9 +1032,9 @@ export function BookingFlow({
             disabled={!canSubmit || submitting}
             onClick={submit}
             className={cn(
-              "flex w-full h-14 items-center justify-center gap-2.5 rounded-2xl text-white font-serif text-[1.1rem] font-bold shadow-md transition-all duration-200 select-none cursor-pointer",
+              "flex w-full h-14 items-center justify-center gap-2.5 rounded-full text-white font-sans text-base font-bold shadow-md transition-all duration-200 select-none cursor-pointer border-none",
               canSubmit && !submitting
-                ? "bg-gradient-to-r from-[#D4AF37] to-[#C59B27] hover:scale-[1.01] hover:brightness-[1.05] active:scale-[0.98]"
+                ? "bg-[var(--accent)] hover:scale-[1.01] hover:brightness-[1.05] active:scale-[0.98]"
                 : "bg-[#8C9A86]/40 cursor-not-allowed text-white/60"
             )}
           >
@@ -1024,7 +1053,7 @@ export function BookingFlow({
         >
           <div className="space-y-5 py-2">
             <div className="rounded-2xl bg-[#F4F1EB] p-4 border border-[#E8E4DE] text-sm text-[#4D5A46] space-y-1">
-              <p className="font-serif font-bold text-base">{clientRescheduleAppt.service_name}</p>
+              <p className="font-bold text-base">{clientRescheduleAppt.service_name}</p>
               <p className="text-xs text-[#8C9A86]">
                 Operatore: {employees.find(e => e.id === clientRescheduleAppt.employee_id)?.name ?? "Qualsiasi"}
               </p>
@@ -1064,15 +1093,16 @@ export function BookingFlow({
                   {clientRescheduleSlots.map((sl) => {
                     const isSel = clientRescheduleSlot?.startUtc === sl.startUtc;
                     return (
-                      <button
+                       <button
                         key={sl.startUtc}
                         onClick={() => setClientRescheduleSlot(sl)}
                         className={cn(
                           "px-4 py-2 rounded-full border text-xs font-semibold transition-all duration-200 cursor-pointer",
                           isSel
-                            ? "border-[#4D5A46] bg-[#4D5A46] text-white"
+                            ? "border-[#4D5A46] bg-[#4D5A46] time-chip-active"
                             : "border-[#E8E4DE]/50 bg-[#F4F1EB] text-[#4D5A46] hover:border-[#4D5A46]"
                         )}
+                        style={isSel ? { color: "#FAF8F5" } : undefined}
                       >
                         {sl.time}
                       </button>
@@ -1087,9 +1117,9 @@ export function BookingFlow({
               disabled={!clientRescheduleSlot || reschedulingPending}
               onClick={submitClientReschedule}
               className={cn(
-                "w-full h-12 rounded-full font-semibold text-sm active:scale-[0.98] transition-transform duration-200 cursor-pointer flex items-center justify-center text-[#4D5A46]",
+                "w-full h-12 rounded-full font-semibold text-sm active:scale-[0.98] transition-transform duration-200 cursor-pointer flex items-center justify-center border-none",
                 clientRescheduleSlot && !reschedulingPending
-                  ? "bg-[#f2b33d]"
+                  ? "bg-[var(--accent)] text-white font-bold"
                   : "bg-[#8C9A86]/20 text-[#4D5A46]/40 cursor-not-allowed"
               )}
             >
@@ -1109,7 +1139,7 @@ export function BookingFlow({
         >
           <div className="space-y-4 py-2">
             <div className="flex justify-between items-center mb-2">
-              <h3 className="font-serif text-lg font-bold text-[#4D5A46]">
+              <h3 className="text-base font-bold text-[#4D5A46]">
                 {MONTH_LABELS[clientCalendarMonth]} {clientCalendarYear}
               </h3>
               <div className="flex gap-1">
@@ -1122,7 +1152,7 @@ export function BookingFlow({
                       setClientCalendarMonth(m => m - 1);
                     }
                   }}
-                  className="p-2 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined text-[#4D5A46]"
+                  className="p-2 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined text-[#4D5A46] border-none bg-transparent"
                 >
                   chevron_left
                 </button>
@@ -1135,7 +1165,7 @@ export function BookingFlow({
                       setClientCalendarMonth(m => m + 1);
                     }
                   }}
-                  className="p-2 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined text-[#4D5A46]"
+                  className="p-2 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined text-[#4D5A46] border-none bg-transparent"
                 >
                   chevron_right
                 </button>
@@ -1167,7 +1197,8 @@ export function BookingFlow({
                 const isBeyond = targetDay > horizonDate;
                 
                 const isDayClosed = closedSet.has((day.getDay() + 6) % 7); // match employee weekday index
-                const isDisabled = isPast || isBeyond || isDayClosed;
+                const isDayHoliday = isDateHoliday(formatDateLocal(day));
+                const isDisabled = isPast || isBeyond || isDayClosed || isDayHoliday;
 
                 return (
                   <button
@@ -1182,15 +1213,15 @@ export function BookingFlow({
                       }, 150);
                     }}
                     className={cn(
-                      "h-9 w-full rounded-full flex items-center justify-center relative text-xs active:scale-95 transition-all cursor-pointer",
+                      "h-9 w-full rounded-full flex items-center justify-center relative text-xs active:scale-95 transition-all cursor-pointer border-none",
                       isSelected
-                        ? "bg-[#4D5A46] !text-white font-bold"
+                        ? "bg-[#4D5A46] text-white font-bold"
                         : isDisabled
-                        ? "text-[#8C9A86]/30 cursor-not-allowed line-through"
-                        : "hover:bg-[#F4F1EB] text-[#4D5A46]"
+                        ? "bg-transparent text-[#8C9A86]/30 cursor-not-allowed line-through"
+                        : "bg-transparent hover:bg-[#F4F1EB] text-[#4D5A46]"
                     )}
                   >
-                    <span className={cn(isSelected && "!text-white")}>{day.getDate()}</span>
+                    <span className={isSelected ? "text-white font-bold" : ""}>{day.getDate()}</span>
                   </button>
                 );
               })}
@@ -1199,7 +1230,7 @@ export function BookingFlow({
             <div className="pt-2 text-center">
               <button 
                 onClick={() => setClientCalendarOpen(false)}
-                className="text-xs font-bold text-[#8C9A86] uppercase tracking-wider cursor-pointer hover:opacity-80"
+                className="text-xs font-bold text-[#8C9A86] uppercase tracking-wider cursor-pointer hover:opacity-80 border-none bg-transparent"
               >
                 Chiudi
               </button>
@@ -1237,12 +1268,12 @@ function DoneScreen({
 
   return (
     <main className="mx-auto flex min-h-[100dvh] max-w-[520px] flex-col items-center justify-center bg-[#FAF8F5] px-6 py-12 text-center border-x border-[#EADFCB]/40 shadow-xl">
-      <div className="grid h-20 w-20 place-items-center rounded-full bg-[#f2b33d] text-white shadow-md animate-bounce">
-        <span className="material-symbols-outlined text-[40px] text-white">check</span>
+      <div className="grid h-16 w-16 place-items-center rounded-full bg-[#34c759] text-white shadow-md animate-bounce">
+        <span className="material-symbols-outlined text-[32px] text-white">check</span>
       </div>
 
       <div className="mt-6 space-y-2">
-        <h2 className="text-3xl font-serif font-bold italic text-[#4D5A46]">
+        <h2 className="text-2xl font-black text-[#4D5A46] tracking-tight">
           Prenotazione Confermata
         </h2>
         <p className="text-[#8C9A86] font-medium text-sm">
@@ -1253,7 +1284,7 @@ function DoneScreen({
       <div className="mt-8 w-full rounded-2xl bg-[#F4F1EB] p-6 border border-[#E8E4DE] space-y-4 text-left max-w-sm mx-auto shadow-sm">
         <div>
           <span className="text-xs text-[#8C9A86] font-semibold block tracking-wider">SERVIZIO</span>
-          <span className="font-serif text-lg font-bold text-[#4D5A46]">{serviceName}</span>
+          <span className="text-base font-bold text-[#4D5A46]">{serviceName}</span>
         </div>
         <div className="grid grid-cols-2 gap-4 border-t border-[#E8E4DE]/50 pt-3">
           <div>
@@ -1271,18 +1302,18 @@ function DoneScreen({
         </div>
       </div>
 
-      <div className="mt-8 w-full max-w-sm space-y-3">
+      <div className="mt-8 w-full max-w-sm space-y-3 px-4">
         <a
           href={gcal}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center w-full h-12 rounded-full border border-[#4D5A46] text-[#4D5A46] font-semibold text-sm transition-all hover:bg-[#F4F1EB] active:scale-[0.98]"
+          className="flex items-center justify-center w-full ios-btn-secondary h-12 rounded-full font-semibold text-sm transition-all"
         >
           Aggiungi a Google Calendar
         </a>
         <button
           onClick={onReset}
-          className="w-full h-12 rounded-full bg-[#f2b33d] text-[#4D5A46] font-semibold text-sm transition-all hover:opacity-90 active:scale-[0.98] cursor-pointer"
+          className="w-full ios-btn-primary h-12 rounded-full font-semibold text-sm transition-all cursor-pointer"
         >
           Vai ai miei appuntamenti
         </button>

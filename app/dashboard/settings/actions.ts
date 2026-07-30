@@ -57,6 +57,7 @@ export async function addService(input: {
   name: string;
   durationMin: number;
   priceCents: number;
+  description?: string;
 }): Promise<Result> {
   const { supa, business } = await requireBusiness();
   if (!input.name.trim()) return { ok: false, error: "Nome mancante." };
@@ -65,6 +66,7 @@ export async function addService(input: {
     name: input.name.trim(),
     duration_min: input.durationMin,
     price_cents: input.priceCents,
+    description: input.description?.trim() || null,
     sort: Math.floor(Date.now() / 1000),
   });
   if (error) return { ok: false, error: "Impossibile aggiungere il servizio." };
@@ -77,6 +79,7 @@ export async function updateService(input: {
   name: string;
   durationMin: number;
   priceCents: number;
+  description?: string;
 }): Promise<Result> {
   const { supa, business } = await requireBusiness();
   const { error } = await supa
@@ -85,6 +88,7 @@ export async function updateService(input: {
       name: input.name.trim(),
       duration_min: input.durationMin,
       price_cents: input.priceCents,
+      description: input.description?.trim() || null,
     })
     .eq("id", input.id)
     .eq("business_id", business.id);
@@ -130,11 +134,15 @@ export async function addEmployee(name: string): Promise<Result> {
 export async function updateEmployee(input: {
   id: string;
   name: string;
+  avatarUrl?: string | null;
 }): Promise<Result> {
   const { supa, business } = await requireBusiness();
   const { error } = await supa
     .from("employees")
-    .update({ name: input.name.trim() })
+    .update({ 
+      name: input.name.trim(),
+      avatar_url: input.avatarUrl || null
+    })
     .eq("id", input.id)
     .eq("business_id", business.id);
   if (error) return { ok: false, error: "Impossibile salvare." };
@@ -148,6 +156,49 @@ export async function deleteEmployee(id: string): Promise<Result> {
   const { error } = await supa
     .from("employees")
     .update({ active: false })
+    .eq("id", id)
+    .eq("business_id", business.id);
+  if (error) return { ok: false, error: "Impossibile eliminare." };
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function addHoliday(input: {
+  startDate: string;
+  endDate?: string;
+  description?: string;
+}): Promise<Result> {
+  const { supa, business } = await requireBusiness();
+  if (!input.startDate) return { ok: false, error: "Data d'inizio mancante." };
+
+  const start = input.startDate;
+  const end = input.endDate || input.startDate;
+
+  if (end < start) {
+    return { ok: false, error: "La data di fine non può essere precedente alla data d'inizio." };
+  }
+
+  const { error } = await supa.from("business_holidays").insert({
+    business_id: business.id,
+    start_date: start,
+    end_date: end,
+    description: input.description?.trim() || null,
+  });
+  if (error) {
+    if (error.code === "23505") {
+      return { ok: false, error: "Questo periodo è già configurato come festivo." };
+    }
+    return { ok: false, error: "Impossibile aggiungere il giorno festivo." };
+  }
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function deleteHoliday(id: string): Promise<Result> {
+  const { supa, business } = await requireBusiness();
+  const { error } = await supa
+    .from("business_holidays")
+    .delete()
     .eq("id", id)
     .eq("business_id", business.id);
   if (error) return { ok: false, error: "Impossibile eliminare." };

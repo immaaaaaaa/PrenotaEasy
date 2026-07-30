@@ -43,7 +43,11 @@ export const EMPLOYEE_COLORS = [
   "#8b5cf6", "#0ea5a4", "#e0697e", "#ef6c3b",
 ];
 
-export const DURATION_OPTIONS = [15, 20, 30, 45, 60, 75, 90, 120];
+export const DURATION_OPTIONS = [
+  15, 20, 30, 45, 60, 75, 90, 105, 120, 
+  135, 150, 165, 180, 210, 240, 270, 300, 
+  330, 360, 420, 480
+];
 
 export function eurosToCents(input: string): number {
   const n = parseFloat(input.replace(",", ".").replace(/[^\d.]/g, ""));

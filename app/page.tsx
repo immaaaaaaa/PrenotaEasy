@@ -5,7 +5,7 @@ export default function Home() {
     <main className="mx-auto flex min-h-[100dvh] max-w-[560px] flex-col px-6">
       <div className="flex flex-1 flex-col justify-center py-16">
         <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-full bg-[var(--accent-soft)] px-3 py-1.5 text-[0.85rem] font-[560] text-[var(--accent)]">
-          <span>💇</span> Prenotazioni senza pensieri
+          <span>Prenotazioni senza pensieri</span>
         </div>
 
         <h1 className="text-display max-w-[10ch]">
@@ -33,13 +33,13 @@ export default function Home() {
 
         <ul className="mt-12 space-y-4">
           {[
-            ["📲", "Zero app da scaricare", "Il cliente prenota dal browser, subito."],
-            ["🗓️", "Un’agenda per ogni operatore", "Ogni collaboratore vede i suoi appuntamenti."],
-            ["💬", "Avvisi su WhatsApp", "Sposti un appuntamento? Il cliente lo sa subito."],
-          ].map(([emoji, title, desc]) => (
+            ["phone_iphone", "Zero app da scaricare", "Il cliente prenota dal browser, subito."],
+            ["group", "Un’agenda per ogni operatore", "Ogni collaboratore vede i suoi appuntamenti."],
+            ["chat", "Avvisi su WhatsApp", "Sposti un appuntamento? Il cliente lo sa subito."],
+          ].map(([icon, title, desc]) => (
             <li key={title} className="flex items-start gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[var(--r-md)] bg-[var(--surface-2)] text-xl">
-                {emoji}
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[var(--r-md)] bg-[var(--surface-2)] text-[#4D5A46]">
+                <span className="material-symbols-outlined text-lg">{icon}</span>
               </span>
               <div>
                 <div className="text-headline">{title}</div>

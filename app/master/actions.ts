@@ -136,3 +136,63 @@ export async function deleteActivity(
     return { ok: false, error: error.message || "Errore durante l'eliminazione." };
   }
 }
+
+/** Toggles the operator pages premium feature for a business */
+export async function toggleOperatorPages(
+  businessId: string,
+  enabled: boolean,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const adminSupa = createAdminClient();
+    const { error } = await adminSupa
+      .from("businesses")
+      .update({ operator_pages_enabled: enabled })
+      .eq("id", businessId);
+
+    if (error) throw error;
+    revalidatePath("/master");
+    return { ok: true };
+  } catch (error: any) {
+    console.error("toggleOperatorPages error:", error);
+    return { ok: false, error: error.message || "Impossibile aggiornare l'opzione." };
+  }
+}
+
+/** Fetches operators (employees) for a given business including access tokens */
+export async function getBusinessOperators(businessId: string): Promise<any[]> {
+  try {
+    const adminSupa = createAdminClient();
+    const { data, error } = await adminSupa
+      .from("employees")
+      .select("id, name, color, active, access_token")
+      .eq("business_id", businessId)
+      .order("sort", { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("getBusinessOperators error:", error);
+    return [];
+  }
+}
+
+/** Regenerates the access token UUID for an employee */
+export async function regenerateOperatorToken(
+  employeeId: string,
+): Promise<{ ok: boolean; newToken?: string; error?: string }> {
+  try {
+    const adminSupa = createAdminClient();
+    const newToken = crypto.randomUUID();
+
+    const { error } = await adminSupa
+      .from("employees")
+      .update({ access_token: newToken })
+      .eq("id", employeeId);
+
+    if (error) throw error;
+    return { ok: true, newToken };
+  } catch (error: any) {
+    console.error("regenerateOperatorToken error:", error);
+    return { ok: false, error: error.message || "Errore durante la rigenerazione del link." };
+  }
+}

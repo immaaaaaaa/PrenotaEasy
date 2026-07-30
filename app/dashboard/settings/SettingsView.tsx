@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/ui/Sheet";
 import { QRCodeCanvas } from "qrcode.react";
@@ -25,6 +25,8 @@ import {
   updateEmployee,
   updateHours,
   updateService,
+  addHoliday,
+  deleteHoliday,
 } from "./actions";
 import { cn } from "@/lib/cn";
 
@@ -42,11 +44,13 @@ export function SettingsView({
   hours,
   services,
   employees,
+  initialHolidays = [],
 }: {
   business: Business;
   hours: HourRow[];
   services: Service[];
   employees: Employee[];
+  initialHolidays?: any[];
 }) {
   const router = useRouter();
 
@@ -58,21 +62,21 @@ export function SettingsView({
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-[#1b1c1c] pb-32 font-sans">
       {/* TopAppBar */}
-      <header className="w-full top-0 sticky z-45 bg-[#FAF8F5]/85 backdrop-blur-md border-b border-[#c3c8bd]/30">
+      <header className="w-full top-0 sticky z-45 bg-[#FAF8F5]/85 backdrop-blur-md border-b border-[var(--line)]">
         <div className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-primary text-2xl">spa</span>
-            <h1 className="font-serif text-xl font-bold tracking-tight text-[#4a6243]">PrenotaEasy</h1>
+            <img src="/logo.png" alt="Logo" className="h-12 w-12 rounded-xl object-contain" />
+            <h1 className="font-bold text-xl tracking-tight text-[#4D5A46]">PrenotaEasy</h1>
           </div>
           <div className="flex items-center gap-4">
             <button
               onClick={() => setQrOpen(true)}
-              className="material-symbols-outlined text-[#5e5e5c] cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
+              className="material-symbols-outlined text-[#8C9A86] cursor-pointer hover:opacity-80 transition-opacity active:scale-95 border-none bg-transparent"
               title="Codice QR di Prenotazione"
             >
               qr_code
             </button>
-            <button className="material-symbols-outlined text-[#5e5e5c] cursor-pointer hover:opacity-80 transition-opacity active:scale-95">
+            <button className="material-symbols-outlined text-[#8C9A86] cursor-pointer hover:opacity-80 transition-opacity active:scale-95 border-none bg-transparent">
               notifications
             </button>
           </div>
@@ -81,52 +85,53 @@ export function SettingsView({
 
       <main className="max-w-3xl mx-auto px-6 mt-8 space-y-6">
         <div>
-          <h2 className="font-serif text-2xl md:text-3xl font-semibold text-[#4a6243]">Gestione Impostazioni</h2>
-          <p className="text-[#5e5e5c] text-sm">Configura la tua attività, gli orari di apertura, i servizi e lo staff.</p>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-[#4D5A46] tracking-tight">Gestione Impostazioni</h2>
+          <p className="text-[#8C9A86] text-sm mt-1">Configura la tua attività, gli orari di apertura, i servizi e lo staff.</p>
         </div>
 
         <BusinessSection business={business} />
         <HoursSection initial={hours} />
         <ServicesSection initial={services} />
         <EmployeesSection initial={employees} />
+        <HolidaysSection initial={initialHolidays} />
         <AccountSection />
       </main>
 
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[720px] z-50 bg-[#ffffff] shadow-[0_-4px_20px_rgba(74,98,67,0.04)] border-t border-[#c3c8bd]/30">
-        <div className="flex justify-around items-center w-full px-4 py-3 pb-safe max-w-2xl mx-auto">
+      <nav className="fixed bottom-0 left-0 w-full z-50 bg-[#ffffff]/85 backdrop-blur-md shadow-[0_-8px_30px_rgba(77,90,70,0.06)] border-t border-[#E8E4DE]/20">
+        <div className="flex justify-around items-center w-full px-6 py-3 pb-safe max-w-screen-md mx-auto">
           <button
             onClick={() => router.push("/dashboard")}
-            className="flex flex-col items-center justify-center text-[#5e5e5c] p-2 hover:bg-[#F4F1EB] rounded-lg transition-colors active:scale-95 duration-200 cursor-pointer"
+            className="flex flex-col items-center justify-center gap-1 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent text-[#8C9A86] hover:opacity-85"
           >
-            <span className="material-symbols-outlined">
+            <span className="material-symbols-outlined text-[24px]">
               grid_view
             </span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider mt-0.5">Dashboard</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider">Dashboard</span>
           </button>
           <button
             onClick={() => router.push("/dashboard?tab=calendar")}
-            className="flex flex-col items-center justify-center text-[#5e5e5c] p-2 hover:bg-[#F4F1EB] rounded-lg transition-colors active:scale-95 duration-200 cursor-pointer"
+            className="flex flex-col items-center justify-center gap-1 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent text-[#8C9A86] hover:opacity-85"
           >
-            <span className="material-symbols-outlined">
+            <span className="material-symbols-outlined text-[24px]">
               calendar_month
             </span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider mt-0.5">Calendario</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider">Calendario</span>
           </button>
           <button
             onClick={() => router.push("/dashboard?tab=clients")}
-            className="flex flex-col items-center justify-center text-[#5e5e5c] p-2 hover:bg-[#F4F1EB] rounded-lg transition-colors active:scale-95 duration-200 cursor-pointer"
+            className="flex flex-col items-center justify-center gap-1 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent text-[#8C9A86] hover:opacity-85"
           >
-            <span className="material-symbols-outlined">
+            <span className="material-symbols-outlined text-[24px]">
               group
             </span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider mt-0.5">Clienti</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider">Clienti</span>
           </button>
           <button
             onClick={() => router.push("/dashboard/settings")}
-            className="flex flex-col items-center justify-center rounded-full px-4 py-1 bg-[#4a6243]/10 text-[#4a6243] active:scale-95 transition-transform duration-200 cursor-pointer"
+            className="flex flex-col items-center justify-center gap-1 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent text-[var(--ink)] font-bold"
           >
-            <span className="material-symbols-outlined">content_cut</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider mt-0.5">Servizi</span>
+            <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>content_cut</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Servizi</span>
           </button>
         </div>
       </nav>
@@ -195,7 +200,7 @@ export function SettingsView({
                   `);
                   win.document.close();
                 }}
-                className="flex-grow h-12 rounded-xl bg-[#4a6243] font-semibold text-xs text-white active:scale-95 transition-all cursor-pointer uppercase tracking-wider"
+                className="flex-grow h-12 rounded-full ios-btn-primary font-bold text-xs active:scale-95 transition-all cursor-pointer uppercase tracking-wider"
               >
                 Stampa QR
               </button>
@@ -203,7 +208,7 @@ export function SettingsView({
 
             <button
               onClick={() => setQrOpen(false)}
-              className="text-xs font-bold text-[#8C9A86] uppercase tracking-wider cursor-pointer hover:opacity-85"
+              className="text-xs font-bold text-[#8C9A86] uppercase tracking-wider cursor-pointer hover:opacity-85 border-none bg-transparent"
             >
               Chiudi
             </button>
@@ -231,9 +236,9 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="glass-card rounded-2xl p-5 shadow-sm border border-[#c3c8bd]/25 bg-white">
+    <section className="ios-card rounded-2xl p-5 border border-[var(--line)] bg-white shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="font-serif text-lg font-bold text-[#4a6243]">{title}</h3>
+        <h3 className="text-base font-bold text-[#4D5A46] tracking-tight">{title}</h3>
         {action}
       </div>
       {children}
@@ -265,20 +270,20 @@ function BusinessSection({ business }: { business: Business }) {
     <Card title="La tua attività" action={<Saved show={saved} />}>
       <div className="space-y-3">
         <input
-          className="w-full h-12 rounded-xl bg-[#FAF8F5] border border-[#c3c8bd]/30 px-4 outline-none focus:border-[#4a6243] text-sm font-medium"
+          className="w-full h-12 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[#4D5A46]"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nome Attività"
         />
         <input
-          className="w-full h-12 rounded-xl bg-[#FAF8F5] border border-[#c3c8bd]/30 px-4 outline-none focus:border-[#4a6243] text-sm font-medium"
+          className="w-full h-12 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[#4D5A46]"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           placeholder="Telefono"
           type="tel"
         />
         <input
-          className="w-full h-12 rounded-xl bg-[#FAF8F5] border border-[#c3c8bd]/30 px-4 outline-none focus:border-[#4a6243] text-sm font-medium"
+          className="w-full h-12 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[#4D5A46]"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder="Indirizzo"
@@ -287,7 +292,7 @@ function BusinessSection({ business }: { business: Business }) {
         <button
           disabled={pending}
           onClick={save}
-          className="w-full h-11 rounded-xl bg-[#4a6243] text-white font-semibold text-xs uppercase tracking-wider active:scale-[0.98] transition-transform duration-200 cursor-pointer disabled:opacity-55"
+          className="w-full h-12 rounded-full ios-btn-primary font-bold text-xs uppercase tracking-wider disabled:opacity-55"
         >
           {pending ? "Salvataggio..." : "Salva Informazioni"}
         </button>
@@ -320,64 +325,113 @@ function HoursSection({ initial }: { initial: HourRow[] }) {
 
   return (
     <Card title="Orari di apertura" action={<Saved show={saved} />}>
-      <div className="divide-y divide-[#c3c8bd]/15">
+      <div className="divide-y divide-[var(--line)]">
         {rows.map((r, i) => (
           <div key={r.weekday} className="py-3">
-            <div className="flex items-center gap-3">
-              <span className="w-20 shrink-0 font-bold text-sm text-[#4a6243]">{WEEKDAYS_LONG[r.weekday]}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center justify-between w-full sm:w-auto">
+                <span className="w-20 shrink-0 font-bold text-sm text-[#4D5A46]">{WEEKDAYS_LONG[r.weekday]}</span>
+                <div className="sm:hidden">
+                  <Toggle checked={!r.isClosed} onChange={(v) => set(i, { isClosed: !v })} label={WEEKDAYS_LONG[r.weekday]} />
+                </div>
+              </div>
               {r.isClosed ? (
                 <span className="flex-grow text-[#8C9A86] text-xs font-semibold">Chiuso</span>
               ) : (
-                <div className="flex flex-grow items-center justify-end gap-1 px-1">
+                <div className="flex flex-grow items-center justify-end gap-1 px-1 w-full sm:w-auto">
                   <input
                     type="time"
                     value={r.open}
                     onChange={(e) => set(i, { open: e.target.value })}
-                    className="h-9 w-20 rounded-xl bg-[#FAF8F5] border border-[#c3c8bd]/25 text-center text-xs font-bold text-[#4a6243] outline-none focus:border-[#4a6243] transition-all"
+                    className="h-9 w-20 rounded-xl bg-[#FAF8F5] border border-[var(--line)] text-center text-xs font-bold text-[#4D5A46] outline-none focus:border-[var(--ink)] transition-all"
                   />
                   <span className="text-[#8C9A86] text-xs font-bold">–</span>
                   <input
                     type="time"
                     value={r.close}
                     onChange={(e) => set(i, { close: e.target.value })}
-                    className="h-9 w-20 rounded-xl bg-[#FAF8F5] border border-[#c3c8bd]/25 text-center text-xs font-bold text-[#4a6243] outline-none focus:border-[#4a6243] transition-all"
+                    className="h-9 w-20 rounded-xl bg-[#FAF8F5] border border-[var(--line)] text-center text-xs font-bold text-[#4D5A46] outline-none focus:border-[var(--ink)] transition-all"
                   />
                 </div>
               )}
-              <Toggle checked={!r.isClosed} onChange={(v) => set(i, { isClosed: !v })} label={WEEKDAYS_LONG[r.weekday]} />
+              <div className="hidden sm:block">
+                <Toggle checked={!r.isClosed} onChange={(v) => set(i, { isClosed: !v })} label={WEEKDAYS_LONG[r.weekday]} />
+              </div>
             </div>
             {!r.isClosed &&
               (r.breakStart != null ? (
-                <div className="mt-2 flex items-center justify-end gap-1.5 pl-20">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C9A86] mr-auto">Pausa</span>
-                  <input
-                    type="time"
-                    value={r.breakStart}
-                    onChange={(e) => set(i, { breakStart: e.target.value })}
-                    className="h-8 w-20 rounded-xl bg-[#FAF8F5] border border-[#c3c8bd]/25 text-center text-[11px] font-bold text-[#4a6243] outline-none focus:border-[#4a6243] transition-all"
-                  />
-                  <span className="text-[#8C9A86] text-xs font-bold">–</span>
-                  <input
-                    type="time"
-                    value={r.breakEnd ?? "14:00"}
-                    onChange={(e) => set(i, { breakEnd: e.target.value })}
-                    className="h-8 w-20 rounded-xl bg-[#FAF8F5] border border-[#c3c8bd]/25 text-center text-[11px] font-bold text-[#4a6243] outline-none focus:border-[#4a6243] transition-all"
-                  />
+                <div className="mt-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
+                  <div className="flex items-center justify-between w-full sm:w-auto">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C9A86] mr-1">Pausa</span>
+                      <input
+                        type="time"
+                        value={r.breakStart}
+                        onChange={(e) => set(i, { breakStart: e.target.value })}
+                        className="h-8 w-20 rounded-xl bg-[#FAF8F5] border border-[var(--line)] text-center text-[11px] font-bold text-[#4D5A46] outline-none focus:border-[var(--ink)] transition-all"
+                      />
+                      <span className="text-[#8C9A86] text-xs font-bold">–</span>
+                      <input
+                        type="time"
+                        value={r.breakEnd ?? "14:00"}
+                        onChange={(e) => set(i, { breakEnd: e.target.value })}
+                        className="h-8 w-20 rounded-xl bg-[#FAF8F5] border border-[var(--line)] text-center text-[11px] font-bold text-[#4D5A46] outline-none focus:border-[var(--ink)] transition-all"
+                      />
+                    </div>
+                    <button
+                      onClick={() => set(i, { breakStart: null, breakEnd: null })}
+                      aria-label="Rimuovi pausa"
+                      className="text-[#ba1a1a] hover:opacity-80 p-1.5 border-none bg-transparent cursor-pointer flex items-center justify-center transition-opacity ml-2"
+                    >
+                      <span className="material-symbols-outlined text-base">delete</span>
+                    </button>
+                  </div>
                   <button
-                    onClick={() => set(i, { breakStart: null, breakEnd: null })}
-                    aria-label="Rimuovi pausa"
-                    className="text-[#ba1a1a] font-bold text-xs p-1"
+                    onClick={() => {
+                      setRows(prev => prev.map((row) => {
+                        if (row.weekday === r.weekday || row.isClosed) return row;
+                        return {
+                          ...row,
+                          open: r.open,
+                          close: r.close,
+                          breakStart: r.breakStart,
+                          breakEnd: r.breakEnd
+                        };
+                      }));
+                    }}
+                    className="h-8 px-3 rounded-full bg-[#FAF8F5] border border-[var(--line)] text-[9px] font-extrabold text-[#90702e] hover:bg-[#F4F1EB] uppercase tracking-wider cursor-pointer flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto whitespace-nowrap"
+                    title="Copia orario e pausa di questo giorno su tutti gli altri giorni aperti"
                   >
-                    ✕
+                    <span className="material-symbols-outlined text-[10px]">content_copy</span> Applica a tutti
                   </button>
                 </div>
               ) : (
-                <button
-                  onClick={() => set(i, { breakStart: "13:00", breakEnd: "14:00" })}
-                  className="mt-1 pl-20 text-[11px] font-bold text-[#4a6243] uppercase tracking-wider hover:opacity-80"
-                >
-                  + Aggiungi pausa
-                </button>
+                <div className="mt-2.5 flex flex-col gap-2 w-full sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <button
+                    onClick={() => set(i, { breakStart: "13:00", breakEnd: "14:00" })}
+                    className="h-8 px-3 rounded-full bg-[#F4F1EB] text-[9px] font-extrabold text-[#4D5A46] hover:bg-[#EBE7DD] uppercase tracking-wider border-none cursor-pointer flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto whitespace-nowrap"
+                  >
+                    <span className="material-symbols-outlined text-[10px]">add</span> Aggiungi pausa
+                  </button>
+                  <button
+                    onClick={() => {
+                      setRows(prev => prev.map((row) => {
+                        if (row.weekday === r.weekday || row.isClosed) return row;
+                        return {
+                          ...row,
+                          open: r.open,
+                          close: r.close,
+                          breakStart: r.breakStart,
+                          breakEnd: r.breakEnd
+                        };
+                      }));
+                    }}
+                    className="h-8 px-3 rounded-full bg-[#FAF8F5] border border-[var(--line)] text-[9px] font-extrabold text-[#90702e] hover:bg-[#F4F1EB] uppercase tracking-wider cursor-pointer flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto whitespace-nowrap"
+                    title="Copia orario e pausa di questo giorno su tutti gli altri giorni aperti"
+                  >
+                    <span className="material-symbols-outlined text-[10px]">content_copy</span> Applica a tutti
+                  </button>
+                </div>
               ))}
           </div>
         ))}
@@ -386,7 +440,7 @@ function HoursSection({ initial }: { initial: HourRow[] }) {
       <button
         disabled={pending}
         onClick={save}
-        className="w-full h-11 mt-4 rounded-xl bg-[#4a6243] text-white font-semibold text-xs uppercase tracking-wider active:scale-[0.98] transition-transform duration-200 cursor-pointer disabled:opacity-55"
+        className="w-full h-12 mt-4 rounded-full ios-btn-primary font-bold text-xs uppercase tracking-wider disabled:opacity-55"
       >
         {pending ? "Salvataggio..." : "Salva orari"}
       </button>
@@ -406,7 +460,7 @@ function ServicesSection({ initial }: { initial: Service[] }) {
       action={
         <button
           onClick={() => setAdding((v) => !v)}
-          className="text-xs font-bold text-[#4a6243] uppercase tracking-wider cursor-pointer hover:opacity-85"
+          className="text-xs font-bold text-[#4D5A46] uppercase tracking-wider cursor-pointer hover:opacity-85 border-none bg-transparent"
         >
           {adding ? "Chiudi" : "+ Aggiungi"}
         </button>
@@ -433,7 +487,9 @@ function ServiceEditor({
   onDone: () => void;
 }) {
   const [name, setName] = useState(service?.name ?? "");
-  const [duration, setDuration] = useState(service?.duration_min ?? 30);
+  const [description, setDescription] = useState(service?.description ?? "");
+  const [durationHours, setDurationHours] = useState<string | number>(Math.floor((service?.duration_min ?? 30) / 60));
+  const [durationMinutes, setDurationMinutes] = useState<string | number>((service?.duration_min ?? 30) % 60);
   const [price, setPrice] = useState(service ? centsToEuros(service.price_cents) : "");
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -441,7 +497,13 @@ function ServiceEditor({
   function save() {
     setError(null);
     start(async () => {
-      const payload = { name, durationMin: duration, priceCents: eurosToCents(price) };
+      const h = Number(durationHours) || 0;
+      const m = Number(durationMinutes) || 0;
+      const totalMinutes = h * 60 + m;
+      if (totalMinutes <= 0) {
+        return setError("La durata deve essere superiore a 0 minuti.");
+      }
+      const payload = { name, durationMin: totalMinutes, priceCents: eurosToCents(price), description };
       const res = service
         ? await updateService({ id: service.id, ...payload })
         : await addService(payload);
@@ -449,6 +511,9 @@ function ServiceEditor({
       if (!service) {
         setName("");
         setPrice("");
+        setDescription("");
+        setDurationHours(0);
+        setDurationMinutes(30);
       }
       onDone();
     });
@@ -463,47 +528,109 @@ function ServiceEditor({
   }
 
   return (
-    <div className="rounded-2xl bg-[#FAF8F5] p-4 border border-[#c3c8bd]/20 space-y-3 shadow-sm">
-      <input
-        className="w-full h-11 rounded-xl bg-white border border-[#c3c8bd]/30 px-4 outline-none focus:border-[#4a6243] text-sm font-medium"
-        placeholder="Nome servizio"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <div className="flex gap-2">
-        <select
-          className="h-11 flex-1 rounded-xl bg-white border border-[#c3c8bd]/30 px-3 outline-none focus:border-[#4a6243] text-sm font-medium"
-          value={duration}
-          onChange={(e) => setDuration(Number(e.target.value))}
-        >
-          {DURATION_OPTIONS.map((d) => (
-            <option key={d} value={d}>{formatDuration(d)}</option>
-          ))}
-        </select>
-        <div className="flex h-11 w-28 items-center gap-1 rounded-xl bg-white border border-[#c3c8bd]/30 px-3">
-          <span className="text-[#8C9A86] text-sm font-semibold">€</span>
-          <input
-            inputMode="decimal"
-            className="w-full bg-transparent outline-none text-sm font-medium text-[#4a6243]"
-            placeholder="0"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-          />
+    <div className="rounded-2xl bg-white p-5 border border-[var(--line)] space-y-4 relative shadow-sm text-left">
+      {/* NOME SERVIZIO */}
+      <div>
+        <label className="text-[10px] font-bold text-[#8C9A86] uppercase tracking-wider mb-1 block">Nome Servizio</label>
+        <input
+          className="w-full h-12 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-semibold text-[#4D5A46] transition-all"
+          placeholder="es. Taglio capelli, Massaggio..."
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+
+      {/* DESCRIZIONE */}
+      <div>
+        <label className="text-[10px] font-bold text-[#8C9A86] uppercase tracking-wider mb-1 block">Descrizione</label>
+        <textarea
+          className="w-full h-24 rounded-xl bg-[#FAF8F5] border border-[var(--line)] p-3 outline-none focus:border-[var(--ink)] text-sm text-[#4D5A46] font-medium resize-none transition-all"
+          placeholder="Scrivi qui una breve descrizione del servizio..."
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+      </div>
+
+      {/* DURATA E PREZZO */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* DURATA TRATTAMENTO */}
+        <div>
+          <label className="text-[10px] font-bold text-[#8C9A86] uppercase tracking-wider mb-1 block">Durata Trattamento</label>
+          <div className="grid grid-cols-2 gap-2">
+            {/* Ore Input */}
+            <div className="flex h-12 items-center justify-between bg-[#FAF8F5] border border-[var(--line)] rounded-xl px-3">
+              <input
+                type="number"
+                min={0}
+                max={12}
+                value={durationHours}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "") {
+                    setDurationHours("");
+                  } else {
+                    setDurationHours(Math.max(0, Math.min(12, Number(val))));
+                  }
+                }}
+                className="w-12 bg-transparent text-left font-bold outline-none text-base text-[#4D5A46]"
+                placeholder="0"
+              />
+              <span className="text-[#8C9A86] text-xs font-semibold">ore</span>
+            </div>
+            {/* Minuti Input */}
+            <div className="flex h-12 items-center justify-between bg-[#FAF8F5] border border-[var(--line)] rounded-xl px-3">
+              <input
+                type="number"
+                min={0}
+                max={59}
+                step={5}
+                value={durationMinutes}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "") {
+                    setDurationMinutes("");
+                  } else {
+                    setDurationMinutes(Math.max(0, Math.min(59, Number(val))));
+                  }
+                }}
+                className="w-12 bg-transparent text-left font-bold outline-none text-base text-[#4D5A46]"
+                placeholder="0"
+              />
+              <span className="text-[#8C9A86] text-xs font-semibold">minuti</span>
+            </div>
+          </div>
+        </div>
+
+        {/* PREZZO */}
+        <div>
+          <label className="text-[10px] font-bold text-[#8C9A86] uppercase tracking-wider mb-1 block">Prezzo</label>
+          <div className="flex h-12 items-center gap-1.5 bg-[#FAF8F5] border border-[var(--line)] rounded-xl px-3">
+            <span className="text-[#4D5A46] text-lg font-bold">€</span>
+            <input
+              inputMode="decimal"
+              className="w-full bg-transparent outline-none text-[#4D5A46] text-lg font-bold"
+              placeholder="0,00"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+            />
+          </div>
         </div>
       </div>
+
       {error && <p className="text-xs font-bold text-[#ba1a1a]">{error}</p>}
-      <div className="flex gap-2">
+
+      <div className="flex gap-2 pt-2">
         <button
           disabled={pending}
           onClick={save}
-          className="flex-grow h-10 rounded-xl bg-[#4a6243] text-white font-semibold text-xs uppercase tracking-wider active:scale-[0.98] transition-transform duration-200 cursor-pointer"
+          className="flex-grow h-12 rounded-full ios-btn-primary font-bold text-xs uppercase tracking-wider"
         >
           {service ? "Salva" : "Aggiungi"}
         </button>
         {service && (
           <button
             onClick={remove}
-            className="h-10 px-4 rounded-xl border border-[#ba1a1a] text-[#ba1a1a] font-semibold text-xs uppercase tracking-wider active:scale-[0.98] transition-transform duration-200 cursor-pointer"
+            className="h-12 px-5 rounded-full border border-[#ba1a1a] text-[#ba1a1a] font-bold text-xs uppercase tracking-wider active:scale-[0.98] transition-all cursor-pointer bg-transparent"
           >
             Elimina
           </button>
@@ -536,9 +663,9 @@ function EmployeesSection({ initial }: { initial: Employee[] }) {
           <EmployeeRow key={e.id} employee={e} onDone={() => router.refresh()} />
         ))}
       </div>
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex gap-2 w-full">
         <input
-          className="flex-1 h-11 rounded-xl bg-[#FAF8F5] border border-[#c3c8bd]/30 px-4 outline-none focus:border-[#4a6243] text-sm font-medium"
+          className="flex-1 min-w-0 h-11 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[#4D5A46]"
           placeholder="Nuovo operatore"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
@@ -546,7 +673,7 @@ function EmployeesSection({ initial }: { initial: Employee[] }) {
         <button
           disabled={pending}
           onClick={add}
-          className="h-11 px-5 rounded-xl bg-[#4a6243] text-white font-semibold text-xs uppercase tracking-wider active:scale-[0.98] transition-all cursor-pointer"
+          className="h-11 px-5 rounded-full ios-btn-primary !h-11 !px-5 shrink-0 text-white font-bold text-xs uppercase tracking-wider"
         >
           Aggiungi
         </button>
@@ -563,19 +690,81 @@ function EmployeeRow({
   onDone: () => void;
 }) {
   const [name, setName] = useState(employee.name);
+  const [avatarUrl, setAvatarUrl] = useState(employee.avatar_url);
   const [pending, start] = useTransition();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        const targetSize = 120;
+        canvas.width = targetSize;
+        canvas.height = targetSize;
+
+        const size = Math.min(img.width, img.height);
+        const sx = (img.width - size) / 2;
+        const sy = (img.height - size) / 2;
+
+        ctx.drawImage(img, sx, sy, size, size, 0, 0, targetSize, targetSize);
+
+        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
+        setAvatarUrl(compressedBase64);
+        start(async () => {
+          await updateEmployee({ id: employee.id, name, avatarUrl: compressedBase64 });
+          onDone();
+        });
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
 
   return (
     <div className="flex items-center gap-3">
-      <span className="h-8 w-8 shrink-0 rounded-full shadow-sm" style={{ background: employee.color }} />
       <input
-        className="flex-1 h-11 rounded-xl bg-[#FAF8F5] border border-[#c3c8bd]/30 px-4 outline-none focus:border-[#4a6243] text-sm font-medium"
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        className="hidden"
+      />
+      <div 
+        onClick={() => fileInputRef.current?.click()}
+        className="h-10 w-10 shrink-0 rounded-full shadow-sm overflow-hidden relative cursor-pointer group flex items-center justify-center border border-[var(--line)] bg-[#FAF8F5]"
+        title="Clicca per cambiare foto"
+      >
+        {avatarUrl ? (
+          <img src={avatarUrl} alt={name} className="h-full w-full object-cover group-hover:opacity-75 transition-opacity" />
+        ) : (
+          <span 
+            className="h-full w-full flex items-center justify-center text-xs font-bold text-white uppercase"
+            style={{ background: employee.color }}
+          >
+            {name.charAt(0).toUpperCase()}
+          </span>
+        )}
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] text-white font-bold">
+          Carica
+        </div>
+      </div>
+      <input
+        className="flex-1 h-11 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[#4D5A46]"
         value={name}
         onChange={(e) => setName(e.target.value)}
         onBlur={() => {
           if (name.trim() && name !== employee.name)
             start(async () => {
-              await updateEmployee({ id: employee.id, name });
+              await updateEmployee({ id: employee.id, name, avatarUrl });
               onDone();
             });
         }}
@@ -588,7 +777,7 @@ function EmployeeRow({
         }}
         disabled={pending}
         aria-label="Elimina operatore"
-        className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#ba1a1a]/30 text-[#ba1a1a] transition-colors active:bg-[#ba1a1a]/5 hover:bg-[#ba1a1a]/5 cursor-pointer"
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#ba1a1a]/30 text-[#ba1a1a] transition-colors active:bg-[#ba1a1a]/5 hover:bg-[#ba1a1a]/5 cursor-pointer bg-transparent"
       >
         ✕
       </button>
@@ -605,10 +794,179 @@ function AccountSection() {
       <button
         disabled={pending}
         onClick={() => start(async () => { await logout(); })}
-        className="w-full h-12 rounded-xl border border-[#ba1a1a] text-[#ba1a1a] font-bold text-xs uppercase tracking-widest active:scale-[0.98] transition-transform duration-200 cursor-pointer hover:bg-[#ba1a1a]/5"
+        className="w-full h-12 rounded-full border border-[#ba1a1a] text-[#ba1a1a] font-bold text-xs uppercase tracking-widest active:scale-[0.98] transition-all cursor-pointer hover:bg-[#ba1a1a]/5 bg-transparent"
       >
         Esci dall'account
       </button>
     </section>
+  );
+}
+
+/* ---- Holidays ---- */
+
+function HolidaysSection({ initial }: { initial: any[] }) {
+  const router = useRouter();
+  const [holidays, setHolidays] = useState(initial);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [desc, setDesc] = useState("");
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setHolidays(initial);
+  }, [initial]);
+
+  function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!startDate) {
+      setError("Seleziona la data di inizio.");
+      return;
+    }
+    if (endDate && endDate < startDate) {
+      setError("La data di fine non può essere precedente alla data di inizio.");
+      return;
+    }
+    start(async () => {
+      const res = await addHoliday({ startDate, endDate: endDate || undefined, description: desc });
+      if (!res.ok) {
+        setError(res.error || "Errore durante il salvataggio.");
+      } else {
+        setStartDate("");
+        setEndDate("");
+        setDesc("");
+        router.refresh();
+      }
+    });
+  }
+
+  function handleDelete(id: string) {
+    if (!confirm("Vuoi rimuovere questo periodo festivo? Le date incluse torneranno disponibili.")) {
+      return;
+    }
+    start(async () => {
+      const res = await deleteHoliday(id);
+      if (!res.ok) {
+        alert(res.error || "Errore durante la rimozione.");
+      } else {
+        router.refresh();
+      }
+    });
+  }
+
+  function formatDateItalian(dateStr: string): string {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" });
+    } catch {
+      return dateStr;
+    }
+  }
+
+  function renderHolidayRange(startStr: string, endStr: string): string {
+    if (startStr === endStr) {
+      return formatDateItalian(startStr);
+    }
+
+    try {
+      const d1 = new Date(startStr);
+      const d2 = new Date(endStr);
+
+      const optWithoutYear: Intl.DateTimeFormatOptions = { day: "numeric", month: "long" };
+      const optWithYear: Intl.DateTimeFormatOptions = { day: "numeric", month: "long", year: "numeric" };
+
+      if (d1.getFullYear() === d2.getFullYear()) {
+        const startFormatted = d1.toLocaleDateString("it-IT", optWithoutYear);
+        const endFormatted = d2.toLocaleDateString("it-IT", optWithYear);
+        return `Dal ${startFormatted} al ${endFormatted}`;
+      } else {
+        const startFormatted = d1.toLocaleDateString("it-IT", optWithYear);
+        const endFormatted = d2.toLocaleDateString("it-IT", optWithYear);
+        return `Dal ${startFormatted} al ${endFormatted}`;
+      }
+    } catch {
+      return `Dal ${startStr} al ${endStr}`;
+    }
+  }
+
+  return (
+    <Card title="Giorni di chiusura straordinari">
+      <p className="text-[10px] text-[#8C9A86] font-bold uppercase tracking-wider mb-3">
+        Imposta giorni di chiusura festivi o ponti straordinari per l'attività.
+      </p>
+
+      {holidays.length === 0 ? (
+        <p className="text-xs text-[#8C9A86] italic mb-2">Nessuna chiusura straordinaria configurata.</p>
+      ) : (
+        <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1 no-scrollbar mb-4">
+          {holidays.map((h) => (
+            <div key={h.id} className="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F5] border border-[var(--line)] gap-2">
+              <div className="min-w-0">
+                <span className="font-bold text-xs text-[#4D5A46] block md:inline-block">
+                  {renderHolidayRange(h.start_date, h.end_date)}
+                </span>
+                {h.description && (
+                  <span className="text-[#8C9A86] text-[10px] font-semibold block mt-0.5 truncate">{h.description}</span>
+                )}
+              </div>
+              <button
+                disabled={pending}
+                onClick={() => handleDelete(h.id)}
+                aria-label="Rimuovi periodo festivo"
+                className="text-[#ba1a1a] hover:opacity-80 p-1.5 border-none bg-transparent cursor-pointer flex items-center justify-center transition-opacity"
+              >
+                <span className="material-symbols-outlined text-base">delete</span>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <form onSubmit={handleAdd} className="mt-4 border-t border-[var(--line)] pt-4 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="text-[10px] font-bold text-[#8C9A86] uppercase tracking-wider mb-1 block">Data Inizio</label>
+            <input
+              type="date"
+              required
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full h-11 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-xs font-bold text-[#4D5A46] uppercase"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-[#8C9A86] uppercase tracking-wider mb-1 block">Data Fine (opzionale)</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              placeholder="Lascia vuoto per giorno singolo"
+              className="w-full h-11 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-xs font-bold text-[#4D5A46] uppercase"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-[#8C9A86] uppercase tracking-wider mb-1 block">Motivo (es. Chiusura Estiva)</label>
+            <input
+              type="text"
+              placeholder="es. Natale, Ferie"
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+              className="w-full h-11 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-xs font-medium text-[#4D5A46]"
+            />
+          </div>
+        </div>
+
+        {error && <p className="text-[10px] font-bold text-[#ba1a1a]">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={pending}
+          className="w-full h-11 rounded-full ios-btn-primary text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5"
+        >
+          <span className="material-symbols-outlined text-sm">add</span> Aggiungi Chiusura
+        </button>
+      </form>
+    </Card>
   );
 }

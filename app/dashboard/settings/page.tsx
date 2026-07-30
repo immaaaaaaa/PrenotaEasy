@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const { supa, business } = await requireBusiness();
 
-  const [{ data: hoursRows }, { data: services }, { data: employees }] =
+  const [{ data: hoursRows }, { data: services }, { data: employees }, { data: holidays }] =
     await Promise.all([
       supa.from("business_hours").select("*").eq("business_id", business.id),
       supa
@@ -25,6 +25,11 @@ export default async function SettingsPage() {
         .eq("business_id", business.id)
         .eq("active", true)
         .order("sort"),
+      supa
+        .from("business_holidays")
+        .select("*")
+        .eq("business_id", business.id)
+        .order("start_date"),
     ]);
 
   const byDay = new Map(
@@ -48,6 +53,7 @@ export default async function SettingsPage() {
       hours={hours}
       services={(services ?? []) as Service[]}
       employees={(employees ?? []) as Employee[]}
+      initialHolidays={(holidays ?? []) as any[]}
     />
   );
 }

@@ -37,6 +37,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Attività non trovata" }, { status: 404 });
   }
 
+  // Check if date is a business holiday
+  const { data: holiday } = await supa
+    .from("business_holidays")
+    .select("id")
+    .eq("business_id", business.id)
+    .lte("start_date", date)
+    .gte("end_date", date)
+    .maybeSingle();
+
+  if (holiday) {
+    return NextResponse.json({ slots: [], closed: true });
+  }
+
   const { data: service } = await supa
     .from("services")
     .select("id, duration_min")

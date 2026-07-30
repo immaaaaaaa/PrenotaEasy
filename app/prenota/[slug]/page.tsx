@@ -18,7 +18,7 @@ async function getBusiness(slug: string) {
     .single<Business>();
   if (!business) return null;
 
-  const [{ data: services }, { data: employees }, { data: hours }] =
+  const [{ data: services }, { data: employees }, { data: hours }, { data: holidays }] =
     await Promise.all([
       supa
         .from("services")
@@ -36,6 +36,11 @@ async function getBusiness(slug: string) {
         .from("business_hours")
         .select("weekday, is_closed, open_time")
         .eq("business_id", business.id),
+      supa
+        .from("business_holidays")
+        .select("start_date, end_date")
+        .eq("business_id", business.id)
+        .order("start_date"),
     ]);
 
   return {
@@ -45,6 +50,7 @@ async function getBusiness(slug: string) {
     closedWeekdays: (hours ?? [])
       .filter((h) => h.is_closed || !h.open_time)
       .map((h) => h.weekday as number),
+    holidays: (holidays ?? []) as { start_date: string; end_date: string }[],
   };
 }
 
@@ -72,7 +78,7 @@ export default async function BookingPage({
   const data = await getBusiness(slug);
   if (!data) notFound();
 
-  const { business, services, employees, closedWeekdays } = data;
+  const { business, services, employees, closedWeekdays, holidays } = data;
   const todayStr = formatInTimeZone(new Date(), business.timezone, "yyyy-MM-dd");
 
   return (
@@ -82,6 +88,7 @@ export default async function BookingPage({
       employees={employees}
       todayStr={todayStr}
       closedWeekdays={closedWeekdays}
+      holidays={holidays}
     />
   );
 }

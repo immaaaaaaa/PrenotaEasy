@@ -16,7 +16,7 @@ export interface OnboardingPayload {
     breakStart: string | null;
     breakEnd: string | null;
   }[];
-  services: { name: string; durationMin: number; priceCents: number }[];
+  services: { name: string; durationMin: number; priceCents: number; description?: string }[];
   employees: { name: string; color: string }[];
 }
 
@@ -108,6 +108,7 @@ export async function createBusiness(
       name: s.name.trim(),
       duration_min: s.durationMin,
       price_cents: s.priceCents,
+      description: s.description?.trim() || null,
       sort: i,
     }));
   if (svc.length) await supa.from("services").insert(svc);

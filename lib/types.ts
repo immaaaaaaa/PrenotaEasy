@@ -14,6 +14,7 @@ export interface Business {
   booking_lead_min: number;
   booking_horizon_days: number;
   onboarded: boolean;
+  operator_pages_enabled?: boolean;
   created_at: string;
 }
 
@@ -37,6 +38,7 @@ export interface Service {
   sort: number;
   active: boolean;
   created_at: string;
+  description?: string | null;
 }
 
 export interface Employee {
@@ -46,6 +48,17 @@ export interface Employee {
   color: string;
   sort: number;
   active: boolean;
+  access_token?: string;
+  avatar_url?: string | null;
+  created_at: string;
+}
+
+export interface BusinessHoliday {
+  id: string;
+  business_id: string;
+  start_date: string; // YYYY-MM-DD
+  end_date: string;   // YYYY-MM-DD
+  description?: string | null;
   created_at: string;
 }
 

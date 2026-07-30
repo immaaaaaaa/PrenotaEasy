@@ -27,6 +27,9 @@ interface ServiceRow {
   name: string;
   duration: number;
   price: string;
+  description: string;
+  durationHoursRaw?: string;
+  durationMinutesRaw?: string;
 }
 
 export function OnboardingWizard({
@@ -52,8 +55,7 @@ export function OnboardingWizard({
   );
 
   const [services, setServices] = useState<ServiceRow[]>([
-    { name: "Taglio", duration: 30, price: "20" },
-    { name: "Piega", duration: 30, price: "15" },
+    { name: "Massaggio Svedese", duration: 75, price: "75", description: "Un massaggio rilassante che utilizza tecniche di sfioramento, impastamento e frizione per migliorare la circolazione e ridurre la tensione muscolare profonda." },
   ]);
 
   const [employees, setEmployees] = useState<string[]>([""]);
@@ -102,6 +104,7 @@ export function OnboardingWizard({
         name: s.name,
         durationMin: s.duration,
         priceCents: eurosToCents(s.price),
+        description: s.description,
       })),
       employees: cleanEmployees.map((n, i) => ({
         name: n,
@@ -126,57 +129,55 @@ export function OnboardingWizard({
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={spring.bouncy}
-          className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full bg-[var(--success)] text-3xl text-white"
+          className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full bg-[#34c759] text-3xl text-white"
         >
           ✓
         </motion.div>
-        <h1 className="text-title text-center">Tutto pronto!</h1>
-        <p className="mt-2 text-center text-[var(--ink-2)]">
+        <h1 className="text-2xl font-extrabold text-[#4D5A46] text-center tracking-tight">Tutto pronto!</h1>
+        <p className="mt-2 text-center text-[#8C9A86] text-sm">
           Stampa o condividi questo QR code. I clienti lo inquadrano e prenotano
           da soli.
         </p>
         <div className="mt-6">
           <QRCard url={`${baseUrl}/b/${doneSlug}`} businessSlug={doneSlug} />
         </div>
-        <Button
-          size="lg"
-          fullWidth
-          className="mt-5"
+        <button
           onClick={() => {
             router.push("/dashboard");
             router.refresh();
           }}
+          className="w-full ios-btn-primary h-12 mt-5 text-sm font-bold border-none cursor-pointer"
         >
           Vai all&apos;agenda
-        </Button>
+        </button>
       </main>
     );
   }
 
   return (
     <div className="mx-auto max-w-[560px] px-5 pb-28 pt-8">
-      <h1 className="text-title">Configura la tua attività</h1>
-      <p className="mt-2 text-[var(--ink-2)]">
+      <h1 className="text-2xl font-extrabold text-[#4D5A46] tracking-tight">Configura la tua attività</h1>
+      <p className="mt-2 text-[#8C9A86] text-sm">
         Un paio di minuti e sei pronto a ricevere prenotazioni.
       </p>
 
       {/* Business */}
-      <Section title="La tua attività" emoji="🏠">
+      <Section title="La tua attività" icon="storefront">
         <input
-          className="input"
+          className="w-full h-12 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[#4D5A46]"
           placeholder="Nome (es. Salone Bellezza)"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
         <input
-          className="input"
+          className="w-full h-12 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[#4D5A46] mt-3"
           placeholder="Telefono (facoltativo)"
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
         />
         <input
-          className="input"
+          className="w-full h-12 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[#4D5A46] mt-3"
           placeholder="Indirizzo (facoltativo)"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
@@ -184,115 +185,197 @@ export function OnboardingWizard({
       </Section>
 
       {/* Hours */}
-      <Section title="Orari di apertura" emoji="🕒">
+      <Section title="Orari di apertura" icon="schedule">
         <div className="divide-y divide-[var(--line)]">
           {hours.map((h, i) => (
-            <div key={h.weekday} className="flex items-center gap-3 py-2.5">
-              <span className="w-24 shrink-0 font-[540]">
-                {WEEKDAYS_LONG[h.weekday]}
-              </span>
-              {h.isClosed ? (
-                <span className="flex-1 text-[var(--ink-3)]">Chiuso</span>
-              ) : (
-                <div className="flex flex-1 items-center gap-1.5">
-                  <input
-                    type="time"
-                    value={h.open}
-                    onChange={(e) => setHour(i, { open: e.target.value })}
-                    className="input h-10 flex-1 px-2 text-center"
-                  />
-                  <span className="text-[var(--ink-3)]">–</span>
-                  <input
-                    type="time"
-                    value={h.close}
-                    onChange={(e) => setHour(i, { close: e.target.value })}
-                    className="input h-10 flex-1 px-2 text-center"
+            <div key={h.weekday} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 sm:py-2.5">
+              <div className="flex items-center justify-between w-full sm:w-auto sm:gap-3">
+                <span className="w-24 shrink-0 font-bold text-sm text-[#4D5A46]">
+                  {WEEKDAYS_LONG[h.weekday]}
+                </span>
+                <div className="sm:hidden">
+                  <Toggle
+                    checked={!h.isClosed}
+                    onChange={(v) => setHour(i, { isClosed: !v })}
+                    label={`Aperto ${WEEKDAYS_LONG[h.weekday]}`}
                   />
                 </div>
+              </div>
+              {h.isClosed ? (
+                <span className="flex-1 text-[#8C9A86] text-left text-xs font-semibold">Chiuso</span>
+              ) : (
+                <div className="flex flex-col gap-1 w-full sm:w-auto">
+                  <div className="flex items-center gap-1.5 w-full sm:w-48">
+                    <input
+                      type="time"
+                      value={h.open}
+                      onChange={(e) => setHour(i, { open: e.target.value })}
+                      className="h-10 flex-1 px-2 text-center text-xs text-[#4D5A46] font-medium rounded-xl border border-[var(--line)] outline-none focus:border-[var(--ink)] bg-[#FAF8F5]"
+                    />
+                    <span className="text-[#8C9A86]">–</span>
+                    <input
+                      type="time"
+                      value={h.close}
+                      onChange={(e) => setHour(i, { close: e.target.value })}
+                      className="h-10 flex-1 px-2 text-center text-xs text-[#4D5A46] font-medium rounded-xl border border-[var(--line)] outline-none focus:border-[var(--ink)] bg-[#FAF8F5]"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHours(prev => prev.map((row) => {
+                        if (row.isClosed) return row;
+                        return { ...row, open: h.open, close: h.close };
+                      }));
+                    }}
+                    className="h-8 px-3 mt-1.5 rounded-full bg-[#FAF8F5] border border-[var(--line)] text-[9px] font-extrabold text-[#90702e] hover:bg-[#F4F1EB] uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all self-end"
+                  >
+                    <span className="material-symbols-outlined text-[10px]">content_copy</span> Applica a tutti
+                  </button>
+                </div>
               )}
-              <Toggle
-                checked={!h.isClosed}
-                onChange={(v) => setHour(i, { isClosed: !v })}
-                label={`Aperto ${WEEKDAYS_LONG[h.weekday]}`}
-              />
+              <div className="hidden sm:block">
+                <Toggle
+                  checked={!h.isClosed}
+                  onChange={(v) => setHour(i, { isClosed: !v })}
+                  label={`Aperto ${WEEKDAYS_LONG[h.weekday]}`}
+                />
+              </div>
             </div>
           ))}
         </div>
-        <p className="text-caption">
+        <p className="text-[10px] text-[#8C9A86] font-medium mt-2">
           Le pause (es. pranzo) si aggiungono dopo, dalle impostazioni.
         </p>
       </Section>
 
       {/* Services */}
-      <Section title="Listino e durate" emoji="✂️">
-        <div className="space-y-2.5">
+      <Section title="Listino e durate" icon="content_cut">
+        <div className="space-y-4">
           {services.map((s, i) => (
             <div
               key={i}
-              className="rounded-[var(--r-md)] bg-[var(--surface-2)] p-3"
+              className="rounded-2xl bg-white p-5 border border-[var(--line)] space-y-4 relative shadow-sm text-left"
             >
-              <div className="flex items-center gap-2">
+              {/* Remove button at top right */}
+              {services.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setServices((prev) => prev.filter((_, j) => j !== i))}
+                  aria-label="Rimuovi servizio"
+                  className="absolute top-4 right-4 text-[#ba1a1a] hover:opacity-80 transition-opacity font-bold text-xs p-1 cursor-pointer border-none bg-transparent"
+                >
+                  ✕ Rimuovi
+                </button>
+              )}
+
+              {/* NOME SERVIZIO */}
+              <div>
+                <label className="text-[10px] font-bold text-[#8C9A86] uppercase tracking-wider mb-1 block">Nome Servizio</label>
                 <input
-                  className="input h-11 flex-1 bg-[var(--surface)]"
-                  placeholder="Nome servizio"
+                  className="w-full h-12 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-semibold text-[#4D5A46] transition-all"
+                  placeholder="es. Taglio capelli, Massaggio..."
                   value={s.name}
                   onChange={(e) => setService(i, { name: e.target.value })}
                 />
-                {services.length > 1 && (
-                  <button
-                    onClick={() =>
-                      setServices((prev) => prev.filter((_, j) => j !== i))
-                    }
-                    aria-label="Rimuovi servizio"
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--ink-3)] transition-colors active:bg-[var(--surface-3)]"
-                  >
-                    ✕
-                  </button>
-                )}
               </div>
-              <div className="mt-2 flex items-center gap-2">
-                <label className="flex flex-1 items-center gap-2 rounded-[var(--r-sm)] bg-[var(--surface)] px-3 h-11">
-                  <span className="text-[0.85rem] text-[var(--ink-2)]">Durata</span>
-                  <select
-                    className="flex-1 bg-transparent text-right outline-none"
-                    value={s.duration}
-                    onChange={(e) =>
-                      setService(i, { duration: Number(e.target.value) })
-                    }
-                  >
-                    {DURATION_OPTIONS.map((d) => (
-                      <option key={d} value={d}>
-                        {formatDuration(d)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex w-[120px] items-center gap-1 rounded-[var(--r-sm)] bg-[var(--surface)] px-3 h-11">
-                  <span className="text-[var(--ink-2)]">€</span>
-                  <input
-                    inputMode="decimal"
-                    className="w-full bg-transparent outline-none"
-                    placeholder="0"
-                    value={s.price}
-                    onChange={(e) => setService(i, { price: e.target.value })}
-                  />
-                </label>
+
+              {/* DESCRIZIONE */}
+              <div>
+                <label className="text-[10px] font-bold text-[#8C9A86] uppercase tracking-wider mb-1 block">Descrizione</label>
+                <textarea
+                  className="w-full h-24 rounded-xl bg-[#FAF8F5] border border-[var(--line)] p-3 outline-none focus:border-[var(--ink)] text-sm text-[#4D5A46] font-medium resize-none transition-all"
+                  placeholder="Scrivi qui una breve descrizione del servizio..."
+                  value={s.description}
+                  onChange={(e) => setService(i, { description: e.target.value })}
+                />
+              </div>
+
+              {/* DURATA E PREZZO */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* DURATA TRATTAMENTO */}
+                <div>
+                  <label className="text-[10px] font-bold text-[#8C9A86] uppercase tracking-wider mb-1 block">Durata Trattamento</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Ore Input */}
+                    <div className="flex h-12 items-center justify-between bg-[#FAF8F5] border border-[var(--line)] rounded-xl px-3">
+                      <input
+                        type="number"
+                        min={0}
+                        max={12}
+                        value={s.durationHoursRaw !== undefined ? s.durationHoursRaw : Math.floor(s.duration / 60)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "") {
+                            setService(i, { durationHoursRaw: "" });
+                          } else {
+                            const h = Math.max(0, Math.min(12, Number(val)));
+                            const m = s.durationMinutesRaw !== undefined && s.durationMinutesRaw !== "" ? Number(s.durationMinutesRaw) : (s.duration % 60);
+                            setService(i, { duration: h * 60 + m, durationHoursRaw: val });
+                          }
+                        }}
+                        className="w-12 bg-transparent text-left font-bold outline-none text-base text-[#4D5A46]"
+                        placeholder="0"
+                      />
+                      <span className="text-[#8C9A86] text-xs font-semibold">ore</span>
+                    </div>
+                    {/* Minuti Input */}
+                    <div className="flex h-12 items-center justify-between bg-[#FAF8F5] border border-[var(--line)] rounded-xl px-3">
+                      <input
+                        type="number"
+                        min={0}
+                        max={59}
+                        step={5}
+                        value={s.durationMinutesRaw !== undefined ? s.durationMinutesRaw : s.duration % 60}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "") {
+                            setService(i, { durationMinutesRaw: "" });
+                          } else {
+                            const h = s.durationHoursRaw !== undefined && s.durationHoursRaw !== "" ? Number(s.durationHoursRaw) : Math.floor(s.duration / 60);
+                            const m = Math.max(0, Math.min(59, Number(val)));
+                            setService(i, { duration: h * 60 + m, durationMinutesRaw: val });
+                          }
+                        }}
+                        className="w-12 bg-transparent text-left font-bold outline-none text-base text-[#4D5A46]"
+                        placeholder="0"
+                      />
+                      <span className="text-[#8C9A86] text-xs font-semibold">minuti</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* PREZZO */}
+                <div>
+                  <label className="text-[10px] font-bold text-[#8C9A86] uppercase tracking-wider mb-1 block">Prezzo</label>
+                  <div className="flex h-12 items-center gap-1.5 bg-[#FAF8F5] border border-[var(--line)] rounded-xl px-3">
+                    <span className="text-[#4D5A46] text-lg font-bold">€</span>
+                    <input
+                      inputMode="decimal"
+                      className="w-full bg-transparent outline-none text-lg font-bold text-[#4D5A46]"
+                      placeholder="0,00"
+                      value={s.price}
+                      onChange={(e) => setService(i, { price: e.target.value })}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           ))}
         </div>
         <button
+          type="button"
           onClick={() =>
-            setServices((prev) => [...prev, { name: "", duration: 30, price: "" }])
+            setServices((prev) => [...prev, { name: "", duration: 30, price: "", description: "" }])
           }
-          className="mt-1 text-[0.95rem] font-[560] text-[var(--accent)]"
+          className="mt-3 text-xs font-bold text-[#4D5A46] uppercase tracking-wider hover:opacity-85 border-none bg-transparent cursor-pointer"
         >
           + Aggiungi servizio
         </button>
       </Section>
 
       {/* Employees */}
-      <Section title="Operatori" emoji="👥">
+      <Section title="Operatori" icon="group">
         <div className="space-y-2.5">
           {employees.map((e, i) => (
             <div key={i} className="flex items-center gap-2">
@@ -301,7 +384,7 @@ export function OnboardingWizard({
                 style={{ background: EMPLOYEE_COLORS[i % EMPLOYEE_COLORS.length] }}
               />
               <input
-                className="input h-11 flex-1"
+                className="h-11 flex-1 text-[#4D5A46] font-medium border border-[var(--line)] rounded-xl focus:border-[var(--ink)] bg-[#FAF8F5] px-4 text-sm"
                 placeholder={`Nome operatore ${i + 1}`}
                 value={e}
                 onChange={(ev) =>
@@ -316,7 +399,7 @@ export function OnboardingWizard({
                     setEmployees((prev) => prev.filter((_, j) => j !== i))
                   }
                   aria-label="Rimuovi operatore"
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--ink-3)] transition-colors active:bg-[var(--surface-2)]"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#8C9A86] transition-colors active:bg-[#FAF8F5] border-none bg-transparent cursor-pointer"
                 >
                   ✕
                 </button>
@@ -326,23 +409,27 @@ export function OnboardingWizard({
         </div>
         <button
           onClick={() => setEmployees((prev) => [...prev, ""])}
-          className="mt-1 text-[0.95rem] font-[560] text-[var(--accent)]"
+          className="mt-1 text-xs font-bold text-[#4D5A46] uppercase tracking-wider hover:opacity-85 border-none bg-transparent cursor-pointer"
         >
           + Aggiungi operatore
         </button>
       </Section>
 
       {error && (
-        <p className="mt-5 rounded-[var(--r-sm)] bg-[color-mix(in_srgb,var(--danger)_12%,transparent)] px-3 py-2.5 text-[0.9rem] text-[var(--danger)]">
+        <p className="mt-5 rounded-xl bg-[color-mix(in_srgb,var(--danger)_12%,transparent)] px-3 py-2.5 text-xs font-semibold text-[var(--danger)]">
           {error}
         </p>
       )}
 
-      <footer className="material pb-safe fixed inset-x-0 bottom-0 border-t border-[var(--line)] px-5 pt-3 pb-4">
+      <footer className="material pb-safe fixed inset-x-0 bottom-0 border-t border-[var(--line)] px-5 pt-3 pb-4 bg-white/80 backdrop-blur-md">
         <div className="mx-auto max-w-[560px]">
-          <Button size="lg" fullWidth loading={saving} onClick={submit}>
-            {initialBusiness ? "Salva configurazione e genera QR" : "Crea attività e genera QR"}
-          </Button>
+          <button
+            disabled={saving}
+            onClick={submit}
+            className="w-full h-12 rounded-full ios-btn-primary font-bold text-sm tracking-wider flex items-center justify-center gap-2 border-none cursor-pointer"
+          >
+            {saving ? "Salvataggio..." : (initialBusiness ? "Salva configurazione e genera QR" : "Crea attività e genera QR")}
+          </button>
         </div>
       </footer>
     </div>
@@ -351,17 +438,17 @@ export function OnboardingWizard({
 
 function Section({
   title,
-  emoji,
+  icon,
   children,
 }: {
   title: string;
-  emoji: string;
+  icon: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="card mt-5 space-y-3 p-4">
-      <h2 className="text-headline flex items-center gap-2">
-        <span>{emoji}</span> {title}
+    <section className="ios-card mt-5 space-y-3 p-5 border border-[var(--line)] bg-white shadow-sm">
+      <h2 className="text-base font-bold text-[#4D5A46] flex items-center gap-2 tracking-tight">
+        <span className="material-symbols-outlined text-[#4D5A46] text-[20px]">{icon}</span> {title}
       </h2>
       {children}
     </section>
