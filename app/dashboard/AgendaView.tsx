@@ -59,6 +59,18 @@ const add30Min = (timeStr: string): string => {
   return `${newH}:${newM}`;
 };
 
+function getISOWeekNumber(d: Date): number {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - dayNum + 3);
+  const firstThursday = date.getTime();
+  date.setUTCMonth(0, 1);
+  if (date.getUTCDay() !== 4) {
+    date.setUTCMonth(0, 1 + ((4 - date.getUTCDay() + 7) % 7));
+  }
+  return 1 + Math.ceil((firstThursday - date.getTime()) / 604800000);
+}
+
 const formatDateLocal = (d: Date) => {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -133,6 +145,7 @@ export function AgendaView({
   // Calendar states
   const [currentYear, setCurrentYear] = useState(new Date(date).getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date(date).getMonth());
+  const [calendarView, setCalendarView] = useState<"week" | "month">("month");
 
   // Client list states
   const [allClients, setAllClients] = useState<any[]>([]);
@@ -254,6 +267,36 @@ export function AgendaView({
     newCustomersCount: 0,
     todayAppts: [],
   });
+
+  const weeksOfTabMonth = useMemo(() => {
+    const firstOfMonth = new Date(currentYear, currentMonth, 1);
+    const startDay = (firstOfMonth.getDay() + 6) % 7; // Monday = 0, ..., Sunday = 6
+    
+    const cursor = new Date(currentYear, currentMonth, 1 - startDay);
+    const weeksList = [];
+    
+    for (let w = 0; w < 6; w++) {
+      const week = [];
+      for (let d = 0; d < 7; d++) {
+        week.push(new Date(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      weeksList.push(week);
+      
+      const lastDay = week[6];
+      if (lastDay.getMonth() !== currentMonth && cursor.getMonth() !== currentMonth) {
+        break;
+      }
+    }
+    return weeksList;
+  }, [currentYear, currentMonth]);
+
+  const filteredMonthAppts = useMemo(() => {
+    return monthAppts.filter(a => {
+      if (a.status === "cancelled") return false;
+      return employeeFilter === "all" || a.employee_id === employeeFilter;
+    });
+  }, [monthAppts, employeeFilter]);
 
   const loadTodayStats = useCallback(async () => {
     try {
@@ -865,224 +908,351 @@ export function AgendaView({
               </div>
             )}
 
-            {/* iOS Calendar Header Picker */}
-            <div className="mb-6 ios-card rounded-2xl p-5 border border-[var(--line)] shadow-sm bg-white">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-base font-bold text-[#4D5A46] tracking-tight">
-                  {MONTH_LABELS[currentMonth]} {currentYear}
-                </h3>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => {
-                      if (currentMonth === 0) {
-                        setCurrentMonth(11);
-                        setCurrentYear(y => y - 1);
-                      } else {
-                        setCurrentMonth(m => m - 1);
-                      }
-                    }}
-                    className="p-2 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined border-none bg-transparent cursor-pointer"
-                  >
-                    chevron_left
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (currentMonth === 11) {
-                        setCurrentMonth(0);
-                        setCurrentYear(y => y + 1);
-                      } else {
-                        setCurrentMonth(m => m + 1);
-                      }
-                    }}
-                    className="p-2 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined border-none bg-transparent cursor-pointer"
-                  >
-                    chevron_right
-                  </button>
-                </div>
-              </div>
-
-              {/* Days Grid Header */}
-              <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-[#8C9A86] tracking-wider mb-2">
-                {WEEKDAY_SHORT_LABELS.map((w, idx) => (
-                  <div key={idx}>{w}</div>
-                ))}
-              </div>
-
-              {/* Days Cells */}
-              <div className="grid grid-cols-7 gap-1 text-center font-medium">
-                {monthDays.map((day, idx) => {
-                  if (!day) return <div key={`empty-${idx}`} />;
-                  const isSelected = date === formatDateLocal(day);
-                  const isToday = todayStr === formatDateLocal(day);
-                  const dayKeyStr = formatDateLocal(day);
-
-                  const isHoliday = holidays.some(h => dayKeyStr >= h.start_date && dayKeyStr <= h.end_date);
-
-                  const hasAppts = monthAppts.some(a => {
-                    const aDateStr = a.starts_at.slice(0, 10);
-                    if (aDateStr !== dayKeyStr) return false;
-                    return employeeFilter === "all" || a.employee_id === employeeFilter;
-                  });
-
-                  return (
+            {/* Calendar Controls Card */}
+            <div className="mb-6 ios-card rounded-2xl p-4 sm:p-5 border border-[var(--line)] shadow-sm bg-white">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center justify-between sm:justify-start gap-4">
+                  <h3 className="text-base sm:text-lg font-extrabold text-[#4D5A46] tracking-tight">
+                    {MONTH_LABELS[currentMonth]} {currentYear}
+                  </h3>
+                  <div className="flex gap-1">
                     <button
-                      key={day.toISOString()}
-                      onClick={() => selectCalendarDate(day)}
+                      onClick={() => {
+                        if (currentMonth === 0) {
+                          setCurrentMonth(11);
+                          setCurrentYear(y => y - 1);
+                        } else {
+                          setCurrentMonth(m => m - 1);
+                        }
+                      }}
+                      className="p-1.5 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined border-none bg-transparent cursor-pointer text-[#4D5A46]"
+                    >
+                      chevron_left
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (currentMonth === 11) {
+                          setCurrentMonth(0);
+                          setCurrentYear(y => y + 1);
+                        } else {
+                          setCurrentMonth(m => m + 1);
+                        }
+                      }}
+                      className="p-1.5 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined border-none bg-transparent cursor-pointer text-[#4D5A46]"
+                    >
+                      chevron_right
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex justify-center">
+                  <div className="bg-[#F4F1EB] p-1 rounded-full flex gap-1 shadow-sm border border-[var(--line)]">
+                    <button
+                      onClick={() => setCalendarView("week")}
                       className={cn(
-                        "h-10 w-full rounded-full flex flex-col items-center justify-center relative text-sm active:scale-95 transition-all cursor-pointer border-none",
-                        isSelected
-                          ? "bg-[#4D5A46] text-white font-extrabold"
-                          : isToday
-                          ? "bg-transparent text-[#ba1a1a] border border-[#ba1a1a]/40 font-bold"
-                          : isHoliday
-                          ? "bg-[#FFEBEB] text-[#ba1a1a] font-bold hover:bg-[#FFD6D6]"
-                          : "bg-transparent text-[#4D5A46] hover:bg-[#F4F1EB]"
+                        "px-5 py-1.5 rounded-full text-xs font-bold transition-all border-none cursor-pointer whitespace-nowrap",
+                        calendarView === "week"
+                          ? "bg-[#4D5A46] text-white shadow-sm"
+                          : "bg-transparent text-[#8C9A86] hover:text-[#4D5A46]"
                       )}
                     >
-                      <span className={isSelected ? "text-white font-extrabold" : ""}>{day.getDate()}</span>
-                      {/* Dynamic colored dot representing scheduled appointments for selected operator */}
-                      {hasAppts && !isSelected && (
-                        <span
-                          className="absolute bottom-1 w-1.5 h-1.5 rounded-full"
-                          style={{
-                            backgroundColor:
-                              employeeFilter !== "all"
-                                ? (employees.find((e) => e.id === employeeFilter)?.color ?? "#4a6243")
-                                : "#8C9A86",
-                          }}
-                        />
-                      )}
-                      {isToday && !isSelected && !hasAppts && (
-                        <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-[#ba1a1a]"></span>
-                      )}
+                      Settimana
                     </button>
+                    <button
+                      onClick={() => setCalendarView("month")}
+                      className={cn(
+                        "px-5 py-1.5 rounded-full text-xs font-bold transition-all border-none cursor-pointer whitespace-nowrap",
+                        calendarView === "month"
+                          ? "bg-[#4D5A46] text-white shadow-sm"
+                          : "bg-transparent text-[#8C9A86] hover:text-[#4D5A46]"
+                      )}
+                    >
+                      Mese
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Conditionally Render Month View VS Week View */}
+            {calendarView === "month" ? (
+              <>
+                {/* iOS Calendar Month Picker (Grid) */}
+                <div className="mb-6 ios-card rounded-2xl p-5 border border-[var(--line)] shadow-sm bg-white">
+                  {/* Days Grid Header */}
+                  <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-[#8C9A86] tracking-wider mb-2">
+                    {WEEKDAY_SHORT_LABELS.map((w, idx) => (
+                      <div key={idx}>{w}</div>
+                    ))}
+                  </div>
+
+                  {/* Days Cells */}
+                  <div className="grid grid-cols-7 gap-1 text-center font-medium">
+                    {monthDays.map((day, idx) => {
+                      if (!day) return <div key={`empty-${idx}`} />;
+                      const isSelected = date === formatDateLocal(day);
+                      const isToday = todayStr === formatDateLocal(day);
+                      const dayKeyStr = formatDateLocal(day);
+
+                      const isHoliday = holidays.some(h => dayKeyStr >= h.start_date && dayKeyStr <= h.end_date);
+
+                      const hasAppts = monthAppts.some(a => {
+                        const aDateStr = a.starts_at.slice(0, 10);
+                        if (aDateStr !== dayKeyStr) return false;
+                        return employeeFilter === "all" || a.employee_id === employeeFilter;
+                      });
+
+                      return (
+                        <button
+                          key={day.toISOString()}
+                          onClick={() => selectCalendarDate(day)}
+                          className={cn(
+                            "h-10 w-full rounded-full flex flex-col items-center justify-center relative text-sm active:scale-95 transition-all cursor-pointer border-none",
+                            isSelected
+                              ? "bg-[#4D5A46] text-white font-extrabold"
+                              : isToday
+                              ? "bg-transparent text-[#ba1a1a] border border-[#ba1a1a]/40 font-bold"
+                              : isHoliday
+                              ? "bg-[#FFEBEB] text-[#ba1a1a] font-bold hover:bg-[#FFD6D6]"
+                              : "bg-transparent text-[#4D5A46] hover:bg-[#F4F1EB]"
+                          )}
+                        >
+                          <span className={isSelected ? "text-white font-extrabold" : ""}>{day.getDate()}</span>
+                          {/* Dynamic colored dot representing scheduled appointments for selected operator */}
+                          {hasAppts && !isSelected && (
+                            <span
+                              className="absolute bottom-1 w-1.5 h-1.5 rounded-full"
+                              style={{
+                                backgroundColor:
+                                  employeeFilter !== "all"
+                                    ? (employees.find((e) => e.id === employeeFilter)?.color ?? "#4a6243")
+                                    : "#8C9A86",
+                              }}
+                            />
+                          )}
+                          {isToday && !isSelected && !hasAppts && (
+                            <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-[#ba1a1a]"></span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Drag and Drop Hourly Timeline Grid Board */}
+                <div className="mt-8">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="text-base font-bold text-[#4D5A46] tracking-tight">Tabella Orari per {dayTitle(date)}</h4>
+                    <p className="text-xs text-[#8C9A86]">Trascina gli appuntamenti sui blocchi liberi per riprogrammare.</p>
+                  </div>
+
+                  {(() => {
+                    const currentHoliday = holidays.find(h => date >= h.start_date && date <= h.end_date);
+                    if (!currentHoliday) return null;
+                    return (
+                      <div className="mb-4 p-3.5 rounded-xl bg-[#FFEBEB] border border-[#ba1a1a]/20 flex items-center gap-2.5 text-[#ba1a1a]">
+                        <span className="material-symbols-outlined text-lg shrink-0">event_busy</span>
+                        <div className="text-xs">
+                          <span className="font-extrabold block">Giorno di Chiusura Straordinaria</span>
+                          {currentHoliday.description && (
+                            <span className="font-medium block mt-0.5 opacity-90">{currentHoliday.description}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {(() => {
+                    const filteredEmployees = restrictToEmployeeId
+                      ? employees.filter(e => e.id === restrictToEmployeeId)
+                      : (employeeFilter === "all"
+                        ? employees
+                        : employees.filter(e => e.id === employeeFilter));
+
+                    const skipCells = new Set<string>();
+
+                    return (
+                      <div className={cn(
+                        "ios-card rounded-2xl border border-[var(--line)] shadow-sm bg-white overflow-hidden",
+                        (employeeFilter !== "all" || employees.length <= 2) ? "w-full" : "overflow-x-auto"
+                      )}>
+                        <table className="w-full border-collapse" style={{ minWidth: (employeeFilter === "all" && employees.length > 1) ? "600px" : "100%" }}>
+                          <thead>
+                            <tr className="bg-[#F4F1EB] border-b border-[var(--line)] text-left">
+                              <th className="p-3 text-xs font-bold text-[#8C9A86] w-20 border-r border-[var(--line)] sticky top-0 bg-[#F4F1EB] z-20 text-center">Ora</th>
+                              {filteredEmployees.map(e => (
+                                <th key={e.id} className="p-3 text-xs font-bold text-[#4D5A46] border-r border-[var(--line)] text-center sticky top-0 bg-[#F4F1EB] z-20">
+                                  <div className="flex items-center justify-center gap-2">
+                                    {e.avatar_url ? (
+                                      <img src={e.avatar_url} alt={e.name} className="w-5 h-5 rounded-full object-cover shadow-sm" />
+                                    ) : (
+                                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: e.color }} />
+                                    )}
+                                    {e.name}
+                                  </div>
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {TIMELINE_SLOTS.map((slot, rowIndex) => (
+                              <tr key={slot} className="border-b border-[var(--line)] h-16">
+                                <td className="p-3 text-xs font-bold text-[#8C9A86] text-center border-r border-[var(--line)] bg-[#FAF8F5]/50">
+                                  {slot}
+                                </td>
+                                {filteredEmployees.map(e => {
+                                  const cellKey = `${e.id}-${slot}`;
+                                  if (skipCells.has(cellKey)) {
+                                    return null;
+                                  }
+
+                                  const apptStart = getApptStartSlot(e.id, slot);
+
+                                  if (apptStart) {
+                                    const span = Math.ceil(apptStart.duration_min / 30);
+                                    for (let k = 1; k < span; k++) {
+                                      if (rowIndex + k < TIMELINE_SLOTS.length) {
+                                        skipCells.add(`${e.id}-${TIMELINE_SLOTS[rowIndex + k]}`);
+                                      }
+                                    }
+
+                                    return (
+                                      <td
+                                        key={cellKey}
+                                        rowSpan={span}
+                                        className="p-2 border-r border-[var(--line)] relative"
+                                      >
+                                        <div
+                                          draggable
+                                          onDragStart={(event) => handleDragStart(event, apptStart.id)}
+                                          onClick={() => setActive(apptStart)}
+                                          className="absolute inset-2 rounded-2xl p-3 text-xs cursor-grab active:cursor-grabbing border shadow-sm transition-all flex flex-col justify-between bg-white border-[var(--line)] hover:border-[var(--ink)] hover:shadow-md min-h-[44px]"
+                                        >
+                                          <div className="flex justify-between items-start font-bold">
+                                            <span className="text-[#4D5A46] truncate">{apptStart.customer_name}</span>
+                                            <span className="text-[9px] bg-[#FAF8F5] border border-[var(--line)] px-1 py-0.5 rounded text-[#8C9A86] scale-90">
+                                              {apptStart.duration_min}m
+                                            </span>
+                                          </div>
+                                          <span className="text-[10px] text-[#8C9A86] truncate mt-1">{apptStart.service_name}</span>
+                                        </div>
+                                      </td>
+                                    );
+                                  }
+
+                                  return (
+                                    <td
+                                      key={cellKey}
+                                      onDragOver={(e) => e.preventDefault()}
+                                      onDrop={(event) => handleDrop(event, e.id, slot)}
+                                      className="p-2 border-r border-[var(--line)] relative vertical-align-middle"
+                                    >
+                                      <div className="h-full w-full border border-dashed border-[var(--line-strong)] rounded-xl flex items-center justify-center text-[10px] text-[#8C9A86]/70 hover:bg-[var(--surface-2)]/50 hover:border-[var(--ink)] transition-all select-none min-h-[44px]">
+                                        Disp.
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </>
+            ) : (
+              /* Week View Layout */
+              <div className="space-y-8">
+                {weeksOfTabMonth.map((week, wIdx) => {
+                  const weekNum = getISOWeekNumber(week[0]);
+
+                  const weekApptsList = filteredMonthAppts.filter(a => {
+                    const aDateStr = a.starts_at.slice(0, 10);
+                    return week.some(d => formatDateLocal(d) === aDateStr);
+                  });
+
+                  const totalRevenueWeek = weekApptsList.reduce((sum, a) => sum + (a.price_cents ?? 0), 0) / 100;
+
+                  return (
+                    <div key={wIdx} className="space-y-4">
+                      {/* Week Header */}
+                      <div className="flex items-center justify-between border-b border-[var(--line)] pb-2">
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="text-base font-extrabold text-[#4D5A46]">
+                            Settimana {weekNum}
+                          </h4>
+                          <span className="material-symbols-outlined text-[#8C9A86] text-sm">chevron_right</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#FAF8F5] border border-[var(--line)] text-[#8C9A86]">
+                            {weekApptsList.length} appuntamenti
+                          </span>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#EBF5F0] border border-[#4D5A46]/20 text-[#4D5A46]">
+                            € {totalRevenueWeek.toFixed(0)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Horizontal Columns Grid scrollable on mobile */}
+                      <div className="flex lg:grid lg:grid-cols-7 gap-3 overflow-x-auto lg:overflow-visible pb-3 no-scrollbar w-full">
+                        {week.map((day, dIdx) => {
+                          const dayKeyStr = formatDateLocal(day);
+                          const isToday = todayStr === dayKeyStr;
+
+                          const dayAppts = weekApptsList.filter(a => a.starts_at.slice(0, 10) === dayKeyStr);
+
+                          return (
+                            <div
+                              key={day.toISOString()}
+                              className={cn(
+                                "flex-1 min-w-[185px] lg:min-w-0 flex flex-col rounded-2xl p-2.5 transition-all border",
+                                isToday
+                                  ? "bg-[#EBF5F0]/60 border-[#4D5A46]/30 shadow-sm"
+                                  : "bg-[#FAF8F5]/40 border-[var(--line)]/50"
+                              )}
+                            >
+                              {/* Day Header Button */}
+                              <button
+                                onClick={() => selectCalendarDate(day)}
+                                className="w-full flex items-center justify-between text-[#4D5A46] font-bold text-xs mb-3 py-1 px-1.5 hover:bg-[#F4F1EB] rounded-lg transition-all border-none bg-transparent cursor-pointer"
+                              >
+                                <span className={cn(isToday && "text-[#ba1a1a] font-extrabold")}>
+                                  {WEEKDAY_SHORT_LABELS[dIdx]} {day.getDate()}
+                                </span>
+                                <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+                              </button>
+
+                              {/* Appointments List */}
+                              <div className="space-y-2 flex-1 min-h-[50px]">
+                                {dayAppts.map(a => (
+                                  <button
+                                    key={a.id}
+                                    onClick={() => setActive(a)}
+                                    className="w-full text-left rounded-xl p-2.5 bg-white border border-[var(--line)] hover:border-[var(--ink)] hover:shadow-sm transition-all cursor-pointer flex flex-col gap-0.5 text-xs shadow-sm"
+                                  >
+                                    <span className="text-[#8C9A86] text-[9px] font-extrabold tracking-tight">
+                                      {fmtTime(new Date(a.starts_at), tz)}
+                                    </span>
+                                    <span className="font-extrabold text-[#4D5A46] truncate">
+                                      {a.customer_name}
+                                    </span>
+                                    <span className="text-[10px] text-[#8C9A86] truncate">
+                                      {a.service_name}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
-            </div>
-
-            {/* Drag and Drop Hourly Timeline Grid Board */}
-            <div className="mt-8">
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="text-base font-bold text-[#4D5A46] tracking-tight">Tabella Orari per {dayTitle(date)}</h4>
-                <p className="text-xs text-[#8C9A86]">Trascina gli appuntamenti sui blocchi liberi per riprogrammare.</p>
-              </div>
-
-              {(() => {
-                const currentHoliday = holidays.find(h => date >= h.start_date && date <= h.end_date);
-                if (!currentHoliday) return null;
-                return (
-                  <div className="mb-4 p-3.5 rounded-xl bg-[#FFEBEB] border border-[#ba1a1a]/20 flex items-center gap-2.5 text-[#ba1a1a]">
-                    <span className="material-symbols-outlined text-lg shrink-0">event_busy</span>
-                    <div className="text-xs">
-                      <span className="font-extrabold block">Giorno di Chiusura Straordinaria</span>
-                      {currentHoliday.description && (
-                        <span className="font-medium block mt-0.5 opacity-90">{currentHoliday.description}</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {(() => {
-                const filteredEmployees = restrictToEmployeeId
-                  ? employees.filter(e => e.id === restrictToEmployeeId)
-                  : (employeeFilter === "all"
-                    ? employees
-                    : employees.filter(e => e.id === employeeFilter));
-
-                const skipCells = new Set<string>();
-
-                return (
-                  <div className={cn(
-                    "ios-card rounded-2xl border border-[var(--line)] shadow-sm bg-white overflow-hidden",
-                    (employeeFilter !== "all" || employees.length <= 2) ? "w-full" : "overflow-x-auto"
-                  )}>
-                    <table className="w-full border-collapse" style={{ minWidth: (employeeFilter === "all" && employees.length > 1) ? "600px" : "100%" }}>
-                      <thead>
-                        <tr className="bg-[#F4F1EB] border-b border-[var(--line)] text-left">
-                          <th className="p-3 text-xs font-bold text-[#8C9A86] w-20 border-r border-[var(--line)] sticky top-0 bg-[#F4F1EB] z-20 text-center">Ora</th>
-                          {filteredEmployees.map(e => (
-                            <th key={e.id} className="p-3 text-xs font-bold text-[#4D5A46] border-r border-[var(--line)] text-center sticky top-0 bg-[#F4F1EB] z-20">
-                              <div className="flex items-center justify-center gap-2">
-                                {e.avatar_url ? (
-                                  <img src={e.avatar_url} alt={e.name} className="w-5 h-5 rounded-full object-cover shadow-sm" />
-                                ) : (
-                                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: e.color }} />
-                                )}
-                                {e.name}
-                              </div>
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {TIMELINE_SLOTS.map((slot, rowIndex) => (
-                          <tr key={slot} className="border-b border-[var(--line)] h-16">
-                            <td className="p-3 text-xs font-bold text-[#8C9A86] text-center border-r border-[var(--line)] bg-[#FAF8F5]/50">
-                              {slot}
-                            </td>
-                            {filteredEmployees.map(e => {
-                              const cellKey = `${e.id}-${slot}`;
-                              if (skipCells.has(cellKey)) {
-                                return null;
-                              }
-
-                              const apptStart = getApptStartSlot(e.id, slot);
-
-                              if (apptStart) {
-                                const span = Math.ceil(apptStart.duration_min / 30);
-                                for (let k = 1; k < span; k++) {
-                                  if (rowIndex + k < TIMELINE_SLOTS.length) {
-                                    skipCells.add(`${e.id}-${TIMELINE_SLOTS[rowIndex + k]}`);
-                                  }
-                                }
-
-                                return (
-                                  <td
-                                    key={cellKey}
-                                    rowSpan={span}
-                                    className="p-2 border-r border-[var(--line)] relative"
-                                  >
-                                    <div
-                                      draggable
-                                      onDragStart={(event) => handleDragStart(event, apptStart.id)}
-                                      onClick={() => setActive(apptStart)}
-                                      className="absolute inset-2 rounded-2xl p-3 text-xs cursor-grab active:cursor-grabbing border shadow-sm transition-all flex flex-col justify-between bg-white border-[var(--line)] hover:border-[var(--ink)] hover:shadow-md min-h-[44px]"
-                                    >
-                                      <div className="flex justify-between items-start font-bold">
-                                        <span className="text-[#4D5A46] truncate">{apptStart.customer_name}</span>
-                                        <span className="text-[9px] bg-[#FAF8F5] border border-[var(--line)] px-1 py-0.5 rounded text-[#8C9A86] scale-90">
-                                          {apptStart.duration_min}m
-                                        </span>
-                                      </div>
-                                      <span className="text-[10px] text-[#8C9A86] truncate mt-1">{apptStart.service_name}</span>
-                                    </div>
-                                  </td>
-                                );
-                              }
-
-                              return (
-                                <td
-                                  key={cellKey}
-                                  onDragOver={(e) => e.preventDefault()}
-                                  onDrop={(event) => handleDrop(event, e.id, slot)}
-                                  className="p-2 border-r border-[var(--line)] relative vertical-align-middle"
-                                >
-                                  <div className="h-full w-full border border-dashed border-[var(--line-strong)] rounded-xl flex items-center justify-center text-[10px] text-[#8C9A86]/70 hover:bg-[var(--surface-2)]/50 hover:border-[var(--ink)] transition-all select-none min-h-[44px]">
-                                    Disp.
-                                  </div>
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })()}
-            </div>
+            )}
           </div>
         )}
 
