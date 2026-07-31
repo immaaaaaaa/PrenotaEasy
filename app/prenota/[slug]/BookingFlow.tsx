@@ -7,6 +7,7 @@ import type { Business, Employee, Service, ServiceAddon } from "@/lib/types";
 import { cn } from "@/lib/cn";
 import { Sheet } from "@/components/ui/Sheet";
 import { CalendarLogo } from "@/components/CalendarLogo";
+import { Wordmark } from "@/components/Wordmark";
 import { Toggle } from "@/components/ui/Toggle";
 
 type Slot = {
@@ -535,14 +536,9 @@ export function BookingFlow({
     <div className="bg-[var(--bg)] text-[var(--ink)] font-sans min-h-screen pb-40">
       {/* Header */}
       <header className="w-full top-0 sticky z-50 bg-[var(--bg)]/90 backdrop-blur-md flex justify-between items-center px-6 py-6 border-b border-[var(--line)]/30">
-        <div className="flex flex-col gap-0.5 cursor-pointer active:scale-95 duration-200 transition-opacity hover:opacity-80">
-          <div className="flex items-center gap-3">
-            <CalendarLogo size={48} />
-            <h1 className="font-bold text-xl tracking-tight">PrenotaEasy</h1>
-          </div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-2)] ml-[60px]">
-            {business.name}
-          </p>
+        <div className="flex items-center gap-3 cursor-pointer active:scale-95 duration-200 transition-opacity hover:opacity-80">
+          <CalendarLogo size={48} />
+          <Wordmark tagline={business.name} />
         </div>
       </header>
 

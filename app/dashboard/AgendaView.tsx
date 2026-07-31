@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/ui/Sheet";
 import { CalendarLogo } from "@/components/CalendarLogo";
+import { Wordmark } from "@/components/Wordmark";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -1079,7 +1080,7 @@ export function AgendaView({
         <div className="flex justify-between items-center px-4 sm:px-6 py-4 max-w-7xl mx-auto">
           <div className="flex items-center gap-3">
             <CalendarLogo size={48} />
-            <h1 className="font-bold text-xl tracking-tight text-[var(--ink)]">PrenotaEasy</h1>
+            <Wordmark />
           </div>
           <div className="flex items-center gap-4">
             <button
