@@ -2197,7 +2197,7 @@ function EmployeeRow({
         </div>
       </div>
       <input
-        className="flex-1 h-11 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[var(--ink)]"
+        className="flex-1 min-w-0 h-11 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[var(--ink)]"
         value={name}
         onChange={(e) => setName(e.target.value)}
         onBlur={() => {
@@ -2363,7 +2363,7 @@ function HolidaysSection({ initial }: { initial: any[] }) {
       )}
 
       <form onSubmit={handleAdd} className="mt-4 border-t border-[var(--line)] pt-4 space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 [&>div]:min-w-0">
           <div>
             <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Data Inizio</label>
             <input
@@ -2371,7 +2371,7 @@ function HolidaysSection({ initial }: { initial: any[] }) {
               required
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full h-11 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-xs font-bold text-[var(--ink)] uppercase"
+              className="w-full max-w-full min-w-0 h-11 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-3 outline-none focus:border-[var(--ink)] text-xs font-bold text-[var(--ink)] uppercase"
             />
           </div>
           <div>
@@ -2381,7 +2381,7 @@ function HolidaysSection({ initial }: { initial: any[] }) {
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               placeholder="Lascia vuoto per giorno singolo"
-              className="w-full h-11 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-xs font-bold text-[var(--ink)] uppercase"
+              className="w-full max-w-full min-w-0 h-11 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-3 outline-none focus:border-[var(--ink)] text-xs font-bold text-[var(--ink)] uppercase"
             />
           </div>
           <div>

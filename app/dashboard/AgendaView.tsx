@@ -831,6 +831,7 @@ export function AgendaView({
   const startApptDrag = (e: React.PointerEvent, a: Appointment) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     if (loading) return;
+    if (e.pointerType === "mouse") e.preventDefault();
     const startX = e.clientX;
     const startY = e.clientY;
     const isTouch = e.pointerType !== "mouse";
@@ -860,6 +861,8 @@ export function AgendaView({
 
     const begin = (x: number, y: number) => {
       active = true;
+      document.body.classList.add("drag-no-select");
+      window.getSelection()?.removeAllRanges();
       if (navigator.vibrate) navigator.vibrate(25);
       updateTarget(x, y);
     };
@@ -872,6 +875,7 @@ export function AgendaView({
       document.removeEventListener("pointerup", onUp);
       document.removeEventListener("pointercancel", cleanup);
       document.removeEventListener("touchmove", blockScroll);
+      document.body.classList.remove("drag-no-select");
       setTarget(null);
     };
 
@@ -931,6 +935,7 @@ export function AgendaView({
   const startMonthApptDrag = (e: React.PointerEvent, a: Appointment) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     if (loading) return;
+    if (e.pointerType === "mouse") e.preventDefault();
     const startX = e.clientX;
     const startY = e.clientY;
     const isTouch = e.pointerType !== "mouse";
@@ -956,6 +961,8 @@ export function AgendaView({
 
     const begin = (x: number, y: number) => {
       active = true;
+      document.body.classList.add("drag-no-select");
+      window.getSelection()?.removeAllRanges();
       if (navigator.vibrate) navigator.vibrate(25);
       updateTarget(x, y);
     };
@@ -968,6 +975,7 @@ export function AgendaView({
       document.removeEventListener("pointerup", onUp);
       document.removeEventListener("pointercancel", cleanup);
       document.removeEventListener("touchmove", blockScroll);
+      document.body.classList.remove("drag-no-select");
       setTarget(null);
     };
 
@@ -1295,7 +1303,7 @@ export function AgendaView({
 
         {/* TAB 2: CALENDAR (iOS Style, Drag and Drop rescheduling) */}
         {ownerTab === "calendar" && (
-          <div>
+          <div className="select-none">
             {/* Employee Filter Bar */}            {!restrictToEmployeeId && employees.length > 1 && (
               <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
                 <button
@@ -2452,7 +2460,7 @@ function ApptSheet({
                 value={rDate}
                 min={dayKey(new Date(), tz)}
                 onChange={(e) => setRDate(e.target.value)}
-                className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-sm text-[var(--ink)] font-medium"
+                className="w-full min-w-0 max-w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-sm text-[var(--ink)] font-medium"
               />
             </label>
             <label className="w-[38%]">

@@ -468,3 +468,10 @@ textarea.input {
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
+
+/* Active drag: nothing on the page may be text-selected */
+.drag-no-select,
+.drag-no-select * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
