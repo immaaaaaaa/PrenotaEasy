@@ -19,6 +19,15 @@ export function waLink(phoneE164: string, message: string): string {
   return `https://wa.me/${waNumber(phoneE164)}?text=${encodeURIComponent(message)}`;
 }
 
+/** "Microblading + Ridisegno forma" when add-ons were chosen, plain name otherwise. */
+export function serviceLabelWithAddons(
+  serviceName: string,
+  addons?: { name: string }[] | null,
+): string {
+  if (!addons || addons.length === 0) return serviceName;
+  return `${serviceName} + ${addons.map((a) => a.name).join(" + ")}`;
+}
+
 export function rescheduleMessage(o: {
   customerName: string;
   businessName: string;

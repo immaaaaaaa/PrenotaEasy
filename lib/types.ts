@@ -29,6 +29,8 @@ export interface BusinessHours {
   break_end: string | null;
 }
 
+export type BookingMode = "auto" | "fixed_slots";
+
 export interface Service {
   id: string;
   business_id: string;
@@ -39,6 +41,49 @@ export interface Service {
   active: boolean;
   created_at: string;
   description?: string | null;
+  booking_mode?: BookingMode; // absent/"auto" = free availability (default)
+}
+
+export interface ServiceAddon {
+  id: string;
+  business_id: string;
+  service_id: string;
+  name: string;
+  extra_min: number;
+  extra_price_cents: number;
+  sort: number;
+  active: boolean;
+  created_at: string;
+}
+
+/** Snapshot of an add-on as chosen at booking time (stored on the appointment). */
+export interface AppointmentAddon {
+  name: string;
+  extra_min: number;
+  extra_price_cents: number;
+}
+
+export interface ServiceSlot {
+  id: string;
+  business_id: string;
+  service_id: string;
+  weekday: Weekday; // 0 = Monday … 6 = Sunday
+  start_time: string; // 'HH:mm:ss'
+  employee_id: string | null; // null = any operator
+  active: boolean;
+  created_at: string;
+}
+
+export interface ServiceSlotException {
+  id: string;
+  business_id: string;
+  service_id: string;
+  date: string; // YYYY-MM-DD
+  kind: "removed" | "extra";
+  slot_id: string | null; // for 'removed': which recurring slot is hidden
+  start_time: string | null; // for 'extra'
+  employee_id: string | null; // for 'extra'; null = any operator
+  created_at: string;
 }
 
 export interface Employee {
@@ -88,4 +133,7 @@ export interface Appointment {
   customer_name: string;
   customer_phone: string;
   created_at: string;
+  // Snapshot of the optional add-ons chosen at booking time (null = none).
+  // duration_min and price_cents already include their extras.
+  addons?: AppointmentAddon[] | null;
 }

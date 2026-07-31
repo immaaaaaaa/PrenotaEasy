@@ -115,6 +115,12 @@ export async function POST(req: NextRequest) {
       }
 
       const start = new Date(newStartUtc);
+      if (Number.isNaN(start.getTime()) || start.getTime() < Date.now()) {
+        return NextResponse.json(
+          { error: "Non è possibile spostare l'appuntamento in un orario passato." },
+          { status: 409 },
+        );
+      }
       const end = new Date(start.getTime() + appt.duration_min * 60 * 1000);
 
       const { error: updateError } = await supa

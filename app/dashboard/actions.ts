@@ -10,6 +10,7 @@ import {
   cancelMessage,
   normalizePhone,
   rescheduleMessage,
+  serviceLabelWithAddons,
   waLink,
 } from "@/lib/whatsapp";
 import type { Appointment } from "@/lib/types";
@@ -303,6 +304,9 @@ export async function rescheduleAppointment(input: {
   if (!appt) return { ok: false, error: "Appuntamento non trovato." };
 
   const start = zonedToUtc(input.dateStr, input.timeStr, business.timezone);
+  if (start.getTime() < Date.now()) {
+    return { ok: false, error: "Non puoi spostare un appuntamento nel passato." };
+  }
   const end = new Date(start.getTime() + appt.duration_min * 60_000);
 
   const { error } = await supa
@@ -330,7 +334,7 @@ export async function rescheduleAppointment(input: {
     rescheduleMessage({
       customerName: appt.customer_name,
       businessName: business.name,
-      serviceName: appt.service_name,
+      serviceName: serviceLabelWithAddons(appt.service_name, appt.addons),
       when: whenText,
     }),
   );
@@ -363,7 +367,7 @@ export async function cancelAppointment(
     cancelMessage({
       customerName: appt.customer_name,
       businessName: business.name,
-      serviceName: appt.service_name,
+      serviceName: serviceLabelWithAddons(appt.service_name, appt.addons),
       when: fmtWhen(new Date(appt.starts_at), business.timezone),
     }),
   );

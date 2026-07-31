@@ -206,3 +206,91 @@ begin
      (current_date + time '12:00') at time zone tz,
      'client', 'Piega', 30, 2000, 'Anna Rossi', '+393401234567');
 end $$;
+-- ===========================================================================
+-- Fixed booking slots per service (additive, backwards compatible)
+-- - services.booking_mode: 'auto' (default, current behaviour) | 'fixed_slots'
+-- - service_slots: weekly recurring pattern (weekday + time + optional operator)
+-- - service_slot_exceptions: per-date removals of a recurring slot or one-off
+--   extra slots that do not recur
+-- ===========================================================================
+
+alter table public.services
+  add column if not exists booking_mode text not null default 'auto'
+  check (booking_mode in ('auto', 'fixed_slots'));
+
+create table if not exists public.service_slots (
+  id           uuid primary key default gen_random_uuid(),
+  business_id  uuid not null references public.businesses (id) on delete cascade,
+  service_id   uuid not null references public.services (id) on delete cascade,
+  weekday      int  not null check (weekday between 0 and 6), -- 0 = Monday … 6 = Sunday
+  start_time   time not null,
+  employee_id  uuid references public.employees (id) on delete set null, -- null = any operator
+  active       boolean not null default true,
+  created_at   timestamptz not null default now()
+);
+
+create table if not exists public.service_slot_exceptions (
+  id           uuid primary key default gen_random_uuid(),
+  business_id  uuid not null references public.businesses (id) on delete cascade,
+  service_id   uuid not null references public.services (id) on delete cascade,
+  date         date not null,
+  kind         text not null check (kind in ('removed', 'extra')),
+  -- 'removed': hides the referenced recurring slot on that date
+  slot_id      uuid references public.service_slots (id) on delete cascade,
+  -- 'extra': a one-off slot on that date only
+  start_time   time,
+  employee_id  uuid references public.employees (id) on delete set null,
+  created_at   timestamptz not null default now(),
+  check (
+    (kind = 'removed' and slot_id is not null)
+    or (kind = 'extra' and start_time is not null)
+  )
+);
+
+create index if not exists service_slots_service_idx
+  on public.service_slots (service_id, weekday);
+create index if not exists service_slot_exceptions_service_date_idx
+  on public.service_slot_exceptions (service_id, date);
+
+alter table public.service_slots enable row level security;
+alter table public.service_slot_exceptions enable row level security;
+
+-- Same model as the other child tables: public booking goes through the
+-- service_role key server-side; owners manage their own rows.
+create policy "service_slots_owner_all" on public.service_slots
+  for all using (business_id in (select id from public.businesses where owner_id = auth.uid()))
+  with check (business_id in (select id from public.businesses where owner_id = auth.uid()));
+
+create policy "service_slot_exceptions_owner_all" on public.service_slot_exceptions
+  for all using (business_id in (select id from public.businesses where owner_id = auth.uid()))
+  with check (business_id in (select id from public.businesses where owner_id = auth.uid()));
+-- ===========================================================================
+-- Optional add-ons per service (additive, backwards compatible)
+-- - service_addons: 1-to-many with services; each has extra time and price
+-- - appointments.addons: jsonb snapshot of the add-ons chosen at booking time
+--   (appointments keep their history even if add-ons are edited/removed later)
+-- ===========================================================================
+
+create table if not exists public.service_addons (
+  id                uuid primary key default gen_random_uuid(),
+  business_id       uuid not null references public.businesses (id) on delete cascade,
+  service_id        uuid not null references public.services (id) on delete cascade,
+  name              text not null,
+  extra_min         int  not null default 0 check (extra_min >= 0),
+  extra_price_cents int  not null default 0 check (extra_price_cents >= 0),
+  sort              int  not null default 0,
+  active            boolean not null default true,
+  created_at        timestamptz not null default now()
+);
+
+create index if not exists service_addons_service_idx
+  on public.service_addons (service_id);
+
+alter table public.appointments
+  add column if not exists addons jsonb;
+
+alter table public.service_addons enable row level security;
+
+create policy "service_addons_owner_all" on public.service_addons
+  for all using (business_id in (select id from public.businesses where owner_id = auth.uid()))
+  with check (business_id in (select id from public.businesses where owner_id = auth.uid()));

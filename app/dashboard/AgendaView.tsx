@@ -6,7 +6,7 @@ import { Sheet } from "@/components/ui/Sheet";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { fmtTime, dayKey, fmtWhen } from "@/lib/time";
+import { fmtTime, dayKey, fmtWhen, zonedToUtc } from "@/lib/time";
 import { addDaysStr, dayTitle, relLabel } from "@/lib/days";
 import { formatPrice, WEEKDAYS_LONG } from "@/lib/constants";
 import type { Appointment, Business, BusinessHours, Employee, Service } from "@/lib/types";
@@ -842,7 +842,11 @@ export function AgendaView({
       const slotsCount = ((endMin - startMin) / 60) * 2;
       const col = Math.max(0, Math.min(dayKeys.length - 1, Math.floor(((x - rect.left) / rect.width) * dayKeys.length)));
       const slot = Math.max(0, Math.min(slotsCount - 1, Math.floor((y - rect.top) / (HOUR_PX / 2))));
-      setTarget({ apptId: a.id, durMin: a.duration_min, col, slot, valid: !isClosedDate(dayKeys[col]) });
+      // A drop target is invalid on closed days and in the past
+      const total = startMin + slot * 30;
+      const slotTime = `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+      const inPast = zonedToUtc(dayKeys[col], slotTime, tz).getTime() < Date.now();
+      setTarget({ apptId: a.id, durMin: a.duration_min, col, slot, valid: !isClosedDate(dayKeys[col]) && !inPast });
     };
 
     const begin = (x: number, y: number) => {
@@ -1092,7 +1096,9 @@ export function AgendaView({
                                 )}
                               </p>
                               <p className="text-xs text-[#8C9A86] mt-0.5 font-medium">
-                                {a.service_name} {emp ? ` · ${emp.name}` : ""}
+                                {a.service_name}
+                                {a.addons && a.addons.length > 0 ? ` +${a.addons.length} extra` : ""}
+                                {emp ? ` · ${emp.name}` : ""}
                               </p>
                             </div>
                           </div>
@@ -1514,7 +1520,9 @@ export function AgendaView({
                                           "truncate leading-tight opacity-90 select-none",
                                           isWeek ? "text-[8px] sm:text-[9px]" : "text-[9px] sm:text-[10px]"
                                         )}>
-                                          {isWeek ? startStr : `${startStr} – ${endStr} · ${a.service_name}`}
+                                          {isWeek
+                                            ? startStr
+                                            : `${startStr} – ${endStr} · ${a.service_name}${a.addons && a.addons.length > 0 ? ` +${a.addons.length} extra` : ""}`}
                                         </p>
                                       )}
                                     </div>
@@ -2150,6 +2158,14 @@ function ApptSheet({
           <div className="rounded-2xl border border-[var(--line)] divide-y divide-[var(--line)] overflow-hidden bg-[var(--surface-2)]/30">
             <DetailRow label="Cliente" value={appt.customer_name} />
             <DetailRow label="Servizio" value={appt.service_name} />
+            {appt.addons && appt.addons.length > 0 && (
+              <DetailRow
+                label="Extra"
+                value={appt.addons
+                  .map((ad) => `${ad.name} (+${ad.extra_min} min · +${formatPrice(ad.extra_price_cents)})`)
+                  .join(", ")}
+              />
+            )}
             <DetailRow
               label="Operatore"
               value={employees.find((e) => e.id === appt.employee_id)?.name ?? "—"}
@@ -2192,7 +2208,7 @@ function ApptSheet({
               <a
                 href={`https://wa.me/${appt.customer_phone.replace(/[^\d]/g, "")}?text=${encodeURIComponent(
                   `Ciao ${appt.customer_name.split(" ")[0] || appt.customer_name}! ⏰\n\n` +
-                  `Ti ricordiamo il tuo appuntamento da ${businessName} (${appt.service_name}) confermato per ${fmtWhen(new Date(appt.starts_at), tz)}.\n\n` +
+                  `Ti ricordiamo il tuo appuntamento da ${businessName} (${appt.service_name}${appt.addons && appt.addons.length > 0 ? ` + ${appt.addons.map((ad) => ad.name).join(" + ")}` : ""}) confermato per ${fmtWhen(new Date(appt.starts_at), tz)}.\n\n` +
                   `Ti aspettiamo! 👋`
                 )}`}
                 target="_blank"
@@ -2227,6 +2243,7 @@ function ApptSheet({
               <input
                 type="date"
                 value={rDate}
+                min={dayKey(new Date(), tz)}
                 onChange={(e) => setRDate(e.target.value)}
                 className="w-full h-12 rounded-xl bg-[#F4F1EB] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-sm text-[#4D5A46] font-medium"
               />

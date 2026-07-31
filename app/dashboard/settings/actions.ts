@@ -58,20 +58,26 @@ export async function addService(input: {
   durationMin: number;
   priceCents: number;
   description?: string;
-}): Promise<Result> {
+  bookingMode?: "auto" | "fixed_slots";
+}): Promise<Result & { id?: string }> {
   const { supa, business } = await requireBusiness();
   if (!input.name.trim()) return { ok: false, error: "Nome mancante." };
-  const { error } = await supa.from("services").insert({
-    business_id: business.id,
-    name: input.name.trim(),
-    duration_min: input.durationMin,
-    price_cents: input.priceCents,
-    description: input.description?.trim() || null,
-    sort: Math.floor(Date.now() / 1000),
-  });
+  const { data, error } = await supa
+    .from("services")
+    .insert({
+      business_id: business.id,
+      name: input.name.trim(),
+      duration_min: input.durationMin,
+      price_cents: input.priceCents,
+      description: input.description?.trim() || null,
+      booking_mode: input.bookingMode ?? "auto",
+      sort: Math.floor(Date.now() / 1000),
+    })
+    .select("id")
+    .single();
   if (error) return { ok: false, error: "Impossibile aggiungere il servizio." };
   revalidatePath("/dashboard");
-  return { ok: true };
+  return { ok: true, id: data?.id };
 }
 
 export async function updateService(input: {
@@ -80,6 +86,7 @@ export async function updateService(input: {
   durationMin: number;
   priceCents: number;
   description?: string;
+  bookingMode?: "auto" | "fixed_slots";
 }): Promise<Result> {
   const { supa, business } = await requireBusiness();
   const { error } = await supa
@@ -89,10 +96,185 @@ export async function updateService(input: {
       duration_min: input.durationMin,
       price_cents: input.priceCents,
       description: input.description?.trim() || null,
+      ...(input.bookingMode ? { booking_mode: input.bookingMode } : {}),
     })
     .eq("id", input.id)
     .eq("business_id", business.id);
   if (error) return { ok: false, error: "Impossibile salvare." };
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+/* ---- Optional add-ons ---- */
+
+export async function getServiceAddons(serviceId: string): Promise<any[]> {
+  const { supa, business } = await requireBusiness();
+  const { data } = await supa
+    .from("service_addons")
+    .select("*")
+    .eq("service_id", serviceId)
+    .eq("business_id", business.id)
+    .eq("active", true)
+    .order("sort");
+  return data ?? [];
+}
+
+export async function addServiceAddon(input: {
+  serviceId: string;
+  name: string;
+  extraMin: number;
+  extraPriceCents: number;
+}): Promise<Result> {
+  const { supa, business } = await requireBusiness();
+  if (!input.name.trim()) return { ok: false, error: "Nome del supplemento mancante." };
+  if (input.extraMin < 0 || input.extraPriceCents < 0) {
+    return { ok: false, error: "Valori non validi." };
+  }
+  const { error } = await supa.from("service_addons").insert({
+    business_id: business.id,
+    service_id: input.serviceId,
+    name: input.name.trim(),
+    extra_min: input.extraMin,
+    extra_price_cents: input.extraPriceCents,
+    sort: Math.floor(Date.now() / 1000),
+  });
+  if (error) return { ok: false, error: "Impossibile aggiungere il supplemento." };
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function updateServiceAddon(input: {
+  id: string;
+  name: string;
+  extraMin: number;
+  extraPriceCents: number;
+}): Promise<Result> {
+  const { supa, business } = await requireBusiness();
+  if (!input.name.trim()) return { ok: false, error: "Nome del supplemento mancante." };
+  const { error } = await supa
+    .from("service_addons")
+    .update({
+      name: input.name.trim(),
+      extra_min: input.extraMin,
+      extra_price_cents: input.extraPriceCents,
+    })
+    .eq("id", input.id)
+    .eq("business_id", business.id);
+  if (error) return { ok: false, error: "Impossibile salvare il supplemento." };
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function deleteServiceAddon(id: string): Promise<Result> {
+  const { supa, business } = await requireBusiness();
+  // Soft-delete: booked appointments keep their snapshot anyway.
+  const { error } = await supa
+    .from("service_addons")
+    .update({ active: false })
+    .eq("id", id)
+    .eq("business_id", business.id);
+  if (error) return { ok: false, error: "Impossibile eliminare il supplemento." };
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+/* ---- Fixed slots (recurring pattern + per-date exceptions) ---- */
+
+export async function getServiceSlotData(serviceId: string): Promise<{
+  slots: any[];
+  exceptions: any[];
+}> {
+  const { supa, business } = await requireBusiness();
+  const [{ data: slots }, { data: exceptions }] = await Promise.all([
+    supa
+      .from("service_slots")
+      .select("*")
+      .eq("service_id", serviceId)
+      .eq("business_id", business.id)
+      .eq("active", true)
+      .order("weekday")
+      .order("start_time"),
+    supa
+      .from("service_slot_exceptions")
+      .select("*")
+      .eq("service_id", serviceId)
+      .eq("business_id", business.id)
+      .order("date"),
+  ]);
+  return { slots: slots ?? [], exceptions: exceptions ?? [] };
+}
+
+export async function addServiceSlot(input: {
+  serviceId: string;
+  weekday: number;
+  startTime: string; // 'HH:mm'
+  employeeId: string | null;
+}): Promise<Result> {
+  const { supa, business } = await requireBusiness();
+  if (!/^\d{2}:\d{2}$/.test(input.startTime)) return { ok: false, error: "Orario non valido." };
+  if (input.weekday < 0 || input.weekday > 6) return { ok: false, error: "Giorno non valido." };
+  const { error } = await supa.from("service_slots").insert({
+    business_id: business.id,
+    service_id: input.serviceId,
+    weekday: input.weekday,
+    start_time: input.startTime,
+    employee_id: input.employeeId,
+  });
+  if (error) return { ok: false, error: "Impossibile aggiungere lo slot." };
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function deleteServiceSlot(id: string): Promise<Result> {
+  const { supa, business } = await requireBusiness();
+  const { error } = await supa
+    .from("service_slots")
+    .delete()
+    .eq("id", id)
+    .eq("business_id", business.id);
+  if (error) return { ok: false, error: "Impossibile eliminare lo slot." };
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function addSlotException(input: {
+  serviceId: string;
+  date: string; // YYYY-MM-DD
+  kind: "removed" | "extra";
+  slotId?: string | null;
+  startTime?: string | null; // 'HH:mm' for 'extra'
+  employeeId?: string | null;
+}): Promise<Result> {
+  const { supa, business } = await requireBusiness();
+  if (!input.date) return { ok: false, error: "Data mancante." };
+  if (input.kind === "removed" && !input.slotId) {
+    return { ok: false, error: "Scegli quale slot rimuovere." };
+  }
+  if (input.kind === "extra" && !/^\d{2}:\d{2}$/.test(input.startTime ?? "")) {
+    return { ok: false, error: "Orario non valido." };
+  }
+  const { error } = await supa.from("service_slot_exceptions").insert({
+    business_id: business.id,
+    service_id: input.serviceId,
+    date: input.date,
+    kind: input.kind,
+    slot_id: input.kind === "removed" ? input.slotId : null,
+    start_time: input.kind === "extra" ? input.startTime : null,
+    employee_id: input.kind === "extra" ? (input.employeeId ?? null) : null,
+  });
+  if (error) return { ok: false, error: "Impossibile salvare l'eccezione." };
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function deleteSlotException(id: string): Promise<Result> {
+  const { supa, business } = await requireBusiness();
+  const { error } = await supa
+    .from("service_slot_exceptions")
+    .delete()
+    .eq("id", id)
+    .eq("business_id", business.id);
+  if (error) return { ok: false, error: "Impossibile eliminare l'eccezione." };
   revalidatePath("/dashboard");
   return { ok: true };
 }

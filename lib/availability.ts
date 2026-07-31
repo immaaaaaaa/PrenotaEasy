@@ -1,7 +1,13 @@
 import { fmtTime, zonedToUtc } from "./time";
 
 export type BusyInterval = { start: number; end: number }; // epoch ms, half-open
-export type Slot = { time: string; startUtc: string }; // 'HH:mm', ISO instant
+export type Slot = {
+  time: string; // 'HH:mm'
+  startUtc: string; // ISO instant
+  // Present only for fixed-slot services: the operator bound to the slot
+  employeeId?: string | null;
+  employeeName?: string | null;
+};
 
 export interface DayHours {
   isClosed: boolean;

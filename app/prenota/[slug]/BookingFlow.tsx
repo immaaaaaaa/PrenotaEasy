@@ -1,13 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { formatDuration, formatPrice } from "@/lib/constants";
 import { buildDays } from "@/lib/days";
-import type { Business, Employee, Service } from "@/lib/types";
+import type { Business, Employee, Service, ServiceAddon } from "@/lib/types";
 import { cn } from "@/lib/cn";
 import { Sheet } from "@/components/ui/Sheet";
+import { Toggle } from "@/components/ui/Toggle";
 
-type Slot = { time: string; startUtc: string };
+type Slot = {
+  time: string;
+  startUtc: string;
+  // Present only for fixed-slot services
+  employeeId?: string | null;
+  employeeName?: string | null;
+};
 
 function getServiceIcon(name: string): string {
   const n = name.toLowerCase();
@@ -75,6 +82,8 @@ export function BookingFlow({
   todayStr,
   closedWeekdays,
   holidays = [],
+  fixedSlotMeta = {},
+  addonsByService = {},
 }: {
   business: Business;
   services: Service[];
@@ -82,6 +91,8 @@ export function BookingFlow({
   todayStr: string;
   closedWeekdays: number[];
   holidays?: { start_date: string; end_date: string }[];
+  fixedSlotMeta?: Record<string, { weekdays: number[]; employeeIds: (string | null)[]; extraDates: string[] }>;
+  addonsByService?: Record<string, ServiceAddon[]>;
 }) {
   const [currentTab, setCurrentTab] = useState<"book" | "history" | "profile">("book");
 
@@ -94,6 +105,48 @@ export function BookingFlow({
   const isDateHoliday = useCallback((dStr: string) => {
     return holidays.some((h) => dStr >= h.start_date && dStr <= h.end_date);
   }, [holidays]);
+
+  // Optional add-ons chosen for the selected service
+  const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
+  const serviceAddons = service ? (addonsByService[service.id] ?? []) : [];
+  const selectedAddons = serviceAddons.filter((a) => selectedAddonIds.includes(a.id));
+  const extraMin = selectedAddons.reduce((s, a) => s + a.extra_min, 0);
+  const extraPriceCents = selectedAddons.reduce((s, a) => s + a.extra_price_cents, 0);
+  const totalDurationMin = (service?.duration_min ?? 0) + extraMin;
+  const totalPriceCents = (service?.price_cents ?? 0) + extraPriceCents;
+
+  const toggleAddon = (id: string) => {
+    setSelectedAddonIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  // Fixed-slot services: clients only see the owner-defined occurrences.
+  // The slot itself may bind the operator, so the operator picker is hidden
+  // unless the pattern contains "any operator" slots.
+  const isFixed = Boolean(service && service.booking_mode === "fixed_slots");
+  const fixedMeta = isFixed && service ? fixedSlotMeta[service.id] : undefined;
+  const fixedHasAny = fixedMeta ? fixedMeta.employeeIds.includes(null) : false;
+  const fixedDistinctEmps = fixedMeta ? (fixedMeta.employeeIds.filter(Boolean) as string[]) : [];
+  const showOperatorPicker = !isFixed || fixedHasAny;
+  const fixedSingleOperator =
+    isFixed && !fixedHasAny && fixedDistinctEmps.length === 1
+      ? employees.find((e) => e.id === fixedDistinctEmps[0]) ?? null
+      : null;
+
+  // A day is selectable when: not a holiday, and (fixed service → the pattern
+  // covers that weekday or an extra one-off exists; auto → business is open).
+  const isDaySelectable = useCallback(
+    (dStr: string, weekday0: number) => {
+      if (isDateHoliday(dStr)) return false;
+      if (isFixed) {
+        if (!fixedMeta) return false;
+        return fixedMeta.weekdays.includes(weekday0) || fixedMeta.extraDates.includes(dStr);
+      }
+      return !closedWeekdays.includes(weekday0);
+    },
+    [isDateHoliday, isFixed, fixedMeta, closedWeekdays],
+  );
 
   const days = useMemo(
     () => buildDays(todayStr, business.booking_horizon_days),
@@ -110,6 +163,12 @@ export function BookingFlow({
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [closed, setClosed] = useState(false);
+  // Shown when toggling add-ons made the previously selected time unavailable
+  const [addonNotice, setAddonNotice] = useState(false);
+  const slotRef = useRef<Slot | null>(null);
+  useEffect(() => {
+    slotRef.current = slot;
+  }, [slot]);
 
   // Customer details form states
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -125,6 +184,7 @@ export function BookingFlow({
   const [profileName, setProfileName] = useState("");
   const [profilePhone, setProfilePhone] = useState("");
   const [profileSaved, setProfileSaved] = useState(false);
+  const [profileEditing, setProfileEditing] = useState(false);
 
   // Appointment history states
   const [history, setHistory] = useState<any[]>([]);
@@ -277,7 +337,8 @@ export function BookingFlow({
     }
   };
 
-  // Load availability whenever inputs change
+  // Load availability whenever inputs change (add-ons extend the duration)
+  const addonsKey = selectedAddonIds.join(",");
   useEffect(() => {
     if (!service) return;
     const ctrl = new AbortController();
@@ -286,23 +347,41 @@ export function BookingFlow({
     setSlots([]);
     const url =
       `/api/availability?slug=${encodeURIComponent(business.slug)}` +
-      `&service=${service.id}&employee=${operator}&date=${dateStr}`;
+      `&service=${service.id}&employee=${operator}&date=${dateStr}` +
+      (addonsKey ? `&addons=${encodeURIComponent(addonsKey)}` : "");
     fetch(url, { signal: ctrl.signal })
       .then((r) => r.json())
       .then((d) => {
-        setSlots(d.slots ?? []);
+        const list: Slot[] = d.slots ?? [];
+        setSlots(list);
         setClosed(Boolean(d.closed));
+        // If the selected time no longer fits (e.g. an add-on was toggled), release it
+        const cur = slotRef.current;
+        if (cur && !list.some((s) => s.startUtc === cur.startUtc)) {
+          setSlot(null);
+          if (addonsKey) setAddonNotice(true);
+        }
       })
       .catch(() => {})
       .finally(() => setLoadingSlots(false));
     return () => ctrl.abort();
-  }, [service, operator, dateStr, business.slug]);
+  }, [service, operator, dateStr, business.slug, addonsKey]);
 
   const selectService = (s: Service) => {
     setService(s);
     setSlot(null);
+    setSelectedAddonIds([]);
+    setAddonNotice(false);
+    const meta = s.booking_mode === "fixed_slots" ? fixedSlotMeta[s.id] : undefined;
+    const pickerHidden = s.booking_mode === "fixed_slots" && !(meta?.employeeIds.includes(null) ?? false);
+    if (pickerHidden) {
+      // Operator is decided by the slot itself
+      setOperator("any");
+    }
     setTimeout(() => {
-      document.getElementById("professional-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      document
+        .getElementById(pickerHidden ? "date-section" : "professional-section")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 100);
   };
 
@@ -324,12 +403,14 @@ export function BookingFlow({
 
   const selectSlot = (s: Slot) => {
     setSlot(s);
+    setAddonNotice(false);
   };
 
   const operatorName =
-    operator === "any"
-      ? "Primo disponibile"
-      : (employees.find((e) => e.id === operator)?.name ?? "");
+    (slot?.employeeName ??
+      (operator === "any"
+        ? fixedSingleOperator?.name ?? "Primo disponibile"
+        : employees.find((e) => e.id === operator)?.name)) ?? "";
 
   const selectedDay = days.find((d) => d.dateStr === dateStr);
   const whenLabel = selectedDay
@@ -352,8 +433,10 @@ export function BookingFlow({
         body: JSON.stringify({
           slug: business.slug,
           serviceId: service.id,
-          employeeId: operator,
+          // Fixed slots may bind the operator; otherwise use the picker choice
+          employeeId: slot.employeeId ?? operator,
           startUtc: slot.startUtc,
+          addonIds: selectedAddonIds,
           name: name.trim(),
           phone: phone.trim(),
           notes: notes.trim() || undefined,
@@ -396,6 +479,7 @@ export function BookingFlow({
       localStorage.setItem("customer_phone", profilePhone.trim());
       setName(profileName.trim());
       setPhone(profilePhone.trim());
+      setProfileEditing(false);
       setProfileSaved(true);
       setTimeout(() => setProfileSaved(false), 3000);
     }
@@ -515,8 +599,81 @@ export function BookingFlow({
               </div>
             </section>
 
+            {/* Optional add-ons */}
+            {service && serviceAddons.length > 0 && (
+              <section className="mb-10">
+                <h3 className="text-lg font-bold text-primary mb-2">Supplementi opzionali</h3>
+                <p className="text-[#8C9A86] text-sm mb-5">
+                  Aggiungi un extra a <strong>{service.name}</strong>: durata e prezzo si aggiornano automaticamente.
+                </p>
+                <div className="space-y-3">
+                  {serviceAddons.map((a) => {
+                    const checked = selectedAddonIds.includes(a.id);
+                    return (
+                      <div
+                        key={a.id}
+                        onClick={() => toggleAddon(a.id)}
+                        className={cn(
+                          "ios-card rounded-2xl p-4 border flex items-center justify-between gap-3 cursor-pointer transition-all",
+                          checked
+                            ? "border-[#4D5A46] bg-white shadow-sm"
+                            : "border-[#E8E4DE]/60 bg-[#F4F1EB]/50 hover:border-[#4D5A46]/40"
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm text-[#4D5A46] truncate">{a.name}</p>
+                          <p className="text-xs text-[#8C9A86] mt-0.5 font-medium">
+                            {a.extra_min > 0 && `+${a.extra_min} min`}
+                            {a.extra_min > 0 && a.extra_price_cents > 0 && " · "}
+                            {a.extra_price_cents > 0 && `+${formatPrice(a.extra_price_cents)}`}
+                          </p>
+                        </div>
+                        <span className="pointer-events-none shrink-0">
+                          <Toggle checked={checked} onChange={() => {}} label={a.name} />
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {selectedAddons.length > 0 && (
+                  <p className="mt-4 text-xs font-bold text-[#4D5A46] bg-[#b3cea7]/20 border border-[#b3cea7]/40 rounded-xl px-4 py-3">
+                    Totale con supplementi: {formatDuration(totalDurationMin)} · {formatPrice(totalPriceCents)}
+                  </p>
+                )}
+              </section>
+            )}
+
             {/* Choose Professional Section */}
             <section id="professional-section" className={cn("mb-10 transition-opacity duration-300", !service && "opacity-40 pointer-events-none")}>
+              {!showOperatorPicker ? (
+                <div className="rounded-2xl border border-[var(--line)] bg-[#F4F1EB]/60 p-4 flex items-center gap-3">
+                  {fixedSingleOperator ? (
+                    <>
+                      <div
+                        style={{ backgroundColor: fixedSingleOperator.color }}
+                        className="w-11 h-11 rounded-full flex items-center justify-center text-white font-black shrink-0 overflow-hidden"
+                      >
+                        {fixedSingleOperator.avatar_url ? (
+                          <img src={fixedSingleOperator.avatar_url} alt={fixedSingleOperator.name} className="w-full h-full object-cover" />
+                        ) : (
+                          fixedSingleOperator.name.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      <p className="text-sm text-[#4D5A46]">
+                        Questo servizio è eseguito da <strong>{fixedSingleOperator.name}</strong> negli orari indicati.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[#4D5A46] text-[26px]">schedule</span>
+                      <p className="text-sm text-[#4D5A46]">
+                        Questo servizio ha orari fissi: ogni orario indica l'operatore che lo esegue.
+                      </p>
+                    </>
+                  )}
+                </div>
+              ) : (
+              <>
               <h3 className="text-lg font-bold text-primary mb-6">Scegli l'Operatore</h3>
               {!service && (
                 <p className="text-sm text-[#8C9A86] italic mb-4">Seleziona prima un servizio per scegliere l'operatore.</p>
@@ -543,17 +700,23 @@ export function BookingFlow({
                       <div
                         style={{ backgroundColor: e.color }}
                         className={cn(
-                          "w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-black transition-all duration-200 border border-transparent",
+                          "w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-black transition-all duration-200 border border-transparent overflow-hidden",
                           isSelected ? "professional-avatar-active shadow-sm" : "group-hover:scale-105"
                         )}
                       >
-                        {e.name.charAt(0).toUpperCase()}
+                        {e.avatar_url ? (
+                          <img src={e.avatar_url} alt={e.name} className="w-full h-full object-cover" />
+                        ) : (
+                          e.name.charAt(0).toUpperCase()
+                        )}
                       </div>
                       <span className="text-xs font-semibold text-on-surface">{e.name}</span>
                     </div>
                   );
                 })}
               </div>
+              </>
+              )}
             </section>
 
             {/* Date Selector Section */}
@@ -573,8 +736,7 @@ export function BookingFlow({
               )}
               <div className="flex overflow-x-auto no-scrollbar gap-4 pb-4 -mx-1 px-1 snap-x">
                 {days.map((day) => {
-                  const isHoliday = isDateHoliday(day.dateStr);
-                  const isClosed = closedSet.has(day.weekday0) || isHoliday;
+                  const isClosed = !isDaySelectable(day.dateStr, day.weekday0);
                   const isSelected = dateStr === day.dateStr;
 
                   return (
@@ -608,6 +770,11 @@ export function BookingFlow({
             {/* Time Grid Section */}
             <section id="time-section" className={cn("mb-10 transition-opacity duration-300", (!service || !dateStr) && "opacity-40 pointer-events-none")}>
               <h3 className="text-lg font-bold text-primary mb-6">Scegli l'Orario</h3>
+              {addonNotice && (
+                <p className="mb-4 text-xs font-bold text-[#ba1a1a] bg-[#ba1a1a]/5 border border-[#ba1a1a]/20 rounded-xl px-4 py-3">
+                  Con i supplementi scelti l'orario selezionato non è più disponibile. Scegli un altro orario o togli un supplemento.
+                </p>
+              )}
               {loadingSlots ? (
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
                   {Array.from({ length: 8 }).map((_, i) => (
@@ -642,6 +809,11 @@ export function BookingFlow({
                               style={isSelected ? { color: "#FAF8F5" } : undefined}
                             >
                               {sl.time}
+                              {sl.employeeName && !fixedSingleOperator && (
+                                <span className={cn("block text-[10px] font-bold leading-tight", isSelected ? "text-white/80" : "text-[#8C9A86]")}>
+                                  {sl.employeeName}
+                                </span>
+                              )}
                             </button>
                           );
                         })}
@@ -671,6 +843,11 @@ export function BookingFlow({
                               style={isSelected ? { color: "#FAF8F5" } : undefined}
                             >
                               {sl.time}
+                              {sl.employeeName && !fixedSingleOperator && (
+                                <span className={cn("block text-[10px] font-bold leading-tight", isSelected ? "text-white/80" : "text-[#8C9A86]")}>
+                                  {sl.employeeName}
+                                </span>
+                              )}
                             </button>
                           );
                         })}
@@ -859,6 +1036,32 @@ export function BookingFlow({
             <h2 className="text-2xl font-extrabold text-primary mb-2 tracking-tight">Profilo Personale</h2>
             <p className="text-[#8C9A86] text-sm mb-6">Salva i tuoi contatti per visualizzare la cronologia ed evitare di digitarli ogni volta.</p>
 
+            {!profileEditing && profileName.trim() && profilePhone.trim() ? (
+              /* Saved recap: the client sees their stored data, editing is explicit */
+              <div className="space-y-4 ios-card rounded-2xl p-6 border border-[#c3c8bd]/30 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <span className="text-xs font-bold text-[#8C9A86] w-24 shrink-0 pt-0.5 uppercase tracking-wider">Nome</span>
+                  <span className="flex-1 font-bold text-sm text-[#4D5A46]">{profileName}</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-xs font-bold text-[#8C9A86] w-24 shrink-0 pt-0.5 uppercase tracking-wider">WhatsApp</span>
+                  <span className="flex-1 font-bold text-sm text-[#4D5A46]">{profilePhone}</span>
+                </div>
+
+                {profileSaved && (
+                  <p className="text-xs font-bold text-[#4a6243] px-1 animate-pulse">✓ Modifiche salvate con successo!</p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setProfileEditing(true)}
+                  className="w-full h-12 rounded-xl border border-[#c3c8bd]/50 bg-white text-[#4D5A46] font-semibold text-sm active:scale-[0.98] transition-transform duration-200 cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-[18px]">edit</span>
+                  Modifica informazioni
+                </button>
+              </div>
+            ) : (
             <form onSubmit={saveProfile} className="space-y-4 ios-card rounded-2xl p-6 border border-[#c3c8bd]/30 shadow-sm">
               <div>
                 <label className="block text-xs font-bold text-[#4D5A46] mb-1.5 px-1 uppercase tracking-wider">
@@ -887,17 +1090,32 @@ export function BookingFlow({
                 />
               </div>
 
-              {profileSaved && (
-                <p className="text-xs font-bold text-[#4a6243] px-1 animate-pulse">✓ Modifiche salvate con successo!</p>
-              )}
-
-              <button
-                type="submit"
-                className="w-full h-12 rounded-xl bg-[#D4AF37] hover:bg-[#C59B27] !text-white font-semibold text-sm active:scale-[0.98] transition-transform duration-200 cursor-pointer shadow-md border-none"
-              >
-                Salva Profilo
-              </button>
+              <div className="flex gap-2">
+                {profileEditing && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Discard edits: restore the values saved on this device
+                      if (typeof window !== "undefined") {
+                        setProfileName(localStorage.getItem("customer_name") ?? "");
+                        setProfilePhone(localStorage.getItem("customer_phone") ?? "");
+                      }
+                      setProfileEditing(false);
+                    }}
+                    className="h-12 px-5 rounded-xl border border-[#c3c8bd]/50 bg-white text-[#8C9A86] font-semibold text-sm active:scale-[0.98] transition-transform duration-200 cursor-pointer"
+                  >
+                    Annulla
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className="flex-grow h-12 rounded-xl bg-[#D4AF37] hover:bg-[#C59B27] !text-white font-semibold text-sm active:scale-[0.98] transition-transform duration-200 cursor-pointer shadow-md border-none"
+                >
+                  Salva Profilo
+                </button>
+              </div>
             </form>
+            )}
 
             {profilePhone && (
               <div className="mt-8 text-center">
@@ -966,6 +1184,16 @@ export function BookingFlow({
                 {service?.name} ({formatPrice(service?.price_cents ?? 0)})
               </span>
             </div>
+            {selectedAddons.map((a) => (
+              <div key={a.id} className="flex justify-between items-center text-sm border-t border-[#E8E4DE]/50 pt-3">
+                <span className="text-[#8C9A86] font-semibold">+ {a.name}</span>
+                <span className="font-bold text-[#4D5A46]">
+                  {a.extra_min > 0 && `+${a.extra_min} min`}
+                  {a.extra_min > 0 && a.extra_price_cents > 0 && " · "}
+                  {a.extra_price_cents > 0 && `+${formatPrice(a.extra_price_cents)}`}
+                </span>
+              </div>
+            ))}
             <div className="flex justify-between items-center text-sm border-t border-[#E8E4DE]/50 pt-3">
               <span className="text-[#8C9A86] font-semibold">Operatore:</span>
               <span className="font-bold text-[#4D5A46]">{operatorName}</span>
@@ -973,6 +1201,14 @@ export function BookingFlow({
             <div className="flex justify-between items-center text-sm border-t border-[#E8E4DE]/50 pt-3">
               <span className="text-[#8C9A86] font-semibold">Quando:</span>
               <span className="font-bold text-[#4D5A46]">{whenLabel}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm border-t border-[#E8E4DE]/50 pt-3">
+              <span className="text-[#8C9A86] font-semibold">Durata totale:</span>
+              <span className="font-bold text-[#4D5A46]">{formatDuration(totalDurationMin)}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm border-t border-[#E8E4DE]/50 pt-3">
+              <span className="text-[#8C9A86] font-semibold">Prezzo totale:</span>
+              <span className="font-bold text-[#4D5A46]">{formatPrice(totalPriceCents)}</span>
             </div>
           </div>
 
@@ -1196,9 +1432,7 @@ export function BookingFlow({
                 horizonDate.setHours(23, 59, 59, 999);
                 const isBeyond = targetDay > horizonDate;
                 
-                const isDayClosed = closedSet.has((day.getDay() + 6) % 7); // match employee weekday index
-                const isDayHoliday = isDateHoliday(formatDateLocal(day));
-                const isDisabled = isPast || isBeyond || isDayClosed || isDayHoliday;
+                const isDisabled = isPast || isBeyond || !isDaySelectable(formatDateLocal(day), (day.getDay() + 6) % 7);
 
                 return (
                   <button

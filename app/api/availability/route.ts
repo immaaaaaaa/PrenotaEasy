@@ -5,7 +5,9 @@ import {
   unionSlots,
   type BusyInterval,
   type DayHours,
+  type Slot,
 } from "@/lib/availability";
+import { computeFixedSlotOccurrences } from "@/lib/fixedSlots";
 import { weekdayMonday0, zonedToUtc } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
@@ -52,12 +54,116 @@ export async function GET(req: NextRequest) {
 
   const { data: service } = await supa
     .from("services")
-    .select("id, duration_min")
+    .select("id, duration_min, booking_mode")
     .eq("id", serviceId)
     .eq("business_id", business.id)
     .single();
   if (!service) {
     return NextResponse.json({ error: "Servizio non trovato" }, { status: 404 });
+  }
+
+  // Optional add-ons: availability must fit base duration + selected extras
+  const addonsParam = p.get("addons");
+  let extraMin = 0;
+  if (addonsParam) {
+    const ids = addonsParam.split(",").filter(Boolean);
+    if (ids.length > 0) {
+      const { data: addonRows } = await supa
+        .from("service_addons")
+        .select("id, extra_min")
+        .eq("service_id", service.id)
+        .eq("active", true)
+        .in("id", ids);
+      extraMin = (addonRows ?? []).reduce((s, a) => s + a.extra_min, 0);
+    }
+  }
+  const totalDurationMin = service.duration_min + extraMin;
+
+  // Fixed-slot services: only the owner-defined occurrences are bookable.
+  // They intentionally ignore opening hours; holidays were already handled above.
+  if (service.booking_mode === "fixed_slots") {
+    const fixedWeekday = weekdayMonday0(date, business.timezone);
+    const [{ data: slotRows }, { data: excRows }, { data: emps }] = await Promise.all([
+      supa
+        .from("service_slots")
+        .select("*")
+        .eq("service_id", service.id)
+        .eq("active", true),
+      supa
+        .from("service_slot_exceptions")
+        .select("*")
+        .eq("service_id", service.id)
+        .eq("date", date),
+      supa
+        .from("employees")
+        .select("id, name")
+        .eq("business_id", business.id)
+        .eq("active", true),
+    ]);
+
+    const occurrences = computeFixedSlotOccurrences({
+      dateStr: date,
+      tz: business.timezone,
+      weekday: fixedWeekday,
+      slots: (slotRows ?? []) as any[],
+      exceptions: (excRows ?? []) as any[],
+      nowMs: Date.now(),
+      leadMin: business.booking_lead_min,
+    });
+    if (occurrences.length === 0) {
+      return NextResponse.json({ slots: [], closed: false, fixed: true });
+    }
+
+    const activeEmps = emps ?? [];
+    const empNameById = new Map(activeEmps.map((e) => [e.id, e.name]));
+    const allIds = activeEmps.map((e) => e.id);
+    if (allIds.length === 0) {
+      return NextResponse.json({ slots: [], closed: false, fixed: true });
+    }
+
+    const fixedDayStart = zonedToUtc(date, "00:00", business.timezone).toISOString();
+    const fixedDayEnd = zonedToUtc(nextDay(date), "00:00", business.timezone).toISOString();
+    const { data: dayAppts } = await supa
+      .from("appointments")
+      .select("employee_id, starts_at, ends_at")
+      .eq("business_id", business.id)
+      .in("employee_id", allIds)
+      .neq("status", "cancelled")
+      .lt("starts_at", fixedDayEnd)
+      .gt("ends_at", fixedDayStart);
+
+    const busyByEmp = new Map<string, BusyInterval[]>();
+    for (const a of dayAppts ?? []) {
+      const list = busyByEmp.get(a.employee_id) ?? [];
+      list.push({ start: new Date(a.starts_at).getTime(), end: new Date(a.ends_at).getTime() });
+      busyByEmp.set(a.employee_id, list);
+    }
+    const durMs = totalDurationMin * 60_000;
+    const isFree = (eid: string, sMs: number) =>
+      !(busyByEmp.get(eid) ?? []).some((b) => sMs < b.end && sMs + durMs > b.start);
+
+    const fixedSlots = occurrences.flatMap((o): Slot[] => {
+      const sMs = new Date(o.startUtc).getTime();
+      if (o.employeeId) {
+        // Slot bound to one operator
+        if (employeeParam !== "any" && employeeParam !== o.employeeId) return [];
+        if (!empNameById.has(o.employeeId)) return []; // operator deactivated
+        if (!isFree(o.employeeId, sMs)) return [];
+        return [{
+          time: o.time,
+          startUtc: o.startUtc,
+          employeeId: o.employeeId,
+          employeeName: empNameById.get(o.employeeId) ?? null,
+        }];
+      }
+      // "Any operator" slot: bookable if at least one candidate is free
+      const candidates =
+        employeeParam === "any" ? allIds : empNameById.has(employeeParam) ? [employeeParam] : [];
+      if (!candidates.some((id) => isFree(id, sMs))) return [];
+      return [{ time: o.time, startUtc: o.startUtc, employeeId: null, employeeName: null }];
+    });
+
+    return NextResponse.json({ slots: fixedSlots, closed: false, fixed: true });
   }
 
   const weekday = weekdayMonday0(date, business.timezone);
@@ -128,7 +234,7 @@ export async function GET(req: NextRequest) {
       dateStr: date,
       tz: business.timezone,
       hours,
-      durationMin: service.duration_min,
+      durationMin: totalDurationMin,
       stepMin: business.slot_step_min,
       busy,
       nowMs,
