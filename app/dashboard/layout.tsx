@@ -12,7 +12,7 @@ export default async function DashboardLayout({
   await requireBusiness();
 
   return (
-    <div className="mx-auto min-h-[100dvh] max-w-[720px] pb-[76px] bg-[#FAF8F5]">
+    <div className="mx-auto min-h-[100dvh] max-w-[720px] pb-[76px] bg-[var(--bg)]">
       {children}
     </div>
   );

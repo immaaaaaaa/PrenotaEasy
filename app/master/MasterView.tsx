@@ -137,15 +137,15 @@ export function MasterView({
       {/* Header */}
       <header className="flex items-center justify-between border-b border-[var(--line)] pb-5">
         <div>
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF8F5] border border-[var(--line)] px-3 py-1 text-xs font-bold text-[#4D5A46]">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg)] border border-[var(--line)] px-3 py-1 text-xs font-bold text-[var(--ink)]">
             <span>👑</span> Master Admin
           </div>
-          <h1 className="text-2xl font-extrabold text-[#4D5A46] tracking-tight mt-2.5">Pannello SaaS</h1>
+          <h1 className="text-2xl font-extrabold text-[var(--ink)] tracking-tight mt-2.5">Pannello SaaS</h1>
         </div>
         <button
           disabled={logoutPending}
           onClick={() => startLogout(async () => { await logout(); })}
-          className="ios-btn-secondary px-4 py-2 text-xs font-bold border border-[var(--line)] bg-white"
+          className="ios-btn-secondary px-4 py-2 text-xs font-bold border border-[var(--line)] bg-[var(--surface)]"
         >
           {logoutPending ? "..." : "Esci"}
         </button>
@@ -158,10 +158,10 @@ export function MasterView({
           { label: "Attive", value: onboarded, emoji: "🟢" },
           { label: "In attesa", value: pendingOnboarding, emoji: "🟠" },
         ].map((m) => (
-          <div key={m.label} className="ios-card p-4 text-center bg-white border border-[var(--line)] shadow-sm">
+          <div key={m.label} className="ios-card p-4 text-center bg-[var(--surface)] border border-[var(--line)] shadow-sm">
             <span className="text-[1.2rem]">{m.emoji}</span>
-            <div className="text-2xl font-black text-[#4D5A46] tracking-tight mt-1">{m.value}</div>
-            <div className="text-[10px] text-[#8C9A86] font-bold uppercase tracking-wider mt-0.5">{m.label}</div>
+            <div className="text-2xl font-black text-[var(--ink)] tracking-tight mt-1">{m.value}</div>
+            <div className="text-[10px] text-[var(--ink-2)] font-bold uppercase tracking-wider mt-0.5">{m.label}</div>
           </div>
         ))}
       </section>
@@ -169,7 +169,7 @@ export function MasterView({
       {/* Main List */}
       <section className="mt-8">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-[#4D5A46] tracking-tight">Tutte le Attività</h2>
+          <h2 className="text-lg font-bold text-[var(--ink)] tracking-tight">Tutte le Attività</h2>
           <button onClick={() => setIsOpen(true)} className="ios-btn-primary px-4 py-2 text-xs font-bold uppercase tracking-wider h-10">
             + Nuova Attività
           </button>
@@ -177,18 +177,18 @@ export function MasterView({
 
         <div className="mt-4 space-y-3">
           {activities.length === 0 ? (
-            <div className="ios-card p-8 text-center text-[#8C9A86] font-medium bg-white border border-[var(--line)]">
+            <div className="ios-card p-8 text-center text-[var(--ink-2)] font-medium bg-[var(--surface)] border border-[var(--line)]">
               Nessuna attività creata. Inizia creandone una nuova.
             </div>
           ) : (
             activities.map((act) => (
               <div
                 key={act.id}
-                className="ios-card flex flex-col justify-between gap-4 p-4 sm:flex-row sm:items-center bg-white border border-[var(--line)] hover:border-[var(--ink)] hover:shadow-md transition-all"
+                className="ios-card flex flex-col justify-between gap-4 p-4 sm:flex-row sm:items-center bg-[var(--surface)] border border-[var(--line)] hover:border-[var(--ink)] hover:shadow-md transition-all"
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-[#4D5A46] text-sm">{act.name}</h3>
+                    <h3 className="font-bold text-[var(--ink)] text-sm">{act.name}</h3>
                     {act.onboarded ? (
                       <span className="rounded-full bg-[color-mix(in_srgb,var(--success)_10%,transparent)] px-2 py-0.5 text-[0.72rem] font-bold text-[var(--success)]">
                         Onboarded
@@ -199,11 +199,11 @@ export function MasterView({
                       </span>
                     )}
                   </div>
-                  <div className="mt-1 text-xs text-[#8C9A86]">
-                    Slug: <code className="rounded bg-[#FAF8F5] border border-[var(--line)] px-1 py-0.5 text-[0.75rem] font-mono text-[#4D5A46]">{act.slug}</code>
+                  <div className="mt-1 text-xs text-[var(--ink-2)]">
+                    Slug: <code className="rounded bg-[var(--bg)] border border-[var(--line)] px-1 py-0.5 text-[0.75rem] font-mono text-[var(--ink)]">{act.slug}</code>
                   </div>
-                  <div className="mt-0.5 text-xs text-[#8C9A86]">
-                    Email: <span className="font-semibold text-[#4D5A46]">{act.owner_email || "Nessun proprietario"}</span>
+                  <div className="mt-0.5 text-xs text-[var(--ink-2)]">
+                    Email: <span className="font-semibold text-[var(--ink)]">{act.owner_email || "Nessun proprietario"}</span>
                   </div>
                 </div>
 
@@ -212,13 +212,13 @@ export function MasterView({
                     href={`/b/${act.slug}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex h-9 items-center justify-center rounded-full border border-[var(--line)] px-4 text-xs font-bold text-[#4D5A46] transition-all hover:bg-[#FAF8F5] active:scale-[0.98] bg-white"
+                    className="inline-flex h-9 items-center justify-center rounded-full border border-[var(--line)] px-4 text-xs font-bold text-[var(--ink)] transition-all hover:bg-[var(--bg)] active:scale-[0.98] bg-[var(--surface)]"
                   >
                     Vedi Pagina
                   </a>
                   <button
                     onClick={() => setActiveBiz(act)}
-                    className="inline-flex h-9 items-center justify-center rounded-full border border-[var(--line)] px-4 text-xs font-bold text-[#4D5A46] transition-all hover:bg-[#FAF8F5] active:scale-[0.98] cursor-pointer bg-white"
+                    className="inline-flex h-9 items-center justify-center rounded-full border border-[var(--line)] px-4 text-xs font-bold text-[var(--ink)] transition-all hover:bg-[var(--bg)] active:scale-[0.98] cursor-pointer bg-[var(--surface)]"
                   >
                     Operatori
                   </button>
@@ -255,13 +255,13 @@ export function MasterView({
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={spring.sheet}
-              className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-3xl border-t border-[var(--line)] pb-safe shadow-lg bg-white"
+              className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-3xl border-t border-[var(--line)] pb-safe shadow-lg bg-[var(--surface)]"
             >
               <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4">
-                <h2 className="text-base font-bold text-[#4D5A46] tracking-tight">Nuova Attività</h2>
+                <h2 className="text-base font-bold text-[var(--ink)] tracking-tight">Nuova Attività</h2>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="grid h-8 w-8 place-items-center rounded-full bg-[#FAF8F5] text-[#8C9A86] border border-[var(--line)] text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                  className="grid h-8 w-8 place-items-center rounded-full bg-[var(--bg)] text-[var(--ink-2)] border border-[var(--line)] text-xs font-bold transition-all active:scale-95 cursor-pointer"
                 >
                   ✕
                 </button>
@@ -269,7 +269,7 @@ export function MasterView({
 
               <form onSubmit={handleCreate} className="overflow-y-auto p-5 space-y-4">
                 <div>
-                  <label className="text-xs font-bold text-[#4D5A46] uppercase tracking-wider block mb-1.5">
+                  <label className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider block mb-1.5">
                     Nome Attività
                   </label>
                   <input
@@ -278,12 +278,12 @@ export function MasterView({
                     placeholder="Es. Salone Giulia"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full h-12 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[#4D5A46]"
+                    className="w-full h-12 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[var(--ink)]"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[#4D5A46] uppercase tracking-wider block mb-1.5">
+                  <label className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider block mb-1.5">
                     Slug URL
                   </label>
                   <input
@@ -292,12 +292,12 @@ export function MasterView({
                     placeholder="giulia"
                     value={slug}
                     onChange={(e) => setSlug(e.target.value)}
-                    className="w-full h-12 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[#4D5A46] font-mono"
+                    className="w-full h-12 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[var(--ink)] font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[#4D5A46] uppercase tracking-wider block mb-1.5">
+                  <label className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider block mb-1.5">
                     Email Proprietario
                   </label>
                   <input
@@ -306,12 +306,12 @@ export function MasterView({
                     placeholder="giulia@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full h-12 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[#4D5A46]"
+                    className="w-full h-12 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[var(--ink)]"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[#4D5A46] uppercase tracking-wider block mb-1.5">
+                  <label className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider block mb-1.5">
                     Password Iniziale
                   </label>
                   <input
@@ -320,7 +320,7 @@ export function MasterView({
                     placeholder="Minimo 6 caratteri"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full h-12 rounded-xl bg-[#FAF8F5] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[#4D5A46]"
+                    className="w-full h-12 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[var(--ink)]"
                   />
                 </div>
 
@@ -356,8 +356,8 @@ export function MasterView({
           {/* Toggle option */}
           <div className="ios-card p-4 flex items-center justify-between bg-[var(--surface-2)]/30 border border-[var(--line)]">
             <div>
-              <h4 className="font-bold text-sm text-[#4D5A46]">Pagine Operatore (Premium)</h4>
-              <p className="mt-0.5 text-xs text-[#8C9A86] font-medium">Abilita agende individuali protette con token.</p>
+              <h4 className="font-bold text-sm text-[var(--ink)]">Pagine Operatore (Premium)</h4>
+              <p className="mt-0.5 text-xs text-[var(--ink-2)] font-medium">Abilita agende individuali protette con token.</p>
             </div>
             <button
               onClick={() => handleTogglePremium(!activeBiz?.operator_pages_enabled)}
@@ -369,7 +369,7 @@ export function MasterView({
             >
               <div 
                 className={cn(
-                  "h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-300 transform",
+                  "h-6 w-6 rounded-full bg-[var(--surface)] shadow-sm transition-transform duration-300 transform",
                   activeBiz?.operator_pages_enabled ? "translate-x-5" : "translate-x-0"
                 )} 
               />
@@ -378,18 +378,18 @@ export function MasterView({
 
           {activeBiz?.operator_pages_enabled ? (
             <div className="space-y-4">
-              <h4 className="text-xs font-bold text-[#8C9A86] uppercase tracking-wider px-1">
+              <h4 className="text-xs font-bold text-[var(--ink-2)] uppercase tracking-wider px-1">
                 Elenco Operatori e Link d&apos;Accesso
               </h4>
 
               {loadingOperators ? (
                 <div className="space-y-3">
                   {Array.from({ length: 2 }).map((_, i) => (
-                    <div key={i} className="h-16 animate-pulse rounded-xl bg-[#FAF8F5]" />
+                    <div key={i} className="h-16 animate-pulse rounded-xl bg-[var(--bg)]" />
                   ))}
                 </div>
               ) : operators.length === 0 ? (
-                <p className="text-xs text-[#8C9A86] italic px-1 text-center py-6">
+                <p className="text-xs text-[var(--ink-2)] italic px-1 text-center py-6">
                   Nessun operatore configurato per questa attività. L&apos;attività deve prima registrarli dalle sue impostazioni.
                 </p>
               ) : (
@@ -397,14 +397,14 @@ export function MasterView({
                   {operators.map((op) => {
                     const opLink = `${typeof window !== "undefined" ? window.location.origin : ""}/op/${op.access_token}`;
                     return (
-                      <div key={op.id} className="ios-card p-3.5 border border-[var(--line)] space-y-2.5 bg-white">
+                      <div key={op.id} className="ios-card p-3.5 border border-[var(--line)] space-y-2.5 bg-[var(--surface)]">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="w-3 h-3 rounded-full" style={{ background: op.color }} />
-                            <span className="font-bold text-sm text-[#4D5A46]">{op.name}</span>
+                            <span className="font-bold text-sm text-[var(--ink)]">{op.name}</span>
                           </div>
                           {!op.active && (
-                            <span className="text-[10px] bg-[#FAF8F5] border border-[var(--line)] text-[#8C9A86] px-1.5 py-0.5 rounded font-bold">Disattivato</span>
+                            <span className="text-[10px] bg-[var(--bg)] border border-[var(--line)] text-[var(--ink-2)] px-1.5 py-0.5 rounded font-bold">Disattivato</span>
                           )}
                         </div>
 
@@ -414,7 +414,7 @@ export function MasterView({
                             type="text"
                             readOnly
                             value={opLink}
-                            className="text-xs font-mono h-9 flex-1 py-0 px-2.5 bg-[#FAF8F5] border border-[var(--line)] rounded-xl opacity-85 select-all outline-none focus:border-[var(--ink)] text-[#4D5A46] font-medium"
+                            className="text-xs font-mono h-9 flex-1 py-0 px-2.5 bg-[var(--bg)] border border-[var(--line)] rounded-xl opacity-85 select-all outline-none focus:border-[var(--ink)] text-[var(--ink)] font-medium"
                           />
                           <button
                             onClick={async () => {
@@ -424,7 +424,7 @@ export function MasterView({
                                 setTimeout(() => setCopiedOpId(null), 1500);
                               } catch {}
                             }}
-                            className="h-9 px-4 rounded-full border border-[var(--line)] hover:bg-[#FAF8F5] active:scale-95 transition-all text-xs font-bold text-[#4D5A46] shrink-0 cursor-pointer bg-white"
+                            className="h-9 px-4 rounded-full border border-[var(--line)] hover:bg-[var(--bg)] active:scale-95 transition-all text-xs font-bold text-[var(--ink)] shrink-0 cursor-pointer bg-[var(--surface)]"
                           >
                             {copiedOpId === op.id ? "Copiato!" : "Copia"}
                           </button>
@@ -445,8 +445,8 @@ export function MasterView({
             </div>
           ) : (
             <div className="text-center py-6 px-4">
-              <span className="material-symbols-outlined text-[48px] text-[#8C9A86] opacity-40 mb-2 block">lock</span>
-              <p className="text-xs text-[#8C9A86] font-medium max-w-xs mx-auto">
+              <span className="material-symbols-outlined text-[48px] text-[var(--ink-2)] opacity-40 mb-2 block">lock</span>
+              <p className="text-xs text-[var(--ink-2)] font-medium max-w-xs mx-auto">
                 Abilita il toggle sopra per visualizzare i link di accesso dei singoli operatori ed inviarli allo staff.
               </p>
             </div>
@@ -455,7 +455,7 @@ export function MasterView({
           <div className="flex justify-center pt-2 border-t border-[var(--line)]">
             <button
               onClick={() => setActiveBiz(null)}
-              className="text-xs font-bold text-[#8C9A86] uppercase tracking-wider cursor-pointer hover:opacity-85 border-none bg-transparent"
+              className="text-xs font-bold text-[var(--ink-2)] uppercase tracking-wider cursor-pointer hover:opacity-85 border-none bg-transparent"
             >
               Chiudi
             </button>

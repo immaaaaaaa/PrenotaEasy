@@ -36,14 +36,14 @@ export default async function OperatorAgendaPage({
   } catch (err: any) {
     if (err.message?.includes("Premium") || err.message?.includes("premium")) {
       return (
-        <div className="min-h-screen bg-[#FAF8F5] text-[#1b1c1c] flex items-center justify-center p-6 font-sans">
-          <div className="max-w-md w-full text-center space-y-4 bg-white/70 backdrop-blur-md p-8 rounded-3xl border border-[#4D5A46]/10 shadow-lg">
-            <span className="material-symbols-outlined text-5xl text-[#D4AF37] animate-pulse">workspace_premium</span>
-            <h1 className="font-serif text-2xl font-bold text-[#4D5A46]">Feature Premium Disattivata</h1>
-            <p className="text-sm text-[#8C9A86] leading-relaxed">
+        <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] flex items-center justify-center p-6 font-sans">
+          <div className="max-w-md w-full text-center space-y-4 bg-[var(--surface)]/70 backdrop-blur-md p-8 rounded-3xl border border-[var(--ink)]/10 shadow-lg">
+            <span className="material-symbols-outlined text-5xl text-[var(--accent)] animate-pulse">workspace_premium</span>
+            <h1 className="font-serif text-2xl font-bold text-[var(--ink)]">Feature Premium Disattivata</h1>
+            <p className="text-sm text-[var(--ink-2)] leading-relaxed">
               La visualizzazione delle agende dello staff per questa attività richiede un abbonamento premium attivo.
             </p>
-            <p className="text-xs text-[#8C9A86]/70 italic">
+            <p className="text-xs text-[var(--ink-2)]/70 italic">
               Contatta l&apos;amministratore dell&apos;attività per riattivare il servizio.
             </p>
           </div>

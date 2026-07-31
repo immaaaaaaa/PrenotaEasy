@@ -36,7 +36,7 @@ export function QRCard({
   return (
     <div className="card p-5 text-center">
       {/* Always dark-on-white so it scans regardless of theme. */}
-      <div ref={ref} className="mx-auto w-fit rounded-[var(--r-md)] bg-white p-3">
+      <div ref={ref} className="mx-auto w-fit rounded-[var(--r-md)] bg-[var(--surface)] p-3">
         <QRCodeCanvas value={url} size={196} level="M" marginSize={0} />
       </div>
       <p className="text-caption mt-3 break-all">{url}</p>

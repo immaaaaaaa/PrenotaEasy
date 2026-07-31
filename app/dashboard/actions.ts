@@ -209,7 +209,7 @@ export async function getAnalyticsData(): Promise<{
   const apptsToday = todayAppts.length;
 
   // Employee stats
-  const employeeMap = new Map(employees.map(e => [e.id, { name: e.name, color: e.color || "#4a6243", count: 0, revenue: 0 }]));
+  const employeeMap = new Map(employees.map(e => [e.id, { name: e.name, color: e.color || "#8A3D6E", count: 0, revenue: 0 }]));
   monthAppts.forEach(a => {
     const stats = employeeMap.get(a.employee_id);
     if (stats) {

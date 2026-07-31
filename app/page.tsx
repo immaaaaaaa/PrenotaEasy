@@ -38,7 +38,7 @@ export default function Home() {
             ["chat", "Avvisi su WhatsApp", "Sposti un appuntamento? Il cliente lo sa subito."],
           ].map(([icon, title, desc]) => (
             <li key={title} className="flex items-start gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[var(--r-md)] bg-[var(--surface-2)] text-[#4D5A46]">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[var(--r-md)] bg-[var(--surface-2)] text-[var(--ink)]">
                 <span className="material-symbols-outlined text-lg">{icon}</span>
               </span>
               <div>

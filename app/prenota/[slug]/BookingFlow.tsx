@@ -6,6 +6,7 @@ import { buildDays } from "@/lib/days";
 import type { Business, Employee, Service, ServiceAddon } from "@/lib/types";
 import { cn } from "@/lib/cn";
 import { Sheet } from "@/components/ui/Sheet";
+import { CalendarLogo } from "@/components/CalendarLogo";
 import { Toggle } from "@/components/ui/Toggle";
 
 type Slot = {
@@ -418,6 +419,11 @@ export function BookingFlow({
       (slot ? ` · ${slot.time}` : "")
     : "";
 
+  // Cached payload so the reschedule sheet can slide out with its content
+  const lastRescheduleRef = useRef<any>(null);
+  if (clientRescheduleAppt) lastRescheduleRef.current = clientRescheduleAppt;
+  const rescheduleSheetData = clientRescheduleAppt ?? lastRescheduleRef.current;
+
   const phoneDigits = phone.replace(/\D/g, "");
   const canSubmit =
     name.trim().length >= 2 && phoneDigits.length >= 6 && !!slot && !!service;
@@ -526,15 +532,15 @@ export function BookingFlow({
   }
 
   return (
-    <div className="bg-[#FAF8F5] text-[#4D5A46] font-sans min-h-screen pb-40">
+    <div className="bg-[var(--bg)] text-[var(--ink)] font-sans min-h-screen pb-40">
       {/* Header */}
-      <header className="w-full top-0 sticky z-50 bg-[#FAF8F5]/90 backdrop-blur-md flex justify-between items-center px-6 py-6 border-b border-[#E8E4DE]/30">
+      <header className="w-full top-0 sticky z-50 bg-[var(--bg)]/90 backdrop-blur-md flex justify-between items-center px-6 py-6 border-b border-[var(--line)]/30">
         <div className="flex flex-col gap-0.5 cursor-pointer active:scale-95 duration-200 transition-opacity hover:opacity-80">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Logo" className="h-12 w-12 rounded-xl object-contain" />
+            <CalendarLogo size={48} />
             <h1 className="font-bold text-xl tracking-tight">PrenotaEasy</h1>
           </div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8C9A86] ml-[60px]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-2)] ml-[60px]">
             {business.name}
           </p>
         </div>
@@ -549,7 +555,7 @@ export function BookingFlow({
               <h2 className="text-3xl md:text-4xl font-extrabold text-primary mb-2 tracking-tight">
                 Prenota il tuo Rituale
               </h2>
-              <p className="text-[#8C9A86] font-medium max-w-[85%] text-sm">
+              <p className="text-[var(--ink-2)] font-medium max-w-[85%] text-sm">
                 Seleziona i servizi e l'orario che preferisci per un'esperienza di bellezza personalizzata.
               </p>
             </section>
@@ -573,24 +579,24 @@ export function BookingFlow({
                       className={cn(
                         "group flex items-start p-5 rounded-2xl border cursor-pointer transition-all duration-200 active:scale-[0.99] ios-card",
                         isSelected
-                          ? "bg-white border-[var(--ink)] shadow-md"
-                          : "bg-[var(--surface-2)]/60 border-transparent hover:bg-white hover:border-[var(--line-strong)]"
+                          ? "bg-[var(--surface)] border-[var(--ink)] shadow-md"
+                          : "bg-[var(--surface-2)]/60 border-transparent hover:bg-[var(--surface)] hover:border-[var(--line-strong)]"
                       )}
                     >
-                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-white mr-4 flex items-center justify-center text-[#4D5A46]/80 shrink-0 border border-[#E8E4DE]/50 shadow-inner">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-[var(--surface)] mr-4 flex items-center justify-center text-[var(--ink)]/80 shrink-0 border border-[var(--line)]/50 shadow-inner">
                         <span className="material-symbols-outlined text-[28px]">{iconName}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-base text-[#4D5A46] font-bold tracking-wide leading-snug">{s.name}</p>
+                        <p className="text-base text-[var(--ink)] font-bold tracking-wide leading-snug">{s.name}</p>
                         {s.description && (
-                          <p className="text-[12px] text-[#8C9A86] mt-1 mb-2 leading-relaxed font-medium line-clamp-2 pr-2">
+                          <p className="text-[12px] text-[var(--ink-2)] mt-1 mb-2 leading-relaxed font-medium line-clamp-2 pr-2">
                             {s.description}
                           </p>
                         )}
-                        <p className="text-xs text-[#8C9A86] font-semibold mt-1.5 flex items-center gap-1.5">
+                        <p className="text-xs text-[var(--ink-2)] font-semibold mt-1.5 flex items-center gap-1.5">
                           <span className="material-symbols-outlined text-[14px]">schedule</span> {formatDuration(s.duration_min)}
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#8C9A86]/40"></span>
-                          <span className="text-[#4D5A46] font-bold text-sm">{formatPrice(s.price_cents)}</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#A18A97]/40"></span>
+                          <span className="text-[var(--ink)] font-bold text-sm">{formatPrice(s.price_cents)}</span>
                         </p>
                       </div>
                     </div>
@@ -603,7 +609,7 @@ export function BookingFlow({
             {service && serviceAddons.length > 0 && (
               <section className="mb-10">
                 <h3 className="text-lg font-bold text-primary mb-2">Supplementi opzionali</h3>
-                <p className="text-[#8C9A86] text-sm mb-5">
+                <p className="text-[var(--ink-2)] text-sm mb-5">
                   Aggiungi un extra a <strong>{service.name}</strong>: durata e prezzo si aggiornano automaticamente.
                 </p>
                 <div className="space-y-3">
@@ -616,13 +622,13 @@ export function BookingFlow({
                         className={cn(
                           "ios-card rounded-2xl p-4 border flex items-center justify-between gap-3 cursor-pointer transition-all",
                           checked
-                            ? "border-[#4D5A46] bg-white shadow-sm"
-                            : "border-[#E8E4DE]/60 bg-[#F4F1EB]/50 hover:border-[#4D5A46]/40"
+                            ? "border-[var(--ink)] bg-[var(--surface)] shadow-sm"
+                            : "border-[var(--line)]/60 bg-[var(--surface-2)]/50 hover:border-[var(--ink)]/40"
                         )}
                       >
                         <div className="min-w-0">
-                          <p className="font-bold text-sm text-[#4D5A46] truncate">{a.name}</p>
-                          <p className="text-xs text-[#8C9A86] mt-0.5 font-medium">
+                          <p className="font-bold text-sm text-[var(--ink)] truncate">{a.name}</p>
+                          <p className="text-xs text-[var(--ink-2)] mt-0.5 font-medium">
                             {a.extra_min > 0 && `+${a.extra_min} min`}
                             {a.extra_min > 0 && a.extra_price_cents > 0 && " · "}
                             {a.extra_price_cents > 0 && `+${formatPrice(a.extra_price_cents)}`}
@@ -636,7 +642,7 @@ export function BookingFlow({
                   })}
                 </div>
                 {selectedAddons.length > 0 && (
-                  <p className="mt-4 text-xs font-bold text-[#4D5A46] bg-[#b3cea7]/20 border border-[#b3cea7]/40 rounded-xl px-4 py-3">
+                  <p className="mt-4 text-xs font-bold text-[var(--ink)] bg-[var(--accent-2)]/20 border border-[#DE8CA9]/40 rounded-xl px-4 py-3">
                     Totale con supplementi: {formatDuration(totalDurationMin)} · {formatPrice(totalPriceCents)}
                   </p>
                 )}
@@ -646,7 +652,7 @@ export function BookingFlow({
             {/* Choose Professional Section */}
             <section id="professional-section" className={cn("mb-10 transition-opacity duration-300", !service && "opacity-40 pointer-events-none")}>
               {!showOperatorPicker ? (
-                <div className="rounded-2xl border border-[var(--line)] bg-[#F4F1EB]/60 p-4 flex items-center gap-3">
+                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)]/60 p-4 flex items-center gap-3">
                   {fixedSingleOperator ? (
                     <>
                       <div
@@ -659,14 +665,14 @@ export function BookingFlow({
                           fixedSingleOperator.name.charAt(0).toUpperCase()
                         )}
                       </div>
-                      <p className="text-sm text-[#4D5A46]">
+                      <p className="text-sm text-[var(--ink)]">
                         Questo servizio è eseguito da <strong>{fixedSingleOperator.name}</strong> negli orari indicati.
                       </p>
                     </>
                   ) : (
                     <>
-                      <span className="material-symbols-outlined text-[#4D5A46] text-[26px]">schedule</span>
-                      <p className="text-sm text-[#4D5A46]">
+                      <span className="material-symbols-outlined text-[var(--ink)] text-[26px]">schedule</span>
+                      <p className="text-sm text-[var(--ink)]">
                         Questo servizio ha orari fissi: ogni orario indica l'operatore che lo esegue.
                       </p>
                     </>
@@ -676,14 +682,14 @@ export function BookingFlow({
               <>
               <h3 className="text-lg font-bold text-primary mb-6">Scegli l'Operatore</h3>
               {!service && (
-                <p className="text-sm text-[#8C9A86] italic mb-4">Seleziona prima un servizio per scegliere l'operatore.</p>
+                <p className="text-sm text-[var(--ink-2)] italic mb-4">Seleziona prima un servizio per scegliere l'operatore.</p>
               )}
               <div className="flex gap-8 overflow-x-auto no-scrollbar py-2">
                 {employees.length > 1 && (
                   <div className="flex flex-col items-center gap-3 cursor-pointer group shrink-0" onClick={() => selectOperator("any")}>
                     <div
                       className={cn(
-                        "w-16 h-16 rounded-full flex items-center justify-center bg-[#F4F1EB] text-primary transition-all duration-200 border border-transparent",
+                        "w-16 h-16 rounded-full flex items-center justify-center bg-[var(--surface-2)] text-primary transition-all duration-200 border border-transparent",
                         operator === "any" ? "professional-avatar-active shadow-sm" : "group-hover:scale-105"
                       )}
                     >
@@ -732,7 +738,7 @@ export function BookingFlow({
                 </button>
               </div>
               {!service && (
-                <p className="text-sm text-[#8C9A86] italic mb-4">Seleziona prima un servizio e operatore per vedere le date.</p>
+                <p className="text-sm text-[var(--ink-2)] italic mb-4">Seleziona prima un servizio e operatore per vedere le date.</p>
               )}
               <div className="flex overflow-x-auto no-scrollbar gap-4 pb-4 -mx-1 px-1 snap-x">
                 {days.map((day) => {
@@ -748,17 +754,17 @@ export function BookingFlow({
                         isSelected
                           ? "active-date"
                           : isClosed
-                          ? "border border-[#E8E4DE] bg-[#F4F1EB] opacity-30 cursor-not-allowed"
-                          : "border border-[#E8E4DE]/50 bg-[#F4F1EB] hover:bg-white hover:border-[#4D5A46]/30"
+                          ? "border border-[var(--line)] bg-[var(--surface-2)] opacity-30 cursor-not-allowed"
+                          : "border border-[var(--line)]/50 bg-[var(--surface-2)] hover:bg-[var(--surface)] hover:border-[var(--ink)]/30"
                       )}
                     >
-                      <span className={cn("text-[10px] font-bold uppercase tracking-widest", isSelected ? "text-white/80" : "text-[#8C9A86]")}>
+                      <span className={cn("text-[10px] font-bold uppercase tracking-widest", isSelected ? "text-[var(--bg)]/80" : "text-[var(--ink-2)]")}>
                         {day.monthLabel}
                       </span>
                       <span className="text-2xl font-extrabold leading-none my-1 tracking-tight">
                         {day.dayNum}
                       </span>
-                      <span className={cn("text-[10px] font-bold uppercase tracking-wider", isSelected ? "text-white/80" : "text-[#8C9A86]")}>
+                      <span className={cn("text-[10px] font-bold uppercase tracking-wider", isSelected ? "text-[var(--bg)]/80" : "text-[var(--ink-2)]")}>
                         {day.weekdayLabel}
                       </span>
                     </div>
@@ -778,19 +784,19 @@ export function BookingFlow({
               {loadingSlots ? (
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
                   {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="h-11 animate-pulse rounded-full bg-[#F4F1EB]" />
+                    <div key={i} className="h-11 animate-pulse rounded-full bg-[var(--surface-2)]" />
                   ))}
                 </div>
               ) : closed ? (
-                <p className="text-sm text-[#8C9A86] italic">Chiuso in questo giorno.</p>
+                <p className="text-sm text-[var(--ink-2)] italic">Chiuso in questo giorno.</p>
               ) : slots.length === 0 ? (
-                <p className="text-sm text-[#8C9A86] italic">Nessun orario disponibile. Prova un altro giorno.</p>
+                <p className="text-sm text-[var(--ink-2)] italic">Nessun orario disponibile. Prova un altro giorno.</p>
               ) : (
                 <div className="space-y-6">
                   {/* Mattino */}
                   {morningSlots.length > 0 && (
                     <div>
-                      <p className="text-xs font-bold text-[#8C9A86] uppercase tracking-widest mb-4 flex items-center gap-2">
+                      <p className="text-xs font-bold text-[var(--ink-2)] uppercase tracking-widest mb-4 flex items-center gap-2">
                         <span className="material-symbols-outlined text-[16px]">light_mode</span> Mattino
                       </p>
                       <div className="flex flex-wrap gap-3">
@@ -803,14 +809,14 @@ export function BookingFlow({
                               className={cn(
                                 "px-6 py-2.5 rounded-full border text-sm font-semibold transition-all duration-200 cursor-pointer",
                                 isSelected
-                                  ? "border-[#4D5A46] time-chip-active text-white bg-[#4D5A46]"
-                                  : "border-[#E8E4DE]/50 bg-[#F4F1EB] text-[#4D5A46] hover:border-[#4D5A46]"
+                                  ? "border-[var(--ink)] time-chip-active text-white bg-[var(--ink)]"
+                                  : "border-[var(--line)]/50 bg-[var(--surface-2)] text-[var(--ink)] hover:border-[var(--ink)]"
                               )}
-                              style={isSelected ? { color: "#FAF8F5" } : undefined}
+                              style={isSelected ? { color: "var(--bg)" } : undefined}
                             >
                               {sl.time}
                               {sl.employeeName && !fixedSingleOperator && (
-                                <span className={cn("block text-[10px] font-bold leading-tight", isSelected ? "text-white/80" : "text-[#8C9A86]")}>
+                                <span className={cn("block text-[10px] font-bold leading-tight", isSelected ? "text-[var(--bg)]/80" : "text-[var(--ink-2)]")}>
                                   {sl.employeeName}
                                 </span>
                               )}
@@ -824,7 +830,7 @@ export function BookingFlow({
                   {/* Pomeriggio */}
                   {afternoonSlots.length > 0 && (
                     <div>
-                      <p className="text-xs font-bold text-[#8C9A86] uppercase tracking-widest mb-4 flex items-center gap-2">
+                      <p className="text-xs font-bold text-[var(--ink-2)] uppercase tracking-widest mb-4 flex items-center gap-2">
                         <span className="material-symbols-outlined text-[16px]">dark_mode</span> Pomeriggio
                       </p>
                       <div className="flex flex-wrap gap-3">
@@ -837,14 +843,14 @@ export function BookingFlow({
                               className={cn(
                                 "px-6 py-2.5 rounded-full border text-sm font-semibold transition-all duration-200 cursor-pointer",
                                 isSelected
-                                  ? "border-[#4D5A46] time-chip-active text-white bg-[#4D5A46]"
-                                  : "border-[#E8E4DE]/50 bg-[#F4F1EB] text-[#4D5A46] hover:border-[#4D5A46]"
+                                  ? "border-[var(--ink)] time-chip-active text-white bg-[var(--ink)]"
+                                  : "border-[var(--line)]/50 bg-[var(--surface-2)] text-[var(--ink)] hover:border-[var(--ink)]"
                               )}
-                              style={isSelected ? { color: "#FAF8F5" } : undefined}
+                              style={isSelected ? { color: "var(--bg)" } : undefined}
                             >
                               {sl.time}
                               {sl.employeeName && !fixedSingleOperator && (
-                                <span className={cn("block text-[10px] font-bold leading-tight", isSelected ? "text-white/80" : "text-[#8C9A86]")}>
+                                <span className={cn("block text-[10px] font-bold leading-tight", isSelected ? "text-[var(--bg)]/80" : "text-[var(--ink-2)]")}>
                                   {sl.employeeName}
                                 </span>
                               )}
@@ -860,7 +866,7 @@ export function BookingFlow({
 
             {/* Sticky Bottom button */}
             {service && slot && (
-              <div className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-[#FAF8F5] via-[#FAF8F5]/95 to-transparent pt-16 pb-24 z-40 flex justify-center">
+              <div className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-[var(--bg)] via-[var(--bg)]/95 to-transparent pt-16 pb-24 z-40 flex justify-center">
                 <button
                   onClick={() => setDetailsOpen(true)}
                   className="w-full max-w-screen-sm ios-btn-primary font-sans text-xs font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3"
@@ -877,15 +883,15 @@ export function BookingFlow({
         {currentTab === "history" && (
           <div className="mt-8">
             <h2 className="text-2xl font-extrabold text-primary mb-2 tracking-tight">I miei Appuntamenti</h2>
-            <p className="text-[#8C9A86] text-sm mb-6">Visualizza i dettagli delle tue prenotazioni e le formule del salone.</p>
+            <p className="text-[var(--ink-2)] text-sm mb-6">Visualizza i dettagli delle tue prenotazioni e le formule del salone.</p>
 
             {!phone ? (
               <div className="ios-card rounded-2xl p-6 text-center space-y-4">
-                <span className="material-symbols-outlined text-4xl text-[#8C9A86]">account_box</span>
+                <span className="material-symbols-outlined text-4xl text-[var(--ink-2)]">account_box</span>
                 <p className="text-sm font-medium">Non hai configurato il tuo profilo. Inserisci il tuo numero per vedere la cronologia.</p>
                 <button
                   onClick={() => setCurrentTab("profile")}
-                  className="px-6 h-11 rounded-full bg-[#4D5A46] text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-95 transition-all cursor-pointer border-none"
+                  className="px-6 h-11 rounded-full bg-[var(--ink)] text-[var(--bg)] text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-95 transition-all cursor-pointer border-none"
                 >
                   Imposta Profilo
                 </button>
@@ -893,18 +899,18 @@ export function BookingFlow({
             ) : loadingHistory ? (
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="h-28 animate-pulse rounded-2xl bg-[#F4F1EB]" />
+                  <div key={i} className="h-28 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
                 ))}
               </div>
             ) : historyError ? (
               <p className="text-sm text-[#ba1a1a] font-semibold">{historyError}</p>
             ) : history.length === 0 ? (
-              <div className="ios-card rounded-2xl p-8 text-center space-y-3 text-[#8C9A86]">
+              <div className="ios-card rounded-2xl p-8 text-center space-y-3 text-[var(--ink-2)]">
                 <span className="material-symbols-outlined text-4xl">calendar_today</span>
                 <p className="text-sm font-medium">Nessuna prenotazione trovata per il numero {phone}.</p>
                 <button
                   onClick={() => setCurrentTab("book")}
-                  className="mt-2 text-xs font-bold text-[#4D5A46] uppercase tracking-wider border-b border-[#4D5A46]/30 pb-0.5 cursor-pointer border-none bg-transparent"
+                  className="mt-2 text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--ink)]/30 pb-0.5 cursor-pointer border-none bg-transparent"
                 >
                   Prenota il tuo primo rituale →
                 </button>
@@ -913,38 +919,38 @@ export function BookingFlow({
               <div className="space-y-8">
                 {/* General Customer Notes ("cose da ricordare assolutamente") */}
                 {customerNotes && (
-                  <div className="ios-card bg-[#4D5A46]/5 rounded-2xl p-5 border border-[#4D5A46]/10 text-sm">
-                    <div className="flex items-center gap-2 text-[#4D5A46] font-bold mb-1.5">
+                  <div className="ios-card bg-[var(--ink)]/5 rounded-2xl p-5 border border-[var(--ink)]/10 text-sm">
+                    <div className="flex items-center gap-2 text-[var(--ink)] font-bold mb-1.5">
                       <span className="material-symbols-outlined text-lg">assignment</span>
                       <span>Da Ricordare Assolutamente (Note Tecniche)</span>
                     </div>
-                    <p className="text-[#4D5A46] italic leading-relaxed whitespace-pre-wrap">{customerNotes}</p>
+                    <p className="text-[var(--ink)] italic leading-relaxed whitespace-pre-wrap">{customerNotes}</p>
                   </div>
                 )}
 
                 {/* Upcoming Bookings */}
                 {upcomingAppts.length > 0 && (
                   <div>
-                    <h3 className="text-base font-bold text-[#4D5A46] mb-4 border-b border-[#E8E4DE]/50 pb-1 flex items-center gap-2">
+                    <h3 className="text-base font-bold text-[var(--ink)] mb-4 border-b border-[var(--line)]/50 pb-1 flex items-center gap-2">
                       <span className="material-symbols-outlined text-md">event</span> Prossimi Appuntamenti
                     </h3>
                     <div className="space-y-4">
                       {upcomingAppts.map((a) => {
                         const emp = employees.find((e) => e.id === a.employee_id);
                         return (
-                          <div key={a.id} className="ios-card rounded-2xl p-5 shadow-sm space-y-4 relative border border-[#4D5A46]/10">
+                          <div key={a.id} className="ios-card rounded-2xl p-5 shadow-sm space-y-4 relative border border-[var(--ink)]/10">
                             <div className="flex justify-between items-start">
                               <div>
-                                <h4 className="text-base font-bold text-[#4D5A46]">{a.service_name}</h4>
-                                <p className="text-xs text-[#8C9A86] mt-0.5">{formatHistoryDate(a.starts_at)} · Con {emp?.name ?? "Primo disponibile"}</p>
+                                <h4 className="text-base font-bold text-[var(--ink)]">{a.service_name}</h4>
+                                <p className="text-xs text-[var(--ink-2)] mt-0.5">{formatHistoryDate(a.starts_at)} · Con {emp?.name ?? "Primo disponibile"}</p>
                               </div>
-                              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#b3cea7]/30 text-[#4D5A46]">Confermato</span>
+                              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[var(--accent-2)]/30 text-[var(--ink)]">Confermato</span>
                             </div>
 
                             {a.owner_notes && (
-                              <div className="bg-[#FAF8F5] rounded-xl p-3 border border-[#E8E4DE]/60 text-xs">
-                                <span className="font-bold text-[#4D5A46] block mb-1">💡 Dettagli Trattamento:</span>
-                                <span className="text-[#5e5e5c] italic leading-relaxed">{a.owner_notes}</span>
+                              <div className="bg-[var(--bg)] rounded-xl p-3 border border-[var(--line)]/60 text-xs">
+                                <span className="font-bold text-[var(--ink)] block mb-1">💡 Dettagli Trattamento:</span>
+                                <span className="text-[var(--ink-2)] italic leading-relaxed">{a.owner_notes}</span>
                               </div>
                             )}
 
@@ -954,7 +960,7 @@ export function BookingFlow({
                                   setClientRescheduleAppt(a);
                                   setClientRescheduleDate(a.starts_at.slice(0, 10));
                                 }}
-                                className="h-9 px-4 rounded-full border border-[#4D5A46] text-[#4D5A46] hover:bg-[#F4F1EB] text-xs font-bold cursor-pointer transition-colors active:scale-95 duration-200 bg-transparent"
+                                className="h-9 px-4 rounded-full border border-[var(--ink)] text-[var(--ink)] hover:bg-[var(--surface-2)] text-xs font-bold cursor-pointer transition-colors active:scale-95 duration-200 bg-transparent"
                               >
                                 Modifica
                               </button>
@@ -976,7 +982,7 @@ export function BookingFlow({
                 {/* Past & Cancelled Bookings */}
                 {pastAppts.length > 0 && (
                   <div>
-                    <h3 className="text-base font-bold text-[#4D5A46] mb-4 border-b border-[#E8E4DE]/50 pb-1 flex items-center gap-2">
+                    <h3 className="text-base font-bold text-[var(--ink)] mb-4 border-b border-[var(--line)]/50 pb-1 flex items-center gap-2">
                       <span className="material-symbols-outlined text-md">history</span> Storico Appuntamenti
                     </h3>
                     <div className="space-y-4">
@@ -987,21 +993,21 @@ export function BookingFlow({
                           <div key={a.id} className="ios-card rounded-2xl p-5 shadow-sm space-y-4 opacity-75">
                             <div className="flex justify-between items-start">
                               <div>
-                                <h4 className="text-base font-bold text-[#4D5A46]">{a.service_name}</h4>
-                                <p className="text-xs text-[#8C9A86] mt-0.5">{formatHistoryDate(a.starts_at)} · Con {emp?.name ?? "Primo disponibile"}</p>
+                                <h4 className="text-base font-bold text-[var(--ink)]">{a.service_name}</h4>
+                                <p className="text-xs text-[var(--ink-2)] mt-0.5">{formatHistoryDate(a.starts_at)} · Con {emp?.name ?? "Primo disponibile"}</p>
                               </div>
                               <span className={cn(
                                 "text-[10px] uppercase font-bold px-2 py-0.5 rounded",
-                                isCancelled ? "bg-[#ba1a1a]/10 text-[#ba1a1a]" : "bg-[#F4F1EB] text-[#5e5e5c]"
+                                isCancelled ? "bg-[#ba1a1a]/10 text-[#ba1a1a]" : "bg-[var(--surface-2)] text-[var(--ink-2)]"
                               )}>
                                 {isCancelled ? "Annullato" : "Passato"}
                               </span>
                             </div>
 
                             {a.owner_notes && (
-                              <div className="bg-[#FAF8F5] rounded-xl p-3 border border-[#E8E4DE]/60 text-xs">
-                                <span className="font-bold text-[#4D5A46] block mb-1">💡 Dettagli Trattamento:</span>
-                                <span className="text-[#5e5e5c] italic leading-relaxed">{a.owner_notes}</span>
+                              <div className="bg-[var(--bg)] rounded-xl p-3 border border-[var(--line)]/60 text-xs">
+                                <span className="font-bold text-[var(--ink)] block mb-1">💡 Dettagli Trattamento:</span>
+                                <span className="text-[var(--ink-2)] italic leading-relaxed">{a.owner_notes}</span>
                               </div>
                             )}
 
@@ -1013,7 +1019,7 @@ export function BookingFlow({
                                     if (s) setService(s);
                                     setCurrentTab("book");
                                   }}
-                                  className="px-4 py-2 rounded-lg border border-[#4D5A46] text-[#4D5A46] hover:bg-[#4D5A46]/5 text-xs font-bold cursor-pointer transition-colors active:scale-95 duration-200 bg-transparent"
+                                  className="px-4 py-2 rounded-lg border border-[var(--ink)] text-[var(--ink)] hover:bg-[var(--ink)]/5 text-xs font-bold cursor-pointer transition-colors active:scale-95 duration-200 bg-transparent"
                                 >
                                   Prenota di nuovo
                                 </button>
@@ -1034,37 +1040,37 @@ export function BookingFlow({
         {currentTab === "profile" && (
           <div className="mt-8 max-w-sm mx-auto">
             <h2 className="text-2xl font-extrabold text-primary mb-2 tracking-tight">Profilo Personale</h2>
-            <p className="text-[#8C9A86] text-sm mb-6">Salva i tuoi contatti per visualizzare la cronologia ed evitare di digitarli ogni volta.</p>
+            <p className="text-[var(--ink-2)] text-sm mb-6">Salva i tuoi contatti per visualizzare la cronologia ed evitare di digitarli ogni volta.</p>
 
             {!profileEditing && profileName.trim() && profilePhone.trim() ? (
               /* Saved recap: the client sees their stored data, editing is explicit */
-              <div className="space-y-4 ios-card rounded-2xl p-6 border border-[#c3c8bd]/30 shadow-sm">
+              <div className="space-y-4 ios-card rounded-2xl p-6 border border-[var(--line-strong)]/30 shadow-sm">
                 <div className="flex items-start gap-3">
-                  <span className="text-xs font-bold text-[#8C9A86] w-24 shrink-0 pt-0.5 uppercase tracking-wider">Nome</span>
-                  <span className="flex-1 font-bold text-sm text-[#4D5A46]">{profileName}</span>
+                  <span className="text-xs font-bold text-[var(--ink-2)] w-24 shrink-0 pt-0.5 uppercase tracking-wider">Nome</span>
+                  <span className="flex-1 font-bold text-sm text-[var(--ink)]">{profileName}</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <span className="text-xs font-bold text-[#8C9A86] w-24 shrink-0 pt-0.5 uppercase tracking-wider">WhatsApp</span>
-                  <span className="flex-1 font-bold text-sm text-[#4D5A46]">{profilePhone}</span>
+                  <span className="text-xs font-bold text-[var(--ink-2)] w-24 shrink-0 pt-0.5 uppercase tracking-wider">WhatsApp</span>
+                  <span className="flex-1 font-bold text-sm text-[var(--ink)]">{profilePhone}</span>
                 </div>
 
                 {profileSaved && (
-                  <p className="text-xs font-bold text-[#4a6243] px-1 animate-pulse">✓ Modifiche salvate con successo!</p>
+                  <p className="text-xs font-bold text-[var(--accent)] px-1 animate-pulse">✓ Modifiche salvate con successo!</p>
                 )}
 
                 <button
                   type="button"
                   onClick={() => setProfileEditing(true)}
-                  className="w-full h-12 rounded-xl border border-[#c3c8bd]/50 bg-white text-[#4D5A46] font-semibold text-sm active:scale-[0.98] transition-transform duration-200 cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full h-12 rounded-xl border border-[var(--line-strong)]/50 bg-[var(--surface)] text-[var(--ink)] font-semibold text-sm active:scale-[0.98] transition-transform duration-200 cursor-pointer flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-[18px]">edit</span>
                   Modifica informazioni
                 </button>
               </div>
             ) : (
-            <form onSubmit={saveProfile} className="space-y-4 ios-card rounded-2xl p-6 border border-[#c3c8bd]/30 shadow-sm">
+            <form onSubmit={saveProfile} className="space-y-4 ios-card rounded-2xl p-6 border border-[var(--line-strong)]/30 shadow-sm">
               <div>
-                <label className="block text-xs font-bold text-[#4D5A46] mb-1.5 px-1 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-[var(--ink)] mb-1.5 px-1 uppercase tracking-wider">
                   Nome e cognome
                 </label>
                 <input
@@ -1072,12 +1078,12 @@ export function BookingFlow({
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
                   placeholder="Es. Anna Rossi"
-                  className="w-full h-12 rounded-xl bg-[#F4F1EB] text-[#4D5A46] placeholder-[#8C9A86]/70 px-4 outline-none border border-transparent focus:border-[#4D5A46] transition-all font-medium text-sm shadow-sm"
+                  className="w-full h-12 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] placeholder-[var(--ink-2)]/70 px-4 outline-none border border-transparent focus:border-[var(--ink)] transition-all font-medium text-sm shadow-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#4D5A46] mb-1.5 px-1 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-[var(--ink)] mb-1.5 px-1 uppercase tracking-wider">
                   Numero WhatsApp
                 </label>
                 <input
@@ -1086,7 +1092,7 @@ export function BookingFlow({
                   value={profilePhone}
                   onChange={(e) => setProfilePhone(e.target.value)}
                   placeholder="Es. 340 123 4567"
-                  className="w-full h-12 rounded-xl bg-[#F4F1EB] text-[#4D5A46] placeholder-[#8C9A86]/70 px-4 outline-none border border-transparent focus:border-[#4D5A46] transition-all font-medium text-sm shadow-sm"
+                  className="w-full h-12 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] placeholder-[var(--ink-2)]/70 px-4 outline-none border border-transparent focus:border-[var(--ink)] transition-all font-medium text-sm shadow-sm"
                 />
               </div>
 
@@ -1102,14 +1108,14 @@ export function BookingFlow({
                       }
                       setProfileEditing(false);
                     }}
-                    className="h-12 px-5 rounded-xl border border-[#c3c8bd]/50 bg-white text-[#8C9A86] font-semibold text-sm active:scale-[0.98] transition-transform duration-200 cursor-pointer"
+                    className="h-12 px-5 rounded-xl border border-[var(--line-strong)]/50 bg-[var(--surface)] text-[var(--ink-2)] font-semibold text-sm active:scale-[0.98] transition-transform duration-200 cursor-pointer"
                   >
                     Annulla
                   </button>
                 )}
                 <button
                   type="submit"
-                  className="flex-grow h-12 rounded-xl bg-[#D4AF37] hover:bg-[#C59B27] !text-white font-semibold text-sm active:scale-[0.98] transition-transform duration-200 cursor-pointer shadow-md border-none"
+                  className="flex-grow h-12 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-press)] !text-[var(--on-accent)] font-semibold text-sm active:scale-[0.98] transition-transform duration-200 cursor-pointer shadow-md border-none"
                 >
                   Salva Profilo
                 </button>
@@ -1140,12 +1146,12 @@ export function BookingFlow({
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-screen-md z-50 bg-white shadow-[0_-8px_30px_rgba(77,90,70,0.06)] flex justify-around items-center px-6 py-4 pb-safe border-t border-[#E8E4DE]/20">
+      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-screen-md z-50 bg-[var(--surface)] shadow-[0_-8px_30px_rgba(62,27,51,0.06)] flex justify-around items-center px-6 py-4 pb-safe border-t border-[var(--line)]/20">
         <button
           onClick={() => setCurrentTab("book")}
           className={cn(
             "flex flex-col items-center justify-center gap-1 p-2 active:scale-95 duration-200 cursor-pointer",
-            currentTab === "book" ? "text-[#4D5A46] font-bold" : "text-[#8C9A86] hover:opacity-80"
+            currentTab === "book" ? "text-[var(--ink)] font-bold" : "text-[var(--ink-2)] hover:opacity-80"
           )}
         >
           <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: currentTab === "book" ? "'FILL' 1" : undefined }}>content_cut</span>
@@ -1155,7 +1161,7 @@ export function BookingFlow({
           onClick={() => setCurrentTab("history")}
           className={cn(
             "flex flex-col items-center justify-center gap-1 p-2 active:scale-95 duration-200 cursor-pointer",
-            currentTab === "history" ? "text-[#4D5A46] font-bold" : "text-[#8C9A86] hover:opacity-80"
+            currentTab === "history" ? "text-[var(--ink)] font-bold" : "text-[var(--ink-2)] hover:opacity-80"
           )}
         >
           <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: currentTab === "history" ? "'FILL' 1" : undefined }}>event_upcoming</span>
@@ -1165,7 +1171,7 @@ export function BookingFlow({
           onClick={() => setCurrentTab("profile")}
           className={cn(
             "flex flex-col items-center justify-center gap-1 p-2 active:scale-95 duration-200 cursor-pointer",
-            currentTab === "profile" ? "text-[#4D5A46] font-bold" : "text-[#8C9A86] hover:opacity-80"
+            currentTab === "profile" ? "text-[var(--ink)] font-bold" : "text-[var(--ink-2)] hover:opacity-80"
           )}
         >
           <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: currentTab === "profile" ? "'FILL' 1" : undefined }}>person</span>
@@ -1177,45 +1183,45 @@ export function BookingFlow({
       <Sheet open={detailsOpen} onClose={() => setDetailsOpen(false)} title="I Tuoi Dati" dismissible={true}>
         <div className="space-y-5 py-2">
           {/* Booking Summary Box */}
-          <div className="rounded-2xl bg-[#F4F1EB] p-5 border border-[#E8E4DE] space-y-3 shadow-sm">
+          <div className="rounded-2xl bg-[var(--surface-2)] p-5 border border-[var(--line)] space-y-3 shadow-sm">
             <div className="flex justify-between items-center text-sm">
-              <span className="text-[#8C9A86] font-semibold">Servizio:</span>
-              <span className="font-bold text-[#4D5A46]">
+              <span className="text-[var(--ink-2)] font-semibold">Servizio:</span>
+              <span className="font-bold text-[var(--ink)]">
                 {service?.name} ({formatPrice(service?.price_cents ?? 0)})
               </span>
             </div>
             {selectedAddons.map((a) => (
-              <div key={a.id} className="flex justify-between items-center text-sm border-t border-[#E8E4DE]/50 pt-3">
-                <span className="text-[#8C9A86] font-semibold">+ {a.name}</span>
-                <span className="font-bold text-[#4D5A46]">
+              <div key={a.id} className="flex justify-between items-center text-sm border-t border-[var(--line)]/50 pt-3">
+                <span className="text-[var(--ink-2)] font-semibold">+ {a.name}</span>
+                <span className="font-bold text-[var(--ink)]">
                   {a.extra_min > 0 && `+${a.extra_min} min`}
                   {a.extra_min > 0 && a.extra_price_cents > 0 && " · "}
                   {a.extra_price_cents > 0 && `+${formatPrice(a.extra_price_cents)}`}
                 </span>
               </div>
             ))}
-            <div className="flex justify-between items-center text-sm border-t border-[#E8E4DE]/50 pt-3">
-              <span className="text-[#8C9A86] font-semibold">Operatore:</span>
-              <span className="font-bold text-[#4D5A46]">{operatorName}</span>
+            <div className="flex justify-between items-center text-sm border-t border-[var(--line)]/50 pt-3">
+              <span className="text-[var(--ink-2)] font-semibold">Operatore:</span>
+              <span className="font-bold text-[var(--ink)]">{operatorName}</span>
             </div>
-            <div className="flex justify-between items-center text-sm border-t border-[#E8E4DE]/50 pt-3">
-              <span className="text-[#8C9A86] font-semibold">Quando:</span>
-              <span className="font-bold text-[#4D5A46]">{whenLabel}</span>
+            <div className="flex justify-between items-center text-sm border-t border-[var(--line)]/50 pt-3">
+              <span className="text-[var(--ink-2)] font-semibold">Quando:</span>
+              <span className="font-bold text-[var(--ink)]">{whenLabel}</span>
             </div>
-            <div className="flex justify-between items-center text-sm border-t border-[#E8E4DE]/50 pt-3">
-              <span className="text-[#8C9A86] font-semibold">Durata totale:</span>
-              <span className="font-bold text-[#4D5A46]">{formatDuration(totalDurationMin)}</span>
+            <div className="flex justify-between items-center text-sm border-t border-[var(--line)]/50 pt-3">
+              <span className="text-[var(--ink-2)] font-semibold">Durata totale:</span>
+              <span className="font-bold text-[var(--ink)]">{formatDuration(totalDurationMin)}</span>
             </div>
-            <div className="flex justify-between items-center text-sm border-t border-[#E8E4DE]/50 pt-3">
-              <span className="text-[#8C9A86] font-semibold">Prezzo totale:</span>
-              <span className="font-bold text-[#4D5A46]">{formatPrice(totalPriceCents)}</span>
+            <div className="flex justify-between items-center text-sm border-t border-[var(--line)]/50 pt-3">
+              <span className="text-[var(--ink-2)] font-semibold">Prezzo totale:</span>
+              <span className="font-bold text-[var(--ink)]">{formatPrice(totalPriceCents)}</span>
             </div>
           </div>
 
           {/* Form fields */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-[#4D5A46] mb-1.5 px-1">
+              <label className="block text-sm font-bold text-[var(--ink)] mb-1.5 px-1">
                 Nome e cognome
               </label>
               <input
@@ -1224,11 +1230,11 @@ export function BookingFlow({
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Es. Anna Rossi"
                 autoComplete="name"
-                className="w-full h-12 rounded-xl bg-[#F4F1EB] text-[#4D5A46] placeholder-[#8C9A86]/70 px-4 outline-none border border-transparent focus:border-[#4D5A46] transition-all font-medium shadow-sm"
+                className="w-full h-12 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] placeholder-[var(--ink-2)]/70 px-4 outline-none border border-transparent focus:border-[var(--ink)] transition-all font-medium shadow-sm"
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-[#4D5A46] mb-1.5 px-1">
+              <label className="block text-sm font-bold text-[var(--ink)] mb-1.5 px-1">
                 Numero WhatsApp
               </label>
               <input
@@ -1238,14 +1244,14 @@ export function BookingFlow({
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Es. 340 123 4567"
                 autoComplete="tel"
-                className="w-full h-12 rounded-xl bg-[#F4F1EB] text-[#4D5A46] placeholder-[#8C9A86]/70 px-4 outline-none border border-transparent focus:border-[#4D5A46] transition-all font-medium shadow-sm"
+                className="w-full h-12 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] placeholder-[var(--ink-2)]/70 px-4 outline-none border border-transparent focus:border-[var(--ink)] transition-all font-medium shadow-sm"
               />
-              <span className="block mt-2 text-xs text-[#8C9A86] px-1 font-medium leading-relaxed">
+              <span className="block mt-2 text-xs text-[var(--ink-2)] px-1 font-medium leading-relaxed">
                 Ti contatteremo qui in caso di variazioni.
               </span>
             </div>
             <div>
-              <label className="block text-sm font-bold text-[#4D5A46] mb-1.5 px-1">
+              <label className="block text-sm font-bold text-[var(--ink)] mb-1.5 px-1">
                 Note (facoltativo)
               </label>
               <textarea
@@ -1253,7 +1259,7 @@ export function BookingFlow({
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Es. Esigenze particolari..."
                 rows={3}
-                className="w-full rounded-xl bg-[#F4F1EB] text-[#4D5A46] placeholder-[#8C9A86]/70 px-4 py-3 outline-none border border-transparent focus:border-[#4D5A46] transition-all font-medium resize-none shadow-sm"
+                className="w-full rounded-xl bg-[var(--surface-2)] text-[var(--ink)] placeholder-[var(--ink-2)]/70 px-4 py-3 outline-none border border-transparent focus:border-[var(--ink)] transition-all font-medium resize-none shadow-sm"
               />
             </div>
           </div>
@@ -1268,10 +1274,10 @@ export function BookingFlow({
             disabled={!canSubmit || submitting}
             onClick={submit}
             className={cn(
-              "flex w-full h-14 items-center justify-center gap-2.5 rounded-full text-white font-sans text-base font-bold shadow-md transition-all duration-200 select-none cursor-pointer border-none",
+              "flex w-full h-14 items-center justify-center gap-2.5 rounded-full font-sans text-base font-bold shadow-md transition-all duration-200 select-none cursor-pointer border-none",
               canSubmit && !submitting
-                ? "bg-[var(--accent)] hover:scale-[1.01] hover:brightness-[1.05] active:scale-[0.98]"
-                : "bg-[#8C9A86]/40 cursor-not-allowed text-white/60"
+                ? "bg-[var(--accent)] text-[var(--on-accent)] hover:scale-[1.01] hover:brightness-[1.05] active:scale-[0.98]"
+                : "bg-[#A18A97]/40 cursor-not-allowed text-white/60"
             )}
           >
             {submitting ? "Registrazione..." : "Conferma Prenotazione"}
@@ -1280,24 +1286,24 @@ export function BookingFlow({
       </Sheet>
 
       {/* Client Rescheduling Modal */}
-      {clientRescheduleAppt && (
-        <Sheet
+      <Sheet
           open={!!clientRescheduleAppt}
           onClose={() => setClientRescheduleAppt(null)}
           title="Modifica Orario Appuntamento"
           dismissible={true}
         >
+        {rescheduleSheetData && (<>
           <div className="space-y-5 py-2">
-            <div className="rounded-2xl bg-[#F4F1EB] p-4 border border-[#E8E4DE] text-sm text-[#4D5A46] space-y-1">
-              <p className="font-bold text-base">{clientRescheduleAppt.service_name}</p>
-              <p className="text-xs text-[#8C9A86]">
-                Operatore: {employees.find(e => e.id === clientRescheduleAppt.employee_id)?.name ?? "Qualsiasi"}
+            <div className="rounded-2xl bg-[var(--surface-2)] p-4 border border-[var(--line)] text-sm text-[var(--ink)] space-y-1">
+              <p className="font-bold text-base">{rescheduleSheetData.service_name}</p>
+              <p className="text-xs text-[var(--ink-2)]">
+                Operatore: {employees.find(e => e.id === rescheduleSheetData.employee_id)?.name ?? "Qualsiasi"}
               </p>
             </div>
 
             {/* Date selector */}
             <div>
-              <label className="block text-xs font-bold text-[#4D5A46] mb-1.5 px-1 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-[var(--ink)] mb-1.5 px-1 uppercase tracking-wider">
                 Seleziona Nuova Data
               </label>
               <input
@@ -1305,23 +1311,23 @@ export function BookingFlow({
                 min={todayStr}
                 value={clientRescheduleDate}
                 onChange={(e) => setClientRescheduleDate(e.target.value)}
-                className="w-full h-12 rounded-xl bg-[#F4F1EB] text-[#4D5A46] px-4 outline-none border border-transparent focus:border-[#4D5A46] transition-all font-medium text-sm shadow-sm"
+                className="w-full h-12 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] px-4 outline-none border border-transparent focus:border-[var(--ink)] transition-all font-medium text-sm shadow-sm"
               />
             </div>
 
             {/* Slots selector */}
             <div>
-              <label className="block text-xs font-bold text-[#4D5A46] mb-2 px-1 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-[var(--ink)] mb-2 px-1 uppercase tracking-wider">
                 Seleziona Nuovo Orario
               </label>
               {loadingClientRescheduleSlots ? (
                 <div className="grid grid-cols-4 gap-2">
                   {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="h-10 animate-pulse rounded-full bg-[#F4F1EB]" />
+                    <div key={i} className="h-10 animate-pulse rounded-full bg-[var(--surface-2)]" />
                   ))}
                 </div>
               ) : clientRescheduleSlots.length === 0 ? (
-                <p className="text-xs text-[#8C9A86] italic px-1">
+                <p className="text-xs text-[var(--ink-2)] italic px-1">
                   Nessun orario disponibile per la data selezionata.
                 </p>
               ) : (
@@ -1335,10 +1341,10 @@ export function BookingFlow({
                         className={cn(
                           "px-4 py-2 rounded-full border text-xs font-semibold transition-all duration-200 cursor-pointer",
                           isSel
-                            ? "border-[#4D5A46] bg-[#4D5A46] time-chip-active"
-                            : "border-[#E8E4DE]/50 bg-[#F4F1EB] text-[#4D5A46] hover:border-[#4D5A46]"
+                            ? "border-[var(--ink)] bg-[var(--ink)] time-chip-active"
+                            : "border-[var(--line)]/50 bg-[var(--surface-2)] text-[var(--ink)] hover:border-[var(--ink)]"
                         )}
-                        style={isSel ? { color: "#FAF8F5" } : undefined}
+                        style={isSel ? { color: "var(--bg)" } : undefined}
                       >
                         {sl.time}
                       </button>
@@ -1355,19 +1361,18 @@ export function BookingFlow({
               className={cn(
                 "w-full h-12 rounded-full font-semibold text-sm active:scale-[0.98] transition-transform duration-200 cursor-pointer flex items-center justify-center border-none",
                 clientRescheduleSlot && !reschedulingPending
-                  ? "bg-[var(--accent)] text-white font-bold"
-                  : "bg-[#8C9A86]/20 text-[#4D5A46]/40 cursor-not-allowed"
+                  ? "bg-[var(--accent)] text-[var(--on-accent)] font-bold"
+                  : "bg-[#A18A97]/20 text-[var(--ink)]/40 cursor-not-allowed"
               )}
             >
               {reschedulingPending ? "Spostamento..." : "Conferma Spostamento"}
             </button>
           </div>
-        </Sheet>
-      )}
+                </>)}
+      </Sheet>
 
       {/* Client Monthly Calendar Picker Modal */}
-      {clientCalendarOpen && (
-        <Sheet
+      <Sheet
           open={clientCalendarOpen}
           onClose={() => setClientCalendarOpen(false)}
           title="Seleziona Data di Prenotazione"
@@ -1375,7 +1380,7 @@ export function BookingFlow({
         >
           <div className="space-y-4 py-2">
             <div className="flex justify-between items-center mb-2">
-              <h3 className="text-base font-bold text-[#4D5A46]">
+              <h3 className="text-base font-bold text-[var(--ink)]">
                 {MONTH_LABELS[clientCalendarMonth]} {clientCalendarYear}
               </h3>
               <div className="flex gap-1">
@@ -1388,7 +1393,7 @@ export function BookingFlow({
                       setClientCalendarMonth(m => m - 1);
                     }
                   }}
-                  className="p-2 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined text-[#4D5A46] border-none bg-transparent"
+                  className="p-2 rounded-full hover:bg-[var(--surface-2)] active:scale-95 material-symbols-outlined text-[var(--ink)] border-none bg-transparent"
                 >
                   chevron_left
                 </button>
@@ -1401,7 +1406,7 @@ export function BookingFlow({
                       setClientCalendarMonth(m => m + 1);
                     }
                   }}
-                  className="p-2 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined text-[#4D5A46] border-none bg-transparent"
+                  className="p-2 rounded-full hover:bg-[var(--surface-2)] active:scale-95 material-symbols-outlined text-[var(--ink)] border-none bg-transparent"
                 >
                   chevron_right
                 </button>
@@ -1409,7 +1414,7 @@ export function BookingFlow({
             </div>
 
             {/* Days Grid Header */}
-            <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-[#8C9A86] tracking-wider mb-2">
+            <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-[var(--ink-2)] tracking-wider mb-2">
               {WEEKDAY_SHORT_LABELS.map((w, idx) => (
                 <div key={idx}>{w}</div>
               ))}
@@ -1449,13 +1454,13 @@ export function BookingFlow({
                     className={cn(
                       "h-9 w-full rounded-full flex items-center justify-center relative text-xs active:scale-95 transition-all cursor-pointer border-none",
                       isSelected
-                        ? "bg-[#4D5A46] text-white font-bold"
+                        ? "bg-[var(--ink)] text-[var(--bg)] font-bold"
                         : isDisabled
-                        ? "bg-transparent text-[#8C9A86]/30 cursor-not-allowed line-through"
-                        : "bg-transparent hover:bg-[#F4F1EB] text-[#4D5A46]"
+                        ? "bg-transparent text-[var(--ink-2)]/30 cursor-not-allowed line-through"
+                        : "bg-transparent hover:bg-[var(--surface-2)] text-[var(--ink)]"
                     )}
                   >
-                    <span className={isSelected ? "text-white font-bold" : ""}>{day.getDate()}</span>
+                    <span className={isSelected ? "text-[var(--bg)] font-bold" : ""}>{day.getDate()}</span>
                   </button>
                 );
               })}
@@ -1464,14 +1469,13 @@ export function BookingFlow({
             <div className="pt-2 text-center">
               <button 
                 onClick={() => setClientCalendarOpen(false)}
-                className="text-xs font-bold text-[#8C9A86] uppercase tracking-wider cursor-pointer hover:opacity-80 border-none bg-transparent"
+                className="text-xs font-bold text-[var(--ink-2)] uppercase tracking-wider cursor-pointer hover:opacity-80 border-none bg-transparent"
               >
                 Chiudi
               </button>
             </div>
           </div>
         </Sheet>
-      )}
     </div>
   );
 }
@@ -1501,38 +1505,38 @@ function DoneScreen({
   });
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] max-w-[520px] flex-col items-center justify-center bg-[#FAF8F5] px-6 py-12 text-center border-x border-[#EADFCB]/40 shadow-xl">
+    <main className="mx-auto flex min-h-[100dvh] max-w-[520px] flex-col items-center justify-center bg-[var(--bg)] px-6 py-12 text-center border-x border-[#EADFCB]/40 shadow-xl">
       <div className="grid h-16 w-16 place-items-center rounded-full bg-[#34c759] text-white shadow-md animate-bounce">
         <span className="material-symbols-outlined text-[32px] text-white">check</span>
       </div>
 
       <div className="mt-6 space-y-2">
-        <h2 className="text-2xl font-black text-[#4D5A46] tracking-tight">
+        <h2 className="text-2xl font-black text-[var(--ink)] tracking-tight">
           Prenotazione Confermata
         </h2>
-        <p className="text-[#8C9A86] font-medium text-sm">
+        <p className="text-[var(--ink-2)] font-medium text-sm">
           Ti abbiamo riservato il posto con successo!
         </p>
       </div>
 
-      <div className="mt-8 w-full rounded-2xl bg-[#F4F1EB] p-6 border border-[#E8E4DE] space-y-4 text-left max-w-sm mx-auto shadow-sm">
+      <div className="mt-8 w-full rounded-2xl bg-[var(--surface-2)] p-6 border border-[var(--line)] space-y-4 text-left max-w-sm mx-auto shadow-sm">
         <div>
-          <span className="text-xs text-[#8C9A86] font-semibold block tracking-wider">SERVIZIO</span>
-          <span className="text-base font-bold text-[#4D5A46]">{serviceName}</span>
+          <span className="text-xs text-[var(--ink-2)] font-semibold block tracking-wider">SERVIZIO</span>
+          <span className="text-base font-bold text-[var(--ink)]">{serviceName}</span>
         </div>
-        <div className="grid grid-cols-2 gap-4 border-t border-[#E8E4DE]/50 pt-3">
+        <div className="grid grid-cols-2 gap-4 border-t border-[var(--line)]/50 pt-3">
           <div>
-            <span className="text-xs text-[#8C9A86] font-semibold block tracking-wider">OPERATORE</span>
-            <span className="font-bold text-[#4D5A46]">{operatorName}</span>
+            <span className="text-xs text-[var(--ink-2)] font-semibold block tracking-wider">OPERATORE</span>
+            <span className="font-bold text-[var(--ink)]">{operatorName}</span>
           </div>
           <div>
-            <span className="text-xs text-[#8C9A86] font-semibold block tracking-wider">DURATA</span>
-            <span className="font-bold text-[#4D5A46]">{durationMin} min</span>
+            <span className="text-xs text-[var(--ink-2)] font-semibold block tracking-wider">DURATA</span>
+            <span className="font-bold text-[var(--ink)]">{durationMin} min</span>
           </div>
         </div>
-        <div className="border-t border-[#E8E4DE]/50 pt-3">
-          <span className="text-xs text-[#8C9A86] font-semibold block tracking-wider">DATA & ORA</span>
-          <span className="font-bold text-[#4D5A46] capitalize">{whenText}</span>
+        <div className="border-t border-[var(--line)]/50 pt-3">
+          <span className="text-xs text-[var(--ink-2)] font-semibold block tracking-wider">DATA & ORA</span>
+          <span className="font-bold text-[var(--ink)] capitalize">{whenText}</span>
         </div>
       </div>
 
@@ -1551,7 +1555,7 @@ function DoneScreen({
         >
           Vai ai miei appuntamenti
         </button>
-        <p className="text-xs text-[#8C9A86] font-medium pt-4">
+        <p className="text-xs text-[var(--ink-2)] font-medium pt-4">
           Ti aspettiamo da {businessName}! 💇
         </p>
       </div>

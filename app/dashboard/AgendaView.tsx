@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/ui/Sheet";
+import { CalendarLogo } from "@/components/CalendarLogo";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -1051,34 +1052,52 @@ export function AgendaView({
     );
   }, [allClients, searchQuery]);
 
+  // Sheets stay mounted so the close animation matches the open one;
+  // the last payload is kept so content stays visible while sliding out.
+  const lastActiveRef = useRef<Appointment | null>(null);
+  if (active) lastActiveRef.current = active;
+  const apptSheetData = active ?? lastActiveRef.current;
+
+  const lastClientRef = useRef<any>(null);
+  if (selectedClient) lastClientRef.current = selectedClient;
+  const clientSheetData = selectedClient ?? lastClientRef.current;
+
+  const lastMonthDropRef = useRef<typeof monthDropPrompt>(null);
+  if (monthDropPrompt) lastMonthDropRef.current = monthDropPrompt;
+  const monthDropData = monthDropPrompt ?? lastMonthDropRef.current;
+
+  const lastDragResultRef = useRef<typeof dragRescheduleResult>(null);
+  if (dragRescheduleResult) lastDragResultRef.current = dragRescheduleResult;
+  const dragResultData = dragRescheduleResult ?? lastDragResultRef.current;
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-[#1b1c1c] pb-24 font-sans overflow-x-clip">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] pb-24 font-sans overflow-x-clip">
       {/* TopAppBar */}
-      <header className="w-full top-0 sticky z-40 bg-[#FAF8F5]/85 backdrop-blur-md border-b border-[var(--line)]">
+      <header className="w-full top-0 sticky z-40 bg-[var(--bg)]/85 backdrop-blur-md border-b border-[var(--line)]">
         <div className="flex justify-between items-center px-4 sm:px-6 py-4 max-w-7xl mx-auto">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Logo" className="h-12 w-12 rounded-xl object-contain" />
-            <h1 className="font-bold text-xl tracking-tight text-[#4D5A46]">PrenotaEasy</h1>
+            <CalendarLogo size={48} />
+            <h1 className="font-bold text-xl tracking-tight text-[var(--ink)]">PrenotaEasy</h1>
           </div>
           <div className="flex items-center gap-4">
             <button
               onClick={() => setQrOpen(true)}
-              className="material-symbols-outlined text-[#5e5e5c] cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
+              className="material-symbols-outlined text-[var(--ink-2)] cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
               title="Codice QR di Prenotazione"
             >
               qr_code
             </button>
             <button 
               onClick={() => setNotifBellOpen(true)}
-              className="relative material-symbols-outlined text-[#5e5e5c] cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
+              className="relative material-symbols-outlined text-[var(--ink-2)] cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
             >
               notifications
               {unreadCount > 0 && (
                 <>
-                  <span className="absolute top-0.5 right-0.5 h-2.5 w-2.5 rounded-full bg-[#D4AF37] border-2 border-[#FAF8F5] animate-ping" />
-                  <span className="absolute top-0.5 right-0.5 h-2.5 w-2.5 rounded-full bg-[#D4AF37] border-2 border-[#FAF8F5]" />
+                  <span className="absolute top-0.5 right-0.5 h-2.5 w-2.5 rounded-full bg-[var(--accent)] border-2 border-[#FBF8FA] animate-ping" />
+                  <span className="absolute top-0.5 right-0.5 h-2.5 w-2.5 rounded-full bg-[var(--accent)] border-2 border-[#FBF8FA]" />
                 </>
               )}
             </button>
@@ -1092,10 +1111,10 @@ export function AgendaView({
           <div>
             {/* Dashboard Title */}
             <div className="mb-8">
-              <h2 className="text-2xl md:text-3xl font-extrabold text-[#4D5A46] tracking-tight">
+              <h2 className="text-2xl md:text-3xl font-extrabold text-[var(--ink)] tracking-tight">
                 {restrictToEmployeeId ? "Agenda Personale" : "Dashboard Titolare"}
               </h2>
-              <p className="text-[#8C9A86] text-sm mt-1">
+              <p className="text-[var(--ink-2)] text-sm mt-1">
                 {restrictToEmployeeId 
                   ? `Benvenuto ${employees.find(e => e.id === restrictToEmployeeId)?.name ?? ""}, ecco la tua panoramica.`
                   : "Benvenuto, ecco la panoramica di oggi."}
@@ -1104,7 +1123,7 @@ export function AgendaView({
 
             {/* Quick Actions */}
             <section className="mb-8">
-              <h3 className="text-xs font-bold text-[#8C9A86] uppercase tracking-widest mb-4">Azioni Rapide</h3>
+              <h3 className="text-xs font-bold text-[var(--ink-2)] uppercase tracking-widest mb-4">Azioni Rapide</h3>
               <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar">
                 <button
                   onClick={() => setNewOpen(true)}
@@ -1117,14 +1136,14 @@ export function AgendaView({
                   <>
                     <button
                       onClick={() => router.push("/dashboard/settings")}
-                      className="flex-shrink-0 ios-btn-secondary h-12 text-xs font-bold uppercase tracking-widest flex items-center gap-2 border border-[var(--line)] shadow-sm bg-white"
+                      className="flex-shrink-0 ios-btn-secondary h-12 text-xs font-bold uppercase tracking-widest flex items-center gap-2 border border-[var(--line)] shadow-sm bg-[var(--surface)]"
                     >
                       <span className="material-symbols-outlined text-lg">settings_suggest</span>
                       Gestisci Servizi
                     </button>
                     <button
                       onClick={() => router.push("/dashboard/analytics")}
-                      className="flex-shrink-0 ios-btn-secondary h-12 text-xs font-bold uppercase tracking-widest flex items-center gap-2 border border-[var(--line)] shadow-sm bg-white"
+                      className="flex-shrink-0 ios-btn-secondary h-12 text-xs font-bold uppercase tracking-widest flex items-center gap-2 border border-[var(--line)] shadow-sm bg-[var(--surface)]"
                     >
                       <span className="material-symbols-outlined text-lg">monitoring</span>
                       Vedi Analytics
@@ -1140,22 +1159,22 @@ export function AgendaView({
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setDate(addDaysStr(date, -1))}
-                    className="grid h-10 w-10 place-items-center rounded-full text-[#4D5A46] hover:bg-[#F4F1EB] active:scale-95 border-none bg-transparent cursor-pointer"
+                    className="grid h-10 w-10 place-items-center rounded-full text-[var(--ink)] hover:bg-[var(--surface-2)] active:scale-95 border-none bg-transparent cursor-pointer"
                   >
                     <ChevronLeft />
                   </button>
-                  <h3 className="text-lg font-bold text-[#4D5A46] capitalize tracking-tight">
+                  <h3 className="text-lg font-bold text-[var(--ink)] capitalize tracking-tight">
                     {rel ?? dayTitle(date)}
                   </h3>
                   <button
                     onClick={() => setDate(addDaysStr(date, 1))}
-                    className="grid h-10 w-10 place-items-center rounded-full text-[#4D5A46] hover:bg-[#F4F1EB] active:scale-95 border-none bg-transparent cursor-pointer"
+                    className="grid h-10 w-10 place-items-center rounded-full text-[var(--ink)] hover:bg-[var(--surface-2)] active:scale-95 border-none bg-transparent cursor-pointer"
                   >
                     <ChevronRight />
                   </button>
                 </div>
                 {date !== todayStr && (
-                  <span onClick={() => setDate(todayStr)} className="text-[#8C9A86] text-xs font-bold underline cursor-pointer hover:opacity-85">
+                  <span onClick={() => setDate(todayStr)} className="text-[var(--ink-2)] text-xs font-bold underline cursor-pointer hover:opacity-85">
                     Torna a oggi
                   </span>
                 )}
@@ -1164,15 +1183,15 @@ export function AgendaView({
               {/* Timeline Container */}
               <div className="space-y-4 relative pl-6">
                 {visible.length > 0 && (
-                  <div className="absolute left-2.5 top-2 bottom-2 w-[1px] bg-[#c3c8bd]"></div>
+                  <div className="absolute left-2.5 top-2 bottom-2 w-[1px] bg-[#D9C3CF]"></div>
                 )}
 
                 {loading ? (
                   Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="h-20 animate-pulse rounded-xl bg-[#F4F1EB]" />
+                    <div key={i} className="h-20 animate-pulse rounded-xl bg-[var(--surface-2)]" />
                   ))
                 ) : visible.length === 0 ? (
-                  <div className="py-12 text-center text-[#5e5e5c]">
+                  <div className="py-12 text-center text-[var(--ink-2)]">
                     <span className="material-symbols-outlined text-4xl">calendar_today</span>
                     <p className="mt-2 text-sm">Nessun appuntamento per questo giorno.</p>
                   </div>
@@ -1184,30 +1203,30 @@ export function AgendaView({
                     return (
                       <div key={a.id} className="relative">
                         {isLive ? (
-                          <div className="absolute left-[-23px] top-[30px] w-3 h-3 rounded-full bg-[#D4AF37] shadow-[0_0_0_6px_rgba(212,175,55,0.2)] animate-pulse z-10"></div>
+                          <div className="absolute left-[-23px] top-[30px] w-3 h-3 rounded-full bg-[var(--accent)] shadow-[0_0_0_6px_rgba(138,61,110,0.2)] animate-pulse z-10"></div>
                         ) : (
-                          <div className="absolute left-[-21px] top-[32px] w-2 h-2 rounded-full bg-[#74796f] z-10"></div>
+                          <div className="absolute left-[-21px] top-[32px] w-2 h-2 rounded-full bg-[#8A7D85] z-10"></div>
                         )}
 
                         <div
                           onClick={() => setActive(a)}
                           className={cn(
-                            "ios-card p-4 flex justify-between items-center group cursor-pointer hover:shadow-md transition-all active:scale-[0.99] border-none bg-white",
-                            isLive && "bg-[#FAF8F5] ring-2 ring-[#D4AF37]/50 shadow-md"
+                            "ios-card p-4 flex justify-between items-center group cursor-pointer hover:shadow-md transition-all active:scale-[0.99] border-none bg-[var(--surface)]",
+                            isLive && "bg-[var(--bg)] ring-2 ring-[var(--accent)]/50 shadow-md"
                           )}
                         >
                           <div className="flex gap-4 items-center">
-                            <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center bg-[#F4F1EB] text-primary/70">
+                            <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center bg-[var(--surface-2)] text-primary/70">
                               <span className="material-symbols-outlined text-[28px]">person</span>
                             </div>
                             <div>
-                              <p className="font-bold text-[#4D5A46] flex items-center gap-2 text-sm">
+                              <p className="font-bold text-[var(--ink)] flex items-center gap-2 text-sm">
                                 {a.customer_name}
                                 {isLive && (
-                                  <span className="inline-block w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse"></span>
+                                  <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse"></span>
                                 )}
                               </p>
-                              <p className="text-xs text-[#8C9A86] mt-0.5 font-medium">
+                              <p className="text-xs text-[var(--ink-2)] mt-0.5 font-medium">
                                 {a.service_name}
                                 {a.addons && a.addons.length > 0 ? ` +${a.addons.length} extra` : ""}
                                 {emp ? ` · ${emp.name}` : ""}
@@ -1215,10 +1234,10 @@ export function AgendaView({
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className={cn("text-sm font-bold", isLive ? "text-[#D4AF37]" : "text-[#4D5A46]")}>
+                            <p className={cn("text-sm font-bold", isLive ? "text-[var(--accent)]" : "text-[var(--ink)]")}>
                               {isLive ? "ORA" : fmtTime(new Date(a.starts_at), tz)}
                             </p>
-                            <span className="text-[10px] bg-[#e1dfdc] px-2 py-0.5 rounded text-[#5e5e5c] font-bold mt-1 inline-block">
+                            <span className="text-[10px] bg-[var(--surface-3)] px-2 py-0.5 rounded text-[var(--ink-2)] font-bold mt-1 inline-block">
                               {isLive ? "LIVE" : `${a.duration_min} min`}
                             </span>
                           </div>
@@ -1232,37 +1251,37 @@ export function AgendaView({
 
             {/* Key Bento Metrics (bottom of the dashboard) */}
             <section className={cn("grid grid-cols-1 gap-4 mb-8", restrictToEmployeeId ? "md:grid-cols-2" : "md:grid-cols-3")}>
-              <div className="ios-card rounded-2xl p-5 border border-[var(--line)] flex flex-col justify-between h-32 hover:translate-y-[-2px] transition-transform duration-200 bg-white">
-                <span className="text-[#8C9A86] text-xs font-semibold uppercase tracking-wider">Appuntamenti Oggi</span>
+              <div className="ios-card rounded-2xl p-5 border border-[var(--line)] flex flex-col justify-between h-32 hover:translate-y-[-2px] transition-transform duration-200 bg-[var(--surface)]">
+                <span className="text-[var(--ink-2)] text-xs font-semibold uppercase tracking-wider">Appuntamenti Oggi</span>
                 <div className="flex items-end justify-between">
-                  <span className="text-3xl font-black text-[#4D5A46] tracking-tight">{todayStats.apptsCount}</span>
-                  <span className="text-[#4D5A46] bg-[#b3cea7]/30 px-2.5 py-1 rounded-full text-xs font-bold">Oggi</span>
+                  <span className="text-3xl font-black text-[var(--ink)] tracking-tight">{todayStats.apptsCount}</span>
+                  <span className="text-[var(--ink)] bg-[var(--accent-2)]/30 px-2.5 py-1 rounded-full text-xs font-bold">Oggi</span>
                 </div>
               </div>
               {!restrictToEmployeeId && (
-                <div className="ios-card rounded-2xl p-5 border border-[var(--line)] border-l-4 border-l-[#D4AF37] flex flex-col justify-between h-32 hover:translate-y-[-2px] transition-transform duration-200 bg-white">
-                  <span className="text-[#8C9A86] text-xs font-semibold uppercase tracking-wider">Ricavo Totale</span>
+                <div className="ios-card rounded-2xl p-5 border border-[var(--line)] border-l-4 border-l-[var(--accent)] flex flex-col justify-between h-32 hover:translate-y-[-2px] transition-transform duration-200 bg-[var(--surface)]">
+                  <span className="text-[var(--ink-2)] text-xs font-semibold uppercase tracking-wider">Ricavo Totale</span>
                   <div className="flex items-end justify-between">
-                    <span className="text-3xl font-black text-[#4D5A46] tracking-tight">{formatPrice(todayStats.totalRevenue)}</span>
-                    <span className="material-symbols-outlined text-[#D4AF37]">payments</span>
+                    <span className="text-3xl font-black text-[var(--ink)] tracking-tight">{formatPrice(todayStats.totalRevenue)}</span>
+                    <span className="material-symbols-outlined text-[var(--accent)]">payments</span>
                   </div>
                 </div>
               )}
-              <div className="ios-card rounded-2xl p-5 border border-[var(--line)] flex flex-col justify-between h-32 hover:translate-y-[-2px] transition-transform duration-200 bg-white">
-                <span className="text-[#8C9A86] text-xs font-semibold uppercase tracking-wider">Nuovi Clienti</span>
+              <div className="ios-card rounded-2xl p-5 border border-[var(--line)] flex flex-col justify-between h-32 hover:translate-y-[-2px] transition-transform duration-200 bg-[var(--surface)]">
+                <span className="text-[var(--ink-2)] text-xs font-semibold uppercase tracking-wider">Nuovi Clienti</span>
                 <div className="flex items-end justify-between">
-                  <span className="text-3xl font-black text-[#4D5A46] tracking-tight">{todayStats.newCustomersCount}</span>
+                  <span className="text-3xl font-black text-[var(--ink)] tracking-tight">{todayStats.newCustomersCount}</span>
                   <div className="flex -space-x-2">
                     {todayStats.todayAppts.slice(0, 3).map((a) => (
                       <div
                         key={a.id}
-                        className="w-8 h-8 rounded-full border border-white bg-[#4D5A46] text-white flex items-center justify-center text-[10px] font-bold"
+                        className="w-8 h-8 rounded-full border border-white bg-[var(--ink)] text-[var(--bg)] flex items-center justify-center text-[10px] font-bold"
                       >
                         {a.customer_name.charAt(0).toUpperCase()}
                       </div>
                     ))}
                     {todayStats.newCustomersCount > 3 && (
-                      <div className="w-8 h-8 rounded-full border border-white bg-[#D4AF37] flex items-center justify-center text-[10px] font-bold text-white">
+                      <div className="w-8 h-8 rounded-full border border-white bg-[var(--accent)] flex items-center justify-center text-[10px] font-bold text-[var(--on-accent)]">
                         +{todayStats.newCustomersCount - 3}
                       </div>
                     )}
@@ -1283,11 +1302,11 @@ export function AgendaView({
                   className={cn(
                     "px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap cursor-pointer transition-all border-none",
                     employeeFilter === "all"
-                      ? "bg-[#4D5A46] !text-white"
-                      : "bg-[#F4F1EB] text-[#8C9A86] hover:bg-[#EBE7DD]"
+                      ? "bg-[var(--ink)] !text-[var(--bg)]"
+                      : "bg-[var(--surface-2)] text-[var(--ink-2)] hover:bg-[var(--surface-3)]"
                   )}
                 >
-                  <span className={employeeFilter === "all" ? "!text-white" : ""}>Tutti gli operatori</span>
+                  <span className={employeeFilter === "all" ? "!text-[var(--bg)]" : ""}>Tutti gli operatori</span>
                 </button>
                 {employees.map((e) => (
                   <button
@@ -1296,12 +1315,12 @@ export function AgendaView({
                     className={cn(
                       "px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap cursor-pointer transition-all flex items-center gap-1.5 border-none",
                       employeeFilter === e.id
-                        ? "bg-[#4D5A46] !text-white"
-                        : "bg-[#F4F1EB] text-[#8C9A86] hover:bg-[#EBE7DD]"
+                        ? "bg-[var(--ink)] !text-[var(--bg)]"
+                        : "bg-[var(--surface-2)] text-[var(--ink-2)] hover:bg-[var(--surface-3)]"
                     )}
                   >
                     <span className="w-2.5 h-2.5 rounded-full" style={{ background: e.color }} />
-                    <span className={employeeFilter === e.id ? "!text-white" : ""}>{e.name}</span>
+                    <span className={employeeFilter === e.id ? "!text-[var(--bg)]" : ""}>{e.name}</span>
                   </button>
                 ))}
               </div>
@@ -1326,7 +1345,7 @@ export function AgendaView({
                     }
                   }}
                   aria-label="Periodo precedente"
-                  className="p-1.5 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined border-none bg-transparent cursor-pointer text-[#4D5A46] text-[22px]"
+                  className="p-1.5 rounded-full hover:bg-[var(--surface-2)] active:scale-95 material-symbols-outlined border-none bg-transparent cursor-pointer text-[var(--ink)] text-[22px]"
                 >
                   chevron_left
                 </button>
@@ -1346,11 +1365,11 @@ export function AgendaView({
                     }
                   }}
                   aria-label="Periodo successivo"
-                  className="p-1.5 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined border-none bg-transparent cursor-pointer text-[#4D5A46] text-[22px]"
+                  className="p-1.5 rounded-full hover:bg-[var(--surface-2)] active:scale-95 material-symbols-outlined border-none bg-transparent cursor-pointer text-[var(--ink)] text-[22px]"
                 >
                   chevron_right
                 </button>
-                <h3 className="ml-1 text-sm sm:text-lg font-extrabold text-[#4D5A46] tracking-tight capitalize truncate">
+                <h3 className="ml-1 text-sm sm:text-lg font-extrabold text-[var(--ink)] tracking-tight capitalize truncate">
                   {calendarView === "month"
                     ? `${MONTH_LABELS[currentMonth]} ${currentYear}`
                     : calendarView === "week"
@@ -1365,12 +1384,12 @@ export function AgendaView({
                 {date !== todayStr && (
                   <button
                     onClick={() => setDate(todayStr)}
-                    className="h-8 px-2.5 rounded-full border border-[var(--line)] bg-white text-[11px] font-bold text-[#4D5A46] cursor-pointer active:scale-95 transition-all"
+                    className="h-8 px-2.5 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[11px] font-bold text-[var(--ink)] cursor-pointer active:scale-95 transition-all"
                   >
                     Oggi
                   </button>
                 )}
-                <div className="bg-[#F4F1EB] p-0.5 rounded-full flex border border-[var(--line)]">
+                <div className="bg-[var(--surface-2)] p-0.5 rounded-full flex border border-[var(--line)]">
                   {(["day", "week", "month"] as const).map((v) => (
                     <button
                       key={v}
@@ -1379,8 +1398,8 @@ export function AgendaView({
                       className={cn(
                         "h-8 px-2.5 sm:px-4 rounded-full text-[11px] sm:text-xs font-bold transition-all border-none cursor-pointer",
                         calendarView === v
-                          ? "bg-[#4D5A46] !text-white shadow-sm"
-                          : "bg-transparent text-[#8C9A86]"
+                          ? "bg-[var(--ink)] !text-[var(--bg)] shadow-sm"
+                          : "bg-transparent text-[var(--ink-2)]"
                       )}
                     >
                       <span className="sm:hidden">{v === "day" ? "G" : v === "week" ? "S" : "M"}</span>
@@ -1394,8 +1413,8 @@ export function AgendaView({
             {/* Conditionally Render Day / Week / Month Views */}
             {calendarView === "month" ? (
               /* MONTH VIEW — full-width fluid grid, Google Calendar style */
-              <div className="mb-6 rounded-2xl border border-[var(--line)] shadow-sm bg-white overflow-hidden">
-                <div className="grid grid-cols-7 text-center text-[10px] font-bold text-[#8C9A86] uppercase tracking-wider border-b border-[var(--line)]">
+              <div className="mb-6 rounded-2xl border border-[var(--line)] shadow-sm bg-[var(--surface)] overflow-hidden">
+                <div className="grid grid-cols-7 text-center text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider border-b border-[var(--line)]">
                   {WEEKDAY_SHORT_LABELS.map((w, idx) => (
                     <div key={idx} className="py-2">{w}</div>
                   ))}
@@ -1403,7 +1422,7 @@ export function AgendaView({
                 <div className="grid grid-cols-7">
                   {monthDays.map((day, idx) => {
                     if (!day) {
-                      return <div key={`empty-${idx}`} className="min-h-[76px] sm:min-h-[112px] border-b border-r border-[var(--line)]/40 bg-[#FAF8F5]/60" />;
+                      return <div key={`empty-${idx}`} className="min-h-[76px] sm:min-h-[112px] border-b border-r border-[var(--line)]/40 bg-[var(--bg)]/60" />;
                     }
                     const dayKeyStr = formatDateLocal(day);
                     const isSelected = date === dayKeyStr;
@@ -1420,21 +1439,21 @@ export function AgendaView({
                         }}
                         className={cn(
                           "min-h-[76px] sm:min-h-[112px] border-b border-r border-[var(--line)]/40 p-1 sm:p-1.5 flex flex-col gap-1 cursor-pointer transition-colors overflow-hidden",
-                          closed ? "bg-[#F4F1EB]/70" : "hover:bg-[#FAF8F5]",
+                          closed ? "bg-[var(--surface-2)]/70" : "hover:bg-[var(--bg)]",
                           monthDragTarget?.dayKey === dayKeyStr &&
                             (monthDragTarget.valid
-                              ? "ring-2 ring-inset ring-[#4D5A46] bg-[#4D5A46]/5"
+                              ? "ring-2 ring-inset ring-[var(--ink)] bg-[var(--ink)]/5"
                               : "ring-2 ring-inset ring-[#ba1a1a] bg-[#ba1a1a]/5")
                         )}
                       >
                         <span className={cn(
                           "self-center shrink-0 text-[11px] sm:text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full",
-                          isToday ? "bg-[#ba1a1a] text-white" : isSelected ? "bg-[#4D5A46] text-white" : "text-[#4D5A46]"
+                          isToday ? "bg-[#ba1a1a] text-white" : isSelected ? "bg-[var(--ink)] text-[var(--bg)]" : "text-[var(--ink)]"
                         )}>
                           {day.getDate()}
                         </span>
                         {closed && dayAppts.length === 0 && (
-                          <span className="text-[7px] sm:text-[8px] font-extrabold uppercase tracking-widest text-[#8C9A86]/60 text-center select-none">
+                          <span className="text-[7px] sm:text-[8px] font-extrabold uppercase tracking-widest text-[var(--ink-2)]/60 text-center select-none">
                             Chiuso
                           </span>
                         )}
@@ -1450,7 +1469,7 @@ export function AgendaView({
                                   if (justDraggedRef.current) return;
                                   setActive(a);
                                 }}
-                                style={{ backgroundColor: emp?.color ?? "#8C9A86", color: readableTextOn(emp?.color ?? "#8C9A86") }}
+                                style={{ backgroundColor: emp?.color ?? "#A18A97", color: readableTextOn(emp?.color ?? "#A18A97") }}
                                 className={cn(
                                   "w-full text-left rounded-[3px] px-1.5 py-0.5 text-[8px] sm:text-[10px] font-bold truncate border-none cursor-grab active:cursor-grabbing leading-tight",
                                   monthDragTarget?.apptId === a.id && "opacity-40"
@@ -1507,7 +1526,7 @@ export function AgendaView({
                   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
                 });
                 return (
-                  <div className="mb-6 rounded-2xl border border-[var(--line)] shadow-sm bg-white overflow-hidden">
+                  <div className="mb-6 rounded-2xl border border-[var(--line)] shadow-sm bg-[var(--surface)] overflow-hidden">
                     {/* Day headers */}
                     <div className="flex border-b border-[var(--line)]">
                       <div className="w-11 sm:w-14 shrink-0" />
@@ -1521,12 +1540,12 @@ export function AgendaView({
                             onClick={() => selectCalendarDate(day)}
                             className="flex-1 min-w-0 flex flex-col items-center py-1.5 cursor-pointer"
                           >
-                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[#74796f]">
+                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[var(--ink-2)]">
                               {isWeek ? WEEKDAY_SHORT_LABELS[idx] : WEEKDAYS_LONG[(day.getDay() + 6) % 7]}
                             </span>
                             <span className={cn(
                               "text-sm sm:text-base font-extrabold w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full mt-0.5",
-                              isToday ? "bg-[#ba1a1a] text-white" : isSelected && isWeek ? "bg-[#4D5A46] text-white" : "text-[#4D5A46]"
+                              isToday ? "bg-[#ba1a1a] text-white" : isSelected && isWeek ? "bg-[var(--ink)] text-[var(--bg)]" : "text-[var(--ink)]"
                             )}>
                               {day.getDate()}
                             </span>
@@ -1545,7 +1564,7 @@ export function AgendaView({
                               <span
                                 key={idx}
                                 style={{ top: idx * HOUR_PX }}
-                                className="absolute right-1.5 sm:right-2 -translate-y-1/2 text-[9px] sm:text-[10px] font-bold text-[#74796f]"
+                                className="absolute right-1.5 sm:right-2 -translate-y-1/2 text-[9px] sm:text-[10px] font-bold text-[var(--ink-2)]"
                               >
                                 {String(startMin / 60 + idx).padStart(2, "0")}:00
                               </span>
@@ -1578,11 +1597,11 @@ export function AgendaView({
                                 key={dayKeyStr}
                                 className={cn(
                                   "relative flex-1 min-w-0 border-l border-[var(--line)]/40",
-                                  closed ? "bg-[#F4F1EB]/70" : isWeek && isToday && "bg-[#ba1a1a]/[0.03]"
+                                  closed ? "bg-[var(--surface-2)]/70" : isWeek && isToday && "bg-[#ba1a1a]/[0.03]"
                                 )}
                               >
                                 {closed && (
-                                  <div className="absolute inset-x-0 top-2 z-0 text-center text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-[#8C9A86]/70 select-none pointer-events-none">
+                                  <div className="absolute inset-x-0 top-2 z-0 text-center text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-[var(--ink-2)]/70 select-none pointer-events-none">
                                     Chiuso
                                   </div>
                                 )}
@@ -1596,7 +1615,7 @@ export function AgendaView({
                                       setNewOpen(true);
                                     }}
                                     style={{ top: (idx * HOUR_PX) / 2, height: HOUR_PX / 2 }}
-                                    className="absolute left-0 right-0 z-0 cursor-pointer active:bg-[#4D5A46]/10 transition-colors"
+                                    className="absolute left-0 right-0 z-0 cursor-pointer active:bg-[var(--ink)]/10 transition-colors"
                                   />
                                 ))}
 
@@ -1622,8 +1641,8 @@ export function AgendaView({
                                         height: heightPx - 2,
                                         left: `${lane.left}%`,
                                         width: `calc(${lane.width}% - 3px)`,
-                                        backgroundColor: emp?.color ?? "#4D5A46",
-                                        color: readableTextOn(emp?.color ?? "#4D5A46"),
+                                        backgroundColor: emp?.color ?? "#3E1B33",
+                                        color: readableTextOn(emp?.color ?? "#3E1B33"),
                                       }}
                                       className={cn(
                                         "absolute z-10 rounded-[4px] sm:rounded-[6px] px-1.5 py-0.5 sm:px-2 sm:py-1 overflow-hidden cursor-grab active:cursor-grabbing shadow-sm hover:brightness-105 transition-[opacity,filter] duration-150 flex flex-col",
@@ -1661,7 +1680,7 @@ export function AgendaView({
                                     className={cn(
                                       "absolute left-0 right-0 z-30 rounded-[6px] border-2 border-dashed pointer-events-none",
                                       dragTarget.valid
-                                        ? "border-[#4D5A46] bg-[#4D5A46]/10"
+                                        ? "border-[var(--ink)] bg-[var(--ink)]/10"
                                         : "border-[#ba1a1a] bg-[#ba1a1a]/10"
                                     )}
                                   />
@@ -1692,7 +1711,7 @@ export function AgendaView({
                 setNewOpen(true);
               }}
               aria-label="Nuovo appuntamento"
-              className="fixed bottom-24 right-5 z-40 h-14 w-14 rounded-2xl bg-[#D4AF37] hover:bg-[#C59B27] text-white shadow-xl flex items-center justify-center active:scale-95 transition-all border-none cursor-pointer"
+              className="fixed bottom-24 right-5 z-40 h-14 w-14 rounded-2xl bg-[#8A3D6E] hover:bg-[#6F2F57] !text-white shadow-xl flex items-center justify-center active:scale-95 transition-all border-none cursor-pointer"
             >
               <span className="material-symbols-outlined text-[28px]">add</span>
             </button>
@@ -1704,8 +1723,8 @@ export function AgendaView({
           <div>
             <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl md:text-3xl font-extrabold text-[#4D5A46] tracking-tight">Contatti Clienti</h2>
-                <p className="text-[#8C9A86] text-sm mt-1">Visualizza la lista dei clienti registrati ed il loro storico trattamenti.</p>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-[var(--ink)] tracking-tight">Contatti Clienti</h2>
+                <p className="text-[var(--ink-2)] text-sm mt-1">Visualizza la lista dei clienti registrati ed il loro storico trattamenti.</p>
               </div>
 
               {/* Search bar */}
@@ -1715,20 +1734,20 @@ export function AgendaView({
                   placeholder="Cerca cliente..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-11 rounded-xl bg-white border border-[var(--line)] outline-none focus:border-[var(--ink)] px-10 text-sm font-medium shadow-sm"
+                  className="w-full h-11 rounded-xl bg-[var(--surface)] border border-[var(--line)] outline-none focus:border-[var(--ink)] px-10 text-sm font-medium shadow-sm"
                 />
-                <span className="material-symbols-outlined absolute left-3 top-3 text-[#8C9A86] text-lg">search</span>
+                <span className="material-symbols-outlined absolute left-3 top-3 text-[var(--ink-2)] text-lg">search</span>
               </div>
             </div>
 
             {loadingClients ? (
               <div className="space-y-3">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-16 animate-pulse rounded-xl bg-[#F4F1EB]" />
+                  <div key={i} className="h-16 animate-pulse rounded-xl bg-[var(--surface-2)]" />
                 ))}
               </div>
             ) : filteredClients.length === 0 ? (
-              <div className="ios-card rounded-2xl p-12 text-center text-[#5e5e5c] bg-white">
+              <div className="ios-card rounded-2xl p-12 text-center text-[var(--ink-2)] bg-[var(--surface)]">
                 <span className="material-symbols-outlined text-4xl">contacts</span>
                 <p className="mt-2 text-sm">Nessun cliente corrispondente alla ricerca.</p>
               </div>
@@ -1738,18 +1757,18 @@ export function AgendaView({
                   <div
                     key={c.id}
                     onClick={() => loadClientHistoryDetails(c)}
-                    className="ios-card rounded-xl p-4 border border-[var(--line)] hover:border-[var(--ink)] hover:shadow-md cursor-pointer transition-all flex items-center justify-between bg-white"
+                    className="ios-card rounded-xl p-4 border border-[var(--line)] hover:border-[var(--ink)] hover:shadow-md cursor-pointer transition-all flex items-center justify-between bg-[var(--surface)]"
                   >
                     <div className="flex gap-4 items-center min-w-0">
-                      <div className="w-10 h-10 rounded-full bg-[#b3cea7]/30 text-[#4D5A46] flex items-center justify-center font-bold">
+                      <div className="w-10 h-10 rounded-full bg-[var(--accent-2)]/30 text-[var(--ink)] flex items-center justify-center font-bold">
                         {c.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <h4 className="font-bold text-sm text-[#4D5A46] truncate">{c.name}</h4>
-                        <p className="text-xs text-[#8C9A86] mt-0.5">{c.phone}</p>
+                        <h4 className="font-bold text-sm text-[var(--ink)] truncate">{c.name}</h4>
+                        <p className="text-xs text-[var(--ink-2)] mt-0.5">{c.phone}</p>
                       </div>
                     </div>
-                    <span className="material-symbols-outlined text-[#8C9A86] hover:text-[#4D5A46]">chevron_right</span>
+                    <span className="material-symbols-outlined text-[var(--ink-2)] hover:text-[var(--ink)]">chevron_right</span>
                   </div>
                 ))}
               </div>
@@ -1758,13 +1777,13 @@ export function AgendaView({
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 w-full z-50 bg-[#ffffff]/85 backdrop-blur-md shadow-[0_-8px_30px_rgba(77,90,70,0.06)] border-t border-[#E8E4DE]/20">
+      <nav className="fixed bottom-0 left-0 w-full z-50 bg-[var(--surface)]/85 backdrop-blur-md shadow-[0_-8px_30px_rgba(62,27,51,0.06)] border-t border-[var(--line)]/20">
         <div className="flex justify-around items-center w-full px-6 py-3 pb-safe max-w-screen-md mx-auto">
           <button
             onClick={() => setOwnerTab("dashboard")}
             className={cn(
               "flex flex-col items-center justify-center gap-1 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent",
-              ownerTab === "dashboard" ? "text-[var(--ink)] font-bold" : "text-[#8C9A86] hover:opacity-85"
+              ownerTab === "dashboard" ? "text-[var(--ink)] font-bold" : "text-[var(--ink-2)] hover:opacity-85"
             )}
           >
             <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: ownerTab === "dashboard" ? "'FILL' 1" : undefined }}>
@@ -1776,7 +1795,7 @@ export function AgendaView({
             onClick={() => setOwnerTab("calendar")}
             className={cn(
               "flex flex-col items-center justify-center gap-1 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent",
-              ownerTab === "calendar" ? "text-[var(--ink)] font-bold" : "text-[#8C9A86] hover:opacity-85"
+              ownerTab === "calendar" ? "text-[var(--ink)] font-bold" : "text-[var(--ink-2)] hover:opacity-85"
             )}
           >
             <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: ownerTab === "calendar" ? "'FILL' 1" : undefined }}>
@@ -1788,7 +1807,7 @@ export function AgendaView({
             onClick={() => setOwnerTab("clients")}
             className={cn(
               "flex flex-col items-center justify-center gap-1 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent",
-              ownerTab === "clients" ? "text-[var(--ink)] font-bold" : "text-[#8C9A86] hover:opacity-85"
+              ownerTab === "clients" ? "text-[var(--ink)] font-bold" : "text-[var(--ink-2)] hover:opacity-85"
             )}
           >
             <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: ownerTab === "clients" ? "'FILL' 1" : undefined }}>
@@ -1799,7 +1818,7 @@ export function AgendaView({
           {!restrictToEmployeeId && (
             <button
               onClick={() => router.push("/dashboard/settings")}
-              className="flex flex-col items-center justify-center gap-1 text-[#8C9A86] hover:opacity-85 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent"
+              className="flex flex-col items-center justify-center gap-1 text-[var(--ink-2)] hover:opacity-85 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent"
             >
               <span className="material-symbols-outlined text-[24px]">content_cut</span>
               <span className="text-[10px] font-semibold uppercase tracking-wider">Servizi</span>
@@ -1809,9 +1828,11 @@ export function AgendaView({
       </nav>
 
       {/* Appointment detail / edit / cancel sheet */}
-      {active && (
+      {apptSheetData && (
         <ApptSheet
-          appt={active}
+          key={apptSheetData.id}
+          open={!!active}
+          appt={apptSheetData}
           employees={employees}
           tz={tz}
           businessName={business.name}
@@ -1841,28 +1862,28 @@ export function AgendaView({
       />
 
       {/* Client Detail & History history sheet */}
-      {selectedClient && (
-        <Sheet
+      <Sheet
           open={!!selectedClient}
           onClose={() => setSelectedClient(null)}
-          title={`Scheda Cliente: ${selectedClient.name}`}
+          title={`Scheda Cliente: ${clientSheetData?.name ?? ""}`}
           dismissible={true}
         >
+        {clientSheetData && (<>
           <div className="space-y-5 py-2">
             <div className="rounded-2xl border border-[var(--line)] divide-y divide-[var(--line)] overflow-hidden bg-[var(--surface-2)]/30">
-              <DetailRow label="Nome" value={selectedClient.name} />
-              <DetailRow label="WhatsApp" value={selectedClient.phone} />
+              <DetailRow label="Nome" value={clientSheetData.name} />
+              <DetailRow label="WhatsApp" value={clientSheetData.phone} />
             </div>
 
-            <div className="space-y-2 mt-4 bg-white border border-[var(--line)] rounded-2xl p-4">
-              <h4 className="text-base font-bold text-[#4D5A46] pb-1 flex items-center gap-1.5">
+            <div className="space-y-2 mt-4 bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-4">
+              <h4 className="text-base font-bold text-[var(--ink)] pb-1 flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-sm">assignment</span> Note Generali Contatto
               </h4>
-              <p className="text-[10px] text-[#8C9A86] font-bold uppercase tracking-wider">
+              <p className="text-[10px] text-[var(--ink-2)] font-bold uppercase tracking-wider">
                 Da ricordare assolutamente (es. allergie, formule colore)
               </p>
               <textarea
-                className="w-full h-24 rounded-xl bg-[#F4F1EB] text-[#4D5A46] placeholder-[#8C9A86]/70 p-3 outline-none border border-transparent focus:border-[var(--ink)] transition-all font-medium text-xs resize-none"
+                className="w-full h-24 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] placeholder-[var(--ink-2)]/70 p-3 outline-none border border-transparent focus:border-[var(--ink)] transition-all font-medium text-xs resize-none"
                 value={customerNotesText}
                 onChange={(e) => setCustomerNotesText(e.target.value)}
                 placeholder="Scrivi qui formule colore, allergie o cose da ricordare..."
@@ -1870,56 +1891,56 @@ export function AgendaView({
               <button
                 onClick={async () => {
                   setSavingCustomerNotes(true);
-                  const res = await updateCustomerNotes(selectedClient.id, customerNotesText);
+                  const res = await updateCustomerNotes(clientSheetData.id, customerNotesText);
                   setSavingCustomerNotes(false);
                   if (res.ok) {
-                    selectedClient.notes = customerNotesText;
-                    setAllClients(prev => prev.map(c => c.id === selectedClient.id ? { ...c, notes: customerNotesText } : c));
+                    clientSheetData.notes = customerNotesText;
+                    setAllClients(prev => prev.map(c => c.id === clientSheetData.id ? { ...c, notes: customerNotesText } : c));
                     alert("Note salvate con successo!");
                   } else {
                     alert(res.error || "Errore.");
                   }
                 }}
                 disabled={savingCustomerNotes}
-                className="w-full h-11 rounded-full bg-[#D4AF37] hover:bg-[#C59B27] !text-white font-bold text-xs active:scale-95 transition-all cursor-pointer shadow-md border-none"
+                className="w-full h-11 rounded-full bg-[var(--accent)] hover:bg-[var(--accent-press)] !text-[var(--on-accent)] font-bold text-xs active:scale-95 transition-all cursor-pointer shadow-md border-none"
               >
                 {savingCustomerNotes ? "Salvataggio..." : "Salva Note Contatto"}
               </button>
             </div>
 
-            <h4 className="text-base font-bold text-[#4D5A46] border-b border-[var(--line)] pb-1 flex items-center gap-1.5">
+            <h4 className="text-base font-bold text-[var(--ink)] border-b border-[var(--line)] pb-1 flex items-center gap-1.5">
               <span className="material-symbols-outlined text-sm">history</span> Cronologia Trattamenti
             </h4>
 
             {loadingHistory ? (
               <div className="space-y-3">
                 {Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="h-20 animate-pulse rounded-xl bg-[#F4F1EB]" />
+                  <div key={i} className="h-20 animate-pulse rounded-xl bg-[var(--surface-2)]" />
                 ))}
               </div>
             ) : clientHistory.length === 0 ? (
-              <p className="text-xs text-[#5e5e5c] italic">Nessun appuntamento completato in precedenza.</p>
+              <p className="text-xs text-[var(--ink-2)] italic">Nessun appuntamento completato in precedenza.</p>
             ) : (
               <div className="space-y-3 overflow-y-auto max-h-[300px] no-scrollbar">
                 {clientHistory.map(a => (
-                  <div key={a.id} className="ios-card rounded-xl p-3 border border-[var(--line)] bg-white shadow-sm space-y-2">
+                  <div key={a.id} className="ios-card rounded-xl p-3 border border-[var(--line)] bg-[var(--surface)] shadow-sm space-y-2">
                     <div className="flex justify-between items-start text-xs">
                       <div>
-                        <span className="font-bold text-[#4D5A46] text-sm block">{a.service_name}</span>
-                        <span className="text-[#8C9A86]">{formatHistoryDate(a.starts_at)}</span>
+                        <span className="font-bold text-[var(--ink)] text-sm block">{a.service_name}</span>
+                        <span className="text-[var(--ink-2)]">{formatHistoryDate(a.starts_at)}</span>
                       </div>
                       <span className={cn(
                         "text-[9px] uppercase font-bold px-1.5 py-0.5 rounded",
-                        a.status === "cancelled" ? "bg-[#ba1a1a]/10 text-[#ba1a1a]" : "bg-[#FAF8F5] text-[#5e5e5c]"
+                        a.status === "cancelled" ? "bg-[#ba1a1a]/10 text-[#ba1a1a]" : "bg-[var(--bg)] text-[var(--ink-2)]"
                       )}>
                         {a.status}
                       </span>
                     </div>
 
                     {a.owner_notes && (
-                      <div className="bg-[#F4F1EB]/40 p-2.5 rounded-lg border border-[var(--line)] text-[11px] leading-relaxed">
-                        <span className="font-bold text-[#4D5A46] block mb-0.5">Nota Titolare:</span>
-                        <span className="text-[#5e5e5c] italic">{a.owner_notes}</span>
+                      <div className="bg-[var(--surface-2)]/40 p-2.5 rounded-lg border border-[var(--line)] text-[11px] leading-relaxed">
+                        <span className="font-bold text-[var(--ink)] block mb-0.5">Nota Titolare:</span>
+                        <span className="text-[var(--ink-2)] italic">{a.owner_notes}</span>
                       </div>
                     )}
                   </div>
@@ -1931,27 +1952,26 @@ export function AgendaView({
               Chiudi
             </button>
           </div>
-        </Sheet>
-      )}
+                </>)}
+      </Sheet>
 
       {/* QR Code Share Sheet */}
-      {qrOpen && (
-        <Sheet
+      <Sheet
           open={qrOpen}
           onClose={() => setQrOpen(false)}
           title="QR Code di Prenotazione"
           dismissible={true}
         >
           <div className="space-y-6 py-2 text-center">
-            <p className="text-[#8C9A86] text-xs font-semibold uppercase tracking-wider">
+            <p className="text-[var(--ink-2)] text-xs font-semibold uppercase tracking-wider">
               Mostra questo QR Code al cliente o stampalo per il tuo negozio.
             </p>
 
-            <div ref={qrRef} className="mx-auto w-fit rounded-2xl bg-white p-4 border border-[#c3c8bd]/30 shadow-sm">
+            <div ref={qrRef} className="mx-auto w-fit rounded-2xl bg-[var(--surface)] p-4 border border-[var(--line-strong)]/30 shadow-sm">
               <QRCodeCanvas value={`${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/b/${business.slug}`} size={200} level="M" marginSize={0} />
             </div>
 
-            <div className="bg-[#FAF8F5] rounded-xl p-3 border border-[#c3c8bd]/20 break-all text-xs font-bold text-[#4D5A46]">
+            <div className="bg-[var(--bg)] rounded-xl p-3 border border-[var(--line-strong)]/20 break-all text-xs font-bold text-[var(--ink)]">
               {`${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/b/${business.slug}`}
             </div>
 
@@ -1964,7 +1984,7 @@ export function AgendaView({
                     setTimeout(() => setCopied(false), 1500);
                   } catch {}
                 }}
-                className="flex-1 h-12 rounded-xl bg-[#F4F1EB] border border-[#c3c8bd]/30 font-semibold text-xs text-[#4D5A46] active:scale-95 transition-all cursor-pointer"
+                className="flex-1 h-12 rounded-xl bg-[var(--surface-2)] border border-[var(--line-strong)]/30 font-semibold text-xs text-[var(--ink)] active:scale-95 transition-all cursor-pointer"
               >
                 {copied ? "Copiato!" : "Copia Link"}
               </button>
@@ -1982,8 +2002,8 @@ export function AgendaView({
                         <style>
                           body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif; text-align: center; }
                           img { width: 300px; height: 300px; margin-bottom: 20px; }
-                          h1 { color: #4D5A46; font-size: 24px; margin: 0 0 10px 0; }
-                          p { color: #8C9A86; font-size: 16px; margin: 0; }
+                          h1 { color: #3E1B33; font-size: 24px; margin: 0 0 10px 0; }
+                          p { color: #A18A97; font-size: 16px; margin: 0; }
                         </style>
                       </head>
                       <body onload="window.print(); window.close();">
@@ -2006,49 +2026,48 @@ export function AgendaView({
 
             <button
               onClick={() => setQrOpen(false)}
-              className="text-xs font-bold text-[#8C9A86] uppercase tracking-wider cursor-pointer hover:opacity-85"
+              className="text-xs font-bold text-[var(--ink-2)] uppercase tracking-wider cursor-pointer hover:opacity-85"
             >
               Chiudi
             </button>
           </div>
         </Sheet>
-      )}
 
       {/* Month-view drop confirmation: target day fixed, time adjustable */}
-      {monthDropPrompt && (
-        <Sheet
+      <Sheet
           open={!!monthDropPrompt}
           onClose={() => setMonthDropPrompt(null)}
           title="Sposta appuntamento"
           dismissible={true}
         >
+        {monthDropData && (<>
           <div className="space-y-5 py-2">
-            <p className="text-sm text-[#5e5e5c] text-center">
+            <p className="text-sm text-[var(--ink-2)] text-center">
               Spostare l&apos;appuntamento di{" "}
-              <strong className="text-[#4a6243]">{monthDropPrompt.appt.customer_name}</strong> a{" "}
-              <strong className="text-[#4a6243] capitalize">{dayTitle(monthDropPrompt.dateStr)}</strong>?
+              <strong className="text-[var(--accent)]">{monthDropData.appt.customer_name}</strong> a{" "}
+              <strong className="text-[var(--accent)] capitalize">{dayTitle(monthDropData.dateStr)}</strong>?
             </p>
             <label className="block max-w-[180px] mx-auto">
-              <span className="mb-1.5 block text-center text-xs font-bold text-[#4D5A46] uppercase tracking-wider">
+              <span className="mb-1.5 block text-center text-xs font-bold text-[var(--ink)] uppercase tracking-wider">
                 Orario
               </span>
               <input
                 type="time"
                 value={monthDropTime}
                 onChange={(e) => setMonthDropTime(e.target.value)}
-                className="w-full h-12 rounded-xl bg-[#F4F1EB] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-center text-base text-[#4D5A46] font-bold"
+                className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-center text-base text-[var(--ink)] font-bold"
               />
             </label>
             <div className="flex gap-2">
               <button
                 onClick={() => setMonthDropPrompt(null)}
-                className="flex-1 ios-btn-secondary h-12 text-sm font-bold border border-[var(--line)] bg-white"
+                className="flex-1 ios-btn-secondary h-12 text-sm font-bold border border-[var(--line)] bg-[var(--surface)]"
               >
                 Annulla
               </button>
               <button
                 onClick={() => {
-                  const p = monthDropPrompt;
+                  const p = monthDropData;
                   setMonthDropPrompt(null);
                   if (p && /^\d{2}:\d{2}$/.test(monthDropTime)) {
                     rescheduleTo(p.appt, p.dateStr, monthDropTime);
@@ -2060,47 +2079,47 @@ export function AgendaView({
               </button>
             </div>
           </div>
-        </Sheet>
-      )}
+                </>)}
+      </Sheet>
 
       {/* WhatsApp Notify Sheet for Drag & Drop Reschedule */}
-      {dragRescheduleResult && (
-        <Sheet
+      <Sheet
           open={!!dragRescheduleResult}
           onClose={() => setDragRescheduleResult(null)}
           title="Appuntamento Spostato"
           dismissible={true}
         >
+        {dragResultData && (<>
           <div className="space-y-6 py-2 text-center">
-            <p className="text-[#5e5e5c] text-sm">
-              L&apos;appuntamento di <strong className="text-[#4a6243]">{dragRescheduleResult.customerName}</strong> è stato spostato a:
+            <p className="text-[var(--ink-2)] text-sm">
+              L&apos;appuntamento di <strong className="text-[var(--accent)]">{dragResultData.customerName}</strong> è stato spostato a:
             </p>
-            <div className="bg-[#F4F1EB] rounded-2xl p-4 border border-[#c3c8bd]/30 font-bold font-serif text-[#4a6243] text-lg">
-              {dragRescheduleResult.whenText}
+            <div className="bg-[var(--surface-2)] rounded-2xl p-4 border border-[var(--line-strong)]/30 font-bold font-serif text-[var(--accent)] text-lg">
+              {dragResultData.whenText}
             </div>
             
-            {dragRescheduleResult.waHref ? (
+            {dragResultData.waHref ? (
               <>
-                <p className="text-xs text-[#8C9A86] font-medium uppercase tracking-wider">
+                <p className="text-xs text-[var(--ink-2)] font-medium uppercase tracking-wider">
                   Avvisa il cliente su WhatsApp del cambio di orario:
                 </p>
-                <WhatsAppButton href={dragRescheduleResult.waHref} />
+                <WhatsAppButton href={dragResultData.waHref} />
               </>
             ) : (
-              <p className="text-xs text-[#8C9A86] italic">
+              <p className="text-xs text-[var(--ink-2)] italic">
                 Nessun numero di telefono registrato per questo cliente.
               </p>
             )}
 
             <button
               onClick={() => setDragRescheduleResult(null)}
-              className="text-xs font-bold text-[#8C9A86] uppercase tracking-wider cursor-pointer hover:opacity-85"
+              className="text-xs font-bold text-[var(--ink-2)] uppercase tracking-wider cursor-pointer hover:opacity-85"
             >
               Chiudi
             </button>
           </div>
-        </Sheet>
-      )}
+                </>)}
+      </Sheet>
 
       {/* Real-time Toast alert */}
       {toast && (
@@ -2109,15 +2128,15 @@ export function AgendaView({
             setDate(toast.apptDateStr);
             setToast(null);
           }}
-          className="notification-toast fixed top-6 right-6 left-6 md:left-auto md:w-96 bg-white border border-[#4D5A46]/20 shadow-lg rounded-2xl p-4 z-50 flex items-start gap-3.5 cursor-pointer hover:shadow-xl transition-all duration-300"
+          className="notification-toast fixed top-6 right-6 left-6 md:left-auto md:w-96 bg-[var(--surface)] border border-[var(--ink)]/20 shadow-lg rounded-2xl p-4 z-50 flex items-start gap-3.5 cursor-pointer hover:shadow-xl transition-all duration-300"
         >
-          <div className="h-10 w-10 rounded-full bg-[#FAF8F5] border border-[#E8E4DE] flex items-center justify-center text-[#4D5A46] shrink-0 shadow-inner">
+          <div className="h-10 w-10 rounded-full bg-[var(--bg)] border border-[var(--line)] flex items-center justify-center text-[var(--ink)] shrink-0 shadow-inner">
             <span className="material-symbols-outlined text-[20px] animate-bounce">notifications_active</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-serif font-bold text-sm text-[#4D5A46] leading-none mb-1">{toast.title}</h4>
-            <p className="text-xs text-[#8C9A86] font-medium leading-relaxed mb-1.5">{toast.body}</p>
-            <span className="text-[10px] text-[#4D5A46] font-bold uppercase tracking-wider block">
+            <h4 className="font-serif font-bold text-sm text-[var(--ink)] leading-none mb-1">{toast.title}</h4>
+            <p className="text-xs text-[var(--ink-2)] font-medium leading-relaxed mb-1.5">{toast.body}</p>
+            <span className="text-[10px] text-[var(--ink)] font-bold uppercase tracking-wider block">
               Clicca per visualizzare nell&apos;agenda
             </span>
           </div>
@@ -2126,7 +2145,7 @@ export function AgendaView({
               e.stopPropagation(); 
               setToast(null); 
             }} 
-            className="text-[#8C9A86] hover:text-[#4D5A46] shrink-0 cursor-pointer"
+            className="text-[var(--ink-2)] hover:text-[var(--ink)] shrink-0 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
@@ -2138,8 +2157,8 @@ export function AgendaView({
         <div className="space-y-4 py-2">
           {notifications.length === 0 ? (
             <div className="text-center py-12">
-              <span className="material-symbols-outlined text-[#8C9A86] text-[48px] opacity-40 mb-3 block">notifications_off</span>
-              <p className="text-sm text-[#8C9A86] italic">Nessuna nuova prenotazione in questa sessione.</p>
+              <span className="material-symbols-outlined text-[var(--ink-2)] text-[48px] opacity-40 mb-3 block">notifications_off</span>
+              <p className="text-sm text-[var(--ink-2)] italic">Nessuna nuova prenotazione in questa sessione.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -2154,15 +2173,15 @@ export function AgendaView({
                     }}
                     className={cn(
                       "glass-card p-4 rounded-2xl border cursor-pointer hover:shadow-sm hover:translate-y-[-1px] transition-all duration-300 relative",
-                      n.read ? "opacity-75 border-[#c3c8bd]/20 bg-white/40" : "border-[#4D5A46]/20 bg-[#FAF8F5]/80 shadow-[0_2px_8px_rgba(77,90,70,0.04)]"
+                      n.read ? "opacity-75 border-[var(--line-strong)]/20 bg-[var(--surface)]/40" : "border-[var(--ink)]/20 bg-[var(--bg)]/80 shadow-[0_2px_8px_rgba(62,27,51,0.04)]"
                     )}
                   >
                     {!n.read && (
-                      <span className="absolute top-4 right-4 h-2.5 w-2.5 rounded-full bg-[#D4AF37]" />
+                      <span className="absolute top-4 right-4 h-2.5 w-2.5 rounded-full bg-[var(--accent)]" />
                     )}
-                    <h4 className="font-serif font-bold text-sm text-[#4D5A46] mb-1 pr-6">{n.title}</h4>
-                    <p className="text-xs text-[#8C9A86] leading-relaxed mb-2 font-medium">{n.body}</p>
-                    <span className="text-[10px] text-[#8C9A86]/70 font-semibold uppercase tracking-wider block">
+                    <h4 className="font-serif font-bold text-sm text-[var(--ink)] mb-1 pr-6">{n.title}</h4>
+                    <p className="text-xs text-[var(--ink-2)] leading-relaxed mb-2 font-medium">{n.body}</p>
+                    <span className="text-[10px] text-[var(--ink-2)]/70 font-semibold uppercase tracking-wider block">
                       {n.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -2173,7 +2192,7 @@ export function AgendaView({
                   setNotifications([]);
                   setNotifBellOpen(false);
                 }}
-                className="w-full text-center py-2 text-xs font-bold text-[#8C9A86] uppercase tracking-wider border-t border-[#c3c8bd]/25 pt-3 hover:text-[#4D5A46] transition-colors cursor-pointer"
+                className="w-full text-center py-2 text-xs font-bold text-[var(--ink-2)] uppercase tracking-wider border-t border-[var(--line-strong)]/25 pt-3 hover:text-[var(--ink)] transition-colors cursor-pointer"
               >
                 Cancella tutte le notifiche
               </button>
@@ -2199,14 +2218,14 @@ export function AgendaView({
 /* Icons */
 function ChevronRight() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="text-[#4D5A46]">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="text-[var(--ink)]">
       <path d="M7.5 4.5 13 10l-5.5 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 function ChevronLeft() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="text-[#4D5A46]">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="text-[var(--ink)]">
       <path d="M12.5 4.5 7 10l5.5 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -2214,6 +2233,7 @@ function ChevronLeft() {
 
 /* Appt detail & edit sheet */
 function ApptSheet({
+  open,
   appt,
   employees,
   tz,
@@ -2225,6 +2245,7 @@ function ApptSheet({
   apiCancelAppointment,
   apiUpdateOwnerNotes,
 }: {
+  open: boolean;
   appt: Appointment;
   employees: Employee[];
   tz: string;
@@ -2251,6 +2272,20 @@ function ApptSheet({
       setREmp(restrictToEmployeeId);
     }
   }, [restrictToEmployeeId]);
+
+  // Fresh state every time the sheet reopens
+  useEffect(() => {
+    if (open) {
+      setMode("view");
+      setResult(null);
+      setError(null);
+      setONotes(appt.owner_notes ?? "");
+      setRDate(dayKey(new Date(appt.starts_at), tz));
+      setRTime(fmtTime(new Date(appt.starts_at), tz));
+      setREmp(restrictToEmployeeId ?? appt.employee_id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // Owner notes state and handler
   const [oNotes, setONotes] = useState(appt.owner_notes ?? "");
@@ -2306,15 +2341,15 @@ function ApptSheet({
     result != null ? "Fatto" : mode === "reschedule" ? "Sposta appuntamento" : "Dettagli Appuntamento";
 
   return (
-    <Sheet open onClose={onClose} title={title} dismissible={false}>
+    <Sheet open={open} onClose={onClose} title={title} dismissible={false}>
       {result ? (
         <div className="space-y-4 text-center">
-          <p className="text-[#5e5e5c]">{result.text}</p>
+          <p className="text-[var(--ink-2)]">{result.text}</p>
           {result.href ? (
             <>
-              <p className="font-bold text-sm text-[#4D5A46]">Avvisa il cliente su WhatsApp:</p>
+              <p className="font-bold text-sm text-[var(--ink)]">Avvisa il cliente su WhatsApp:</p>
               <WhatsAppButton href={result.href} />
-              <button onClick={onClose} className="w-full py-2.5 text-[#8C9A86] text-sm font-bold border-none bg-transparent cursor-pointer">
+              <button onClick={onClose} className="w-full py-2.5 text-[var(--ink-2)] text-sm font-bold border-none bg-transparent cursor-pointer">
                 Chiudi
               </button>
             </>
@@ -2353,7 +2388,7 @@ function ApptSheet({
 
           {/* Owner Notes Box */}
           <div className="space-y-1.5 p-1 border-t border-[var(--line)] pt-3">
-            <label className="block text-xs font-bold text-[#4D5A46] uppercase tracking-wider">
+            <label className="block text-xs font-bold text-[var(--ink)] uppercase tracking-wider">
               Note Trattamento (Cosa hai fatto al cliente)
             </label>
             <textarea
@@ -2361,12 +2396,12 @@ function ApptSheet({
               onChange={(e) => setONotes(e.target.value)}
               placeholder="Inserisci formule colore, taglio o note utili per la prossima volta..."
               rows={3}
-              className="w-full rounded-xl bg-[#F4F1EB] text-[#4D5A46] placeholder-[#8C9A86]/70 px-4 py-3 outline-none border border-transparent focus:border-[var(--ink)] transition-all font-medium resize-none shadow-sm text-sm"
+              className="w-full rounded-xl bg-[var(--surface-2)] text-[var(--ink)] placeholder-[var(--ink-2)]/70 px-4 py-3 outline-none border border-transparent focus:border-[var(--ink)] transition-all font-medium resize-none shadow-sm text-sm"
             />
             <button
               onClick={saveNotes}
               disabled={savingNotes}
-              className="mt-1 px-4 py-2 bg-[#4D5A46] text-white rounded-full text-xs font-bold transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer border-none"
+              className="mt-1 px-4 py-2 bg-[var(--ink)] text-[var(--bg)] rounded-full text-xs font-bold transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer border-none"
             >
               {savingNotes ? "Salvataggio..." : "Salva Note"}
             </button>
@@ -2384,7 +2419,7 @@ function ApptSheet({
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full h-12 rounded-full border border-[var(--line)] text-[#4D5A46] font-bold flex items-center justify-center gap-2 hover:bg-[#F4F1EB] transition-all active:scale-[0.98] cursor-pointer shadow-sm bg-white"
+                className="w-full h-12 rounded-full border border-[var(--line)] text-[var(--ink)] font-bold flex items-center justify-center gap-2 hover:bg-[var(--surface-2)] transition-all active:scale-[0.98] cursor-pointer shadow-sm bg-[var(--surface)]"
               >
                 <span className="material-symbols-outlined text-[20px]">sms</span>
                 Invia promemoria WhatsApp
@@ -2408,7 +2443,7 @@ function ApptSheet({
         <div className="space-y-4">
           <div className="flex gap-2">
             <label className="flex-1">
-              <span className="mb-1.5 block px-1 text-xs font-bold text-[#4D5A46] uppercase tracking-wider">
+              <span className="mb-1.5 block px-1 text-xs font-bold text-[var(--ink)] uppercase tracking-wider">
                 Data
               </span>
               <input
@@ -2416,30 +2451,30 @@ function ApptSheet({
                 value={rDate}
                 min={dayKey(new Date(), tz)}
                 onChange={(e) => setRDate(e.target.value)}
-                className="w-full h-12 rounded-xl bg-[#F4F1EB] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-sm text-[#4D5A46] font-medium"
+                className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-sm text-[var(--ink)] font-medium"
               />
             </label>
             <label className="w-[38%]">
-              <span className="mb-1.5 block px-1 text-xs font-bold text-[#4D5A46] uppercase tracking-wider">
+              <span className="mb-1.5 block px-1 text-xs font-bold text-[var(--ink)] uppercase tracking-wider">
                 Ora
               </span>
               <input
                 type="time"
                 value={rTime}
                 onChange={(e) => setRTime(e.target.value)}
-                className="w-full h-12 rounded-xl bg-[#F4F1EB] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-center text-sm text-[#4D5A46] font-medium"
+                className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-center text-sm text-[var(--ink)] font-medium"
               />
             </label>
           </div>
           <label className="block">
-            <span className="mb-1.5 block px-1 text-xs font-bold text-[#4D5A46] uppercase tracking-wider">
+            <span className="mb-1.5 block px-1 text-xs font-bold text-[var(--ink)] uppercase tracking-wider">
               Operatore
             </span>
             <select
               value={rEmp}
               onChange={(e) => setREmp(e.target.value)}
               disabled={!!restrictToEmployeeId}
-              className="w-full h-12 rounded-xl bg-[#F4F1EB] px-4 outline-none border border-transparent focus:border-[var(--ink)] disabled:opacity-75 text-sm text-[#4D5A46] font-medium"
+              className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] disabled:opacity-75 text-sm text-[var(--ink)] font-medium"
             >
               {employees.map((e) => (
                 <option key={e.id} value={e.id}>
@@ -2454,7 +2489,7 @@ function ApptSheet({
           <div className="flex gap-2 pt-1">
             <button
               onClick={() => setMode("view")}
-              className="flex-1 ios-btn-secondary h-12 text-sm font-bold border border-[var(--line)] bg-white"
+              className="flex-1 ios-btn-secondary h-12 text-sm font-bold border border-[var(--line)] bg-[var(--surface)]"
             >
               Indietro
             </button>
@@ -2551,19 +2586,19 @@ function NewApptSheet({
           placeholder="Nome cliente"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full h-12 rounded-xl bg-[#F4F1EB] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium text-sm text-[#4D5A46]"
+          className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium text-sm text-[var(--ink)]"
         />
         <input
           type="tel"
           placeholder="Numero WhatsApp (facoltativo)"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          className="w-full h-12 rounded-xl bg-[#F4F1EB] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium text-sm text-[#4D5A46]"
+          className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium text-sm text-[var(--ink)]"
         />
         <select
           value={serviceId}
           onChange={(e) => setServiceId(e.target.value)}
-          className="w-full h-12 rounded-xl bg-[#F4F1EB] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium text-sm text-[#4D5A46]"
+          className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium text-sm text-[var(--ink)]"
         >
           {services.length === 0 && <option value="">Nessun servizio</option>}
           {services.map((s) => (
@@ -2576,7 +2611,7 @@ function NewApptSheet({
           value={empId}
           onChange={(e) => setEmpId(e.target.value)}
           disabled={!!restrictToEmployeeId}
-          className="w-full h-12 rounded-xl bg-[#F4F1EB] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium disabled:opacity-75 text-sm text-[#4D5A46]"
+          className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium disabled:opacity-75 text-sm text-[var(--ink)]"
         >
           {employees.map((e) => (
             <option key={e.id} value={e.id}>
@@ -2589,13 +2624,13 @@ function NewApptSheet({
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="flex-1 h-12 rounded-xl bg-[#F4F1EB] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium text-sm text-[#4D5A46]"
+            className="flex-1 h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium text-sm text-[var(--ink)]"
           />
           <input
             type="time"
             value={time}
             onChange={(e) => setTime(e.target.value)}
-            className="w-[38%] h-12 rounded-xl bg-[#F4F1EB] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-center font-medium text-sm text-[#4D5A46]"
+            className="w-[38%] h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-center font-medium text-sm text-[var(--ink)]"
           />
         </div>
 
@@ -2632,8 +2667,8 @@ function WhatsAppButton({ href }: { href: string }) {
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start gap-3 px-4 py-3">
-      <span className="text-xs font-bold text-[#8C9A86] w-20 shrink-0 pt-0.5 uppercase tracking-wider">{label}</span>
-      <span className="flex-1 font-bold text-sm text-[#4D5A46]">{value}</span>
+      <span className="text-xs font-bold text-[var(--ink-2)] w-20 shrink-0 pt-0.5 uppercase tracking-wider">{label}</span>
+      <span className="flex-1 font-bold text-sm text-[var(--ink)]">{value}</span>
     </div>
   );
 }

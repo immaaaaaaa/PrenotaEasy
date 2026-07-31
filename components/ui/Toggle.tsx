@@ -20,12 +20,12 @@ export function Toggle({
       onClick={() => onChange(!checked)}
       className={cn(
         "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-        checked ? "bg-[#4D5A46]" : "bg-[#E8E4DE]"
+        checked ? "bg-[var(--ink)]" : "bg-[var(--surface-3)]"
       )}
     >
       <span
         className={cn(
-          "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+          "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-[var(--surface)] shadow ring-0 transition duration-200 ease-in-out",
           checked ? "translate-x-5" : "translate-x-0"
         )}
       />

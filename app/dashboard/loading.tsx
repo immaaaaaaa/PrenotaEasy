@@ -1,9 +1,11 @@
+import { CalendarLogo } from "@/components/CalendarLogo";
+
 export default function DashboardLoading() {
   return (
-    <div className="min-h-screen bg-[#FAF8F5] flex flex-col items-center justify-center gap-4">
-      <img src="/logo.png" alt="" className="h-14 w-14 rounded-2xl object-contain animate-pulse" />
-      <div className="h-1 w-32 overflow-hidden rounded-full bg-[#E8E4DE]">
-        <div className="h-full w-1/3 rounded-full bg-[#4D5A46] animate-[loading-slide_1s_ease-in-out_infinite]" />
+    <div className="min-h-screen bg-[var(--bg)] flex flex-col items-center justify-center gap-4">
+      <CalendarLogo size={56} className="animate-pulse" />
+      <div className="h-1 w-32 overflow-hidden rounded-full bg-[var(--surface-3)]">
+        <div className="h-full w-1/3 rounded-full bg-[var(--accent)] animate-[loading-slide_1s_ease-in-out_infinite]" />
       </div>
       <style
         dangerouslySetInnerHTML={{

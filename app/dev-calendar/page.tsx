@@ -39,8 +39,8 @@ const business: Business = {
 };
 
 const employees: Employee[] = [
-  { id: "e1", business_id: business.id, name: "Michela", color: "#7C9A6D", sort: 0, active: true, created_at: "" },
-  { id: "e2", business_id: business.id, name: "Sara", color: "#C08552", sort: 1, active: true, created_at: "" },
+  { id: "e1", business_id: business.id, name: "Michela", color: "#8A3D6E", sort: 0, active: true, created_at: "" },
+  { id: "e2", business_id: business.id, name: "Sara", color: "#B76E79", sort: 1, active: true, created_at: "" },
 ];
 
 const services: Service[] = [

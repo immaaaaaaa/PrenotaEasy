@@ -28,36 +28,41 @@
 
 :root {
   /* Surfaces */
-  --bg: #FAF8F5;          /* Warm Cream */
+  --bg: #FBF8FA;          /* Porcellana rosata */
   --surface: #ffffff;
-  --surface-2: #F4F1EB;    /* Inactive / Card backgrounds */
-  --surface-3: #EBE7DD; 
+  --surface-2: #F5EBF0;    /* Inactive / Card backgrounds */
+  --surface-3: #EDDDE6; 
 
   /* Ink (text) */
-  --ink: #4D5A46;          /* Dark Sage Green */
-  --ink-2: #8C9A86;        /* Mid Sage */
-  --ink-3: #AAB5A4;        /* Light Sage Details */
+  --ink: #3E1B33;          /* Porpora ink */
+  --ink-2: #A18A97;        /* Mauve gray */
+  --ink-3: #C4AFBB;        /* Mauve chiaro */
 
   /* Lines / borders */
-  --line: rgba(77, 90, 70, 0.12);
-  --line-strong: rgba(77, 90, 70, 0.2);
+  --line: rgba(62,27,51, 0.12);
+  --line-strong: rgba(62,27,51, 0.2);
 
-  /* Accent — Gold Satin */
-  --accent: #D4AF37;
-  --accent-press: #C59B27;
-  --accent-soft: rgba(212, 175, 55, 0.12);
+  /* Accent — Porpora */
+  --accent: #8A3D6E;
+  --accent-press: #6F2F57;
+  --accent-soft: rgba(138,61,110, 0.12);
   --on-accent: #ffffff;
 
+  /* Accent 2 — Rosa Cipria (highlights, selections) */
+  --accent-2: #DE8CA9;
+  --accent-2-soft: rgba(222,140,169, 0.18);
+  --on-accent-2: #4B1F35;
+
   /* Semantic */
-  --success: #4D5A46;      /* Sage for confirmation/success */
+  --success: #3E1B33;      /* Conferme in tinta porpora */
   --warning: #d08b1f;
   --danger: #d4483f;
 
   /* Translucent material (frosted chrome) */
-  --material: rgba(250, 248, 245, 0.72);
-  --material-strong: rgba(250, 248, 245, 0.9);
+  --material: rgba(251,248,250, 0.72);
+  --material-strong: rgba(251,248,250, 0.9);
   --material-border: rgba(255, 255, 255, 0.5);
-  --scrim: rgba(77, 90, 70, 0.24);
+  --scrim: rgba(62,27,51, 0.24);
 
   /* Radii — generous, iOS-like */
   --r-xs: 8px;
@@ -68,34 +73,38 @@
   --r-full: 999px;
 
   /* Shadows — soft, layered */
-  --shadow-sm: 0 1px 2px rgba(77, 90, 70, 0.05), 0 1px 1px rgba(77, 90, 70, 0.03);
-  --shadow-md: 0 4px 14px rgba(77, 90, 70, 0.06), 0 2px 4px rgba(77, 90, 70, 0.04);
-  --shadow-lg: 0 12px 40px rgba(77, 90, 70, 0.12), 0 4px 10px rgba(77, 90, 70, 0.05);
-  --shadow-sheet: 0 -8px 40px rgba(77, 90, 70, 0.15);
+  --shadow-sm: 0 1px 2px rgba(62,27,51, 0.05), 0 1px 1px rgba(62,27,51, 0.03);
+  --shadow-md: 0 4px 14px rgba(62,27,51, 0.06), 0 2px 4px rgba(62,27,51, 0.04);
+  --shadow-lg: 0 12px 40px rgba(62,27,51, 0.12), 0 4px 10px rgba(62,27,51, 0.05);
+  --shadow-sheet: 0 -8px 40px rgba(62,27,51, 0.15);
 
   color-scheme: light;
 }
 
 .dark {
-  --bg: #1B2217;          /* Forest Dark Green */
-  --surface: #242D20;     /* Card background */
-  --surface-2: #2E3A29;   /* Inactive elements */
-  --surface-3: #394833;
+  --bg: #1E1420;          /* Plum scuro */
+  --surface: #2A1D2B;     /* Card background */
+  --surface-2: #352335;   /* Inactive elements */
+  --surface-3: #422B41;
 
-  --ink: #FAF8F5;         /* Warm cream text */
-  --ink-2: #AAB5A4;       /* Mid-light sage */
-  --ink-3: #8C9A86;
+  --ink: #FBF8FA;         /* Testo porcellana */
+  --ink-2: #C4AFBB;       /* Mauve chiaro */
+  --ink-3: #A18A97;
 
-  --line: rgba(250, 248, 245, 0.08);
-  --line-strong: rgba(250, 248, 245, 0.16);
+  --line: rgba(251,248,250, 0.08);
+  --line-strong: rgba(251,248,250, 0.16);
 
-  --accent: #E5C158;       /* Bright gold for dark mode */
-  --accent-press: #F0D170;
-  --accent-soft: rgba(229, 193, 88, 0.16);
-  --on-accent: #1B2217;
+  --accent: #DE8CA9;       /* Rosa cipria: risalta sul plum scuro */
+  --accent-press: #E9A5BC;
+  --accent-soft: rgba(222,140,169, 0.16);
+  --on-accent: #1E1420;
 
-  --material: rgba(36, 45, 32, 0.75);
-  --material-strong: rgba(36, 45, 32, 0.92);
+  --accent-2: #E9A5BC;
+  --accent-2-soft: rgba(233,165,188, 0.16);
+  --on-accent-2: #2A101E;
+
+  --material: rgba(42,29,43, 0.75);
+  --material-strong: rgba(42,29,43, 0.92);
   --material-border: rgba(255, 255, 255, 0.05);
   --scrim: rgba(0, 0, 0, 0.6);
 
@@ -118,6 +127,7 @@
   --color-ink-3: var(--ink-3);
   --color-line: var(--line);
   --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
   --color-accent-soft: var(--accent-soft);
   --color-on-accent: var(--on-accent);
   --color-success: var(--success);
@@ -305,36 +315,36 @@ textarea.input {
 /* Higher contrast: strengthen borders. */
 @media (prefers-contrast: more) {
   :root {
-    --line: rgba(77, 90, 70, 0.28);
+    --line: rgba(62,27,51, 0.28);
     --ink-2: #4a4641;
   }
 }
 
 /* User Design System overrides and components */
 .glass-card {
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--material);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border: 1px solid rgba(77, 90, 70, 0.08);
+  border: 1px solid var(--line);
 }
 
 .active-date {
   background-color: var(--ink);
   color: var(--bg);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(77, 90, 70, 0.12);
+  box-shadow: 0 4px 12px rgba(62,27,51, 0.12);
 }
 
 .satin-gold {
-  background: linear-gradient(135deg, #D4AF37 0%, #C59B27 100%);
-  color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-press) 100%);
+  color: var(--on-accent) !important;
+  box-shadow: 0 4px 14px rgba(138,61,110, 0.25);
 }
 
 .service-card-active {
   border-color: var(--ink);
   background-color: #ffffff;
-  box-shadow: 0 6px 20px rgba(77, 90, 70, 0.06);
+  box-shadow: 0 6px 20px rgba(62,27,51, 0.06);
 }
 
 .professional-avatar-active {
@@ -364,11 +374,11 @@ textarea.input {
   height: 52px;
   border-radius: var(--r-full);
   background: var(--accent);
-  color: #ffffff !important;
+  color: var(--on-accent) !important;
   font-weight: 600;
   font-size: 15px;
   padding: 0 24px;
-  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+  box-shadow: 0 4px 12px rgba(138,61,110, 0.2);
   transition: all 120ms ease;
   cursor: pointer;
   border: none;

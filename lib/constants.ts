@@ -38,9 +38,11 @@ export function formatDuration(min: number): string {
 }
 
 /** Colours assigned to employees, in order. */
+// Operator colors harmonized with the Porpora e Cipria palette:
+// distinct hues, all deep enough for white text on calendar cards.
 export const EMPLOYEE_COLORS = [
-  "#c24e63", "#4c7bd0", "#3f9e6b", "#d08b1f",
-  "#8b5cf6", "#0ea5a4", "#e0697e", "#ef6c3b",
+  "#8A3D6E", "#B76E79", "#6D5A9E", "#C4587E",
+  "#5F4B8B", "#A64D8E", "#8A6D5B", "#4E6E81",
 ];
 
 export const DURATION_OPTIONS = [
