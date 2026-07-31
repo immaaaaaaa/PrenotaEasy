@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 import { fmtTime, dayKey, fmtWhen } from "@/lib/time";
 import { addDaysStr, dayTitle, relLabel } from "@/lib/days";
 import { formatPrice, WEEKDAYS_LONG } from "@/lib/constants";
-import type { Appointment, Business, Employee, Service } from "@/lib/types";
+import type { Appointment, Business, BusinessHours, Employee, Service } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import {
   cancelAppointment,
@@ -81,6 +81,25 @@ const timeToPercent = (timeStr: string): number => {
   const offset = currentMinutes - startTotalMinutes;
   
   return Math.max(0, Math.min(100, (offset / totalMinutes) * 100));
+};
+
+// Google Calendar-style grid geometry: fixed px per hour
+const HOUR_PX = 64;
+
+const parseHM = (t: string | null | undefined, fallback: number): number => {
+  if (!t) return fallback;
+  const [h, m] = t.split(":").map(Number);
+  if (Number.isNaN(h)) return fallback;
+  return h * 60 + (m || 0);
+};
+
+// Readable text color on a colored event block: white on dark colors, dark on light ones
+const readableTextOn = (hex: string): string => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return "#ffffff";
+  const n = parseInt(m[1], 16);
+  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return lum > 0.62 ? "#33402e" : "#ffffff";
 };
 
 const computeOverlappingSlots = (dayAppts: Appointment[]) => {
@@ -172,6 +191,7 @@ export function AgendaView({
   restrictToEmployeeId,
   customActions,
   holidays = [],
+  businessHours = [],
 }: {
   business: Business;
   timezone: string;
@@ -180,6 +200,7 @@ export function AgendaView({
   todayStr: string;
   restrictToEmployeeId?: string;
   holidays?: any[];
+  businessHours?: BusinessHours[];
   customActions?: {
     getDayAppointments?: (date: string) => Promise<Appointment[]>;
     getTodayStats?: (date: string) => Promise<any>;
@@ -252,6 +273,16 @@ export function AgendaView({
   }>>([]);
   const [notifBellOpen, setNotifBellOpen] = useState(false);
   const [toast, setToast] = useState<{ title: string; body: string; apptDateStr: string } | null>(null);
+
+  // Time slot preselected by tapping an empty calendar cell
+  const [newApptTime, setNewApptTime] = useState("10:00");
+
+  // Current-time tick for the red "now" line (refreshes every minute)
+  const [nowTick, setNowTick] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   // Audio Context Ref to reuse unlocked context and bypass browser autoplay policies
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -339,7 +370,30 @@ export function AgendaView({
     waHref: string;
   } | null>(null);
   const [employeeFilter, setEmployeeFilter] = useState<string>(restrictToEmployeeId ?? "all");
-  const [monthAppts, setMonthAppts] = useState<Appointment[]>([]);
+  // Month appointments cached per month: navigation merges data in, never blanks the grid
+  const [monthApptsMap, setMonthApptsMap] = useState<Record<string, Appointment[]>>({});
+  const loadedMonthsRef = useRef<Set<string>>(new Set());
+  const monthAppts = useMemo(() => Object.values(monthApptsMap).flat(), [monthApptsMap]);
+
+  const fetchMonth = useCallback(async (year: number, month: number, force = false) => {
+    const key = `${year}-${month}`;
+    if (!force && loadedMonthsRef.current.has(key)) return;
+    loadedMonthsRef.current.add(key);
+    try {
+      const data = await apiGetMonthAppointments(year, month);
+      setMonthApptsMap(prev => ({ ...prev, [key]: data }));
+    } catch (err) {
+      loadedMonthsRef.current.delete(key);
+      console.error("Failed to load month appointments:", err);
+    }
+  }, [apiGetMonthAppointments]);
+
+  const refreshMonths = useCallback(() => {
+    for (const key of Array.from(loadedMonthsRef.current)) {
+      const [y, m] = key.split("-").map(Number);
+      fetchMonth(y, m, true);
+    }
+  }, [fetchMonth]);
   const [todayStats, setTodayStats] = useState<{
     apptsCount: number;
     totalRevenue: number;
@@ -416,18 +470,18 @@ export function AgendaView({
     loadTodayStats();
   }, [loadTodayStats]);
 
-  const loadMonth = useCallback(async () => {
-    try {
-      const data = await apiGetMonthAppointments(currentYear, currentMonth);
-      setMonthAppts(data);
-    } catch (err) {
-      console.error("Failed to load month appointments:", err);
-    }
-  }, [currentYear, currentMonth, apiGetMonthAppointments]);
-
+  // Load every month visible in the current views (month grid + week edges)
   useEffect(() => {
-    loadMonth();
-  }, [loadMonth]);
+    const needed = new Set<string>([`${currentYear}-${currentMonth}`]);
+    for (const d of currentWeekDays) needed.add(`${d.getFullYear()}-${d.getMonth()}`);
+    for (const week of weeksOfTabMonth) {
+      for (const d of week) needed.add(`${d.getFullYear()}-${d.getMonth()}`);
+    }
+    for (const key of Array.from(needed)) {
+      const [y, m] = key.split("-").map(Number);
+      fetchMonth(y, m);
+    }
+  }, [currentYear, currentMonth, currentWeekDays, weeksOfTabMonth, fetchMonth]);
 
   useEffect(() => {
     if (selectedClient) {
@@ -453,16 +507,28 @@ export function AgendaView({
     [employees],
   );
 
+  // Closed days: weekly closing day or holiday range
+  const hoursByWeekday = useMemo(
+    () => new Map(businessHours.map((h) => [h.weekday, h])),
+    [businessHours],
+  );
+  const isClosedDate = useCallback((keyStr: string) => {
+    if (holidays.some((h) => keyStr >= h.start_date && keyStr <= h.end_date)) return true;
+    const d = new Date(`${keyStr}T00:00:00`);
+    const bh = hoursByWeekday.get(((d.getDay() + 6) % 7) as BusinessHours["weekday"]);
+    return bh ? bh.is_closed : false;
+  }, [hoursByWeekday, holidays]);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
       setAppts(await apiGetDayAppointments(date));
-      loadMonth();
+      refreshMonths();
       loadTodayStats();
     } finally {
       setLoading(false);
     }
-  }, [date, loadMonth, loadTodayStats, apiGetDayAppointments]);
+  }, [date, refreshMonths, loadTodayStats, apiGetDayAppointments]);
 
   useEffect(() => {
     load();
@@ -692,26 +758,21 @@ export function AgendaView({
     setDate(formatDateLocal(d));
   };
 
-  // Drag and Drop handlers
-  const handleDragStart = (e: React.DragEvent, apptId: string) => {
-    e.dataTransfer.setData("text/plain", apptId);
-  };
+  // Pointer-based drag & drop: works with mouse and touch (long-press to lift)
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const gridDayKeysRef = useRef<string[]>([]);
+  const justDraggedRef = useRef(false);
+  const gridRangeRef = useRef<{ startMin: number; endMin: number }>({ startMin: 8 * 60, endMin: 20 * 60 });
+  const [dragTarget, setDragTarget] = useState<{ apptId: string; durMin: number; col: number; slot: number; valid: boolean } | null>(null);
+  const dragTargetRef = useRef<typeof dragTarget>(null);
 
-  const handleDrop = async (e: React.DragEvent, employeeId: string, timeStr: string) => {
-    e.preventDefault();
-    const apptId = e.dataTransfer.getData("text/plain");
-    if (!apptId) return;
-
-    const targetAppt = appts.find(a => a.id === apptId);
-    if (!targetAppt) return;
-
-    // Reschedule appointment
+  const rescheduleTo = async (targetAppt: Appointment, targetDateStr: string, timeStr: string) => {
     setLoading(true);
-    const res = await rescheduleAppointment({
-      id: apptId,
-      dateStr: date,
+    const res = await apiRescheduleAppointment({
+      id: targetAppt.id,
+      dateStr: targetDateStr,
       timeStr,
-      employeeId,
+      employeeId: targetAppt.employee_id,
     });
     if (res.ok) {
       load();
@@ -726,7 +787,89 @@ export function AgendaView({
     }
   };
 
-  const isOccupied = (employeeId: string, slotTimeStr: string) => {
+  const startApptDrag = (e: React.PointerEvent, a: Appointment) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (loading) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const isTouch = e.pointerType !== "mouse";
+    let active = false;
+
+    const setTarget = (t: { apptId: string; durMin: number; col: number; slot: number; valid: boolean } | null) => {
+      dragTargetRef.current = t;
+      setDragTarget(t);
+    };
+
+    const updateTarget = (x: number, y: number) => {
+      const grid = gridRef.current;
+      const dayKeys = gridDayKeysRef.current;
+      if (!grid || dayKeys.length === 0) return;
+      const rect = grid.getBoundingClientRect();
+      const { startMin, endMin } = gridRangeRef.current;
+      const slotsCount = ((endMin - startMin) / 60) * 2;
+      const col = Math.max(0, Math.min(dayKeys.length - 1, Math.floor(((x - rect.left) / rect.width) * dayKeys.length)));
+      const slot = Math.max(0, Math.min(slotsCount - 1, Math.floor((y - rect.top) / (HOUR_PX / 2))));
+      setTarget({ apptId: a.id, durMin: a.duration_min, col, slot, valid: !isClosedDate(dayKeys[col]) });
+    };
+
+    const begin = (x: number, y: number) => {
+      active = true;
+      if (navigator.vibrate) navigator.vibrate(25);
+      updateTarget(x, y);
+    };
+
+    const timer = window.setTimeout(() => begin(startX, startY), isTouch ? 260 : 160);
+
+    const cleanup = () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointercancel", cleanup);
+      document.removeEventListener("touchmove", blockScroll);
+      setTarget(null);
+    };
+
+    const onMove = (ev: PointerEvent) => {
+      if (!active) {
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) > 8) {
+          if (isTouch) {
+            // Finger moved before the long-press completed: it is a scroll, not a drag
+            cleanup();
+          } else {
+            window.clearTimeout(timer);
+            begin(ev.clientX, ev.clientY);
+          }
+        }
+        return;
+      }
+      updateTarget(ev.clientX, ev.clientY);
+    };
+
+    const blockScroll = (ev: TouchEvent) => {
+      if (active) ev.preventDefault();
+    };
+
+    const onUp = () => {
+      const target = active ? dragTargetRef.current : null;
+      cleanup();
+      if (!target) return;
+      justDraggedRef.current = true;
+      window.setTimeout(() => { justDraggedRef.current = false; }, 350);
+      if (!target.valid) return;
+      const total = gridRangeRef.current.startMin + target.slot * 30;
+      const timeStr = `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+      const targetDateStr = gridDayKeysRef.current[target.col];
+      const sameSlot = a.starts_at.slice(0, 10) === targetDateStr && fmtTime(new Date(a.starts_at), tz) === timeStr;
+      if (targetDateStr && !sameSlot) rescheduleTo(a, targetDateStr, timeStr);
+    };
+
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+    document.addEventListener("pointercancel", cleanup);
+    document.addEventListener("touchmove", blockScroll, { passive: false });
+  };
+
+    const isOccupied = (employeeId: string, slotTimeStr: string) => {
     const slotEnd = add30Min(slotTimeStr);
     return appts.some(a => {
       if (a.employee_id !== employeeId || a.status === "cancelled") return false;
@@ -762,10 +905,10 @@ export function AgendaView({
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-[#1b1c1c] pb-24 font-sans">
+    <div className="min-h-screen bg-[#FAF8F5] text-[#1b1c1c] pb-24 font-sans overflow-x-clip">
       {/* TopAppBar */}
       <header className="w-full top-0 sticky z-40 bg-[#FAF8F5]/85 backdrop-blur-md border-b border-[var(--line)]">
-        <div className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
+        <div className="flex justify-between items-center px-4 sm:px-6 py-4 max-w-7xl mx-auto">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="Logo" className="h-12 w-12 rounded-xl object-contain" />
             <h1 className="font-bold text-xl tracking-tight text-[#4D5A46]">PrenotaEasy</h1>
@@ -794,7 +937,7 @@ export function AgendaView({
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 mt-6">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 mt-6">
         {/* TAB 1: DASHBOARD */}
         {ownerTab === "dashboard" && (
           <div>
@@ -809,47 +952,6 @@ export function AgendaView({
                   : "Benvenuto, ecco la panoramica di oggi."}
               </p>
             </div>
-
-            {/* Key Bento Metrics */}
-            <section className={cn("grid grid-cols-1 gap-4 mb-8", restrictToEmployeeId ? "md:grid-cols-2" : "md:grid-cols-3")}>
-              <div className="ios-card rounded-2xl p-5 border border-[var(--line)] flex flex-col justify-between h-32 hover:translate-y-[-2px] transition-transform duration-200 bg-white">
-                <span className="text-[#8C9A86] text-xs font-semibold uppercase tracking-wider">Appuntamenti Oggi</span>
-                <div className="flex items-end justify-between">
-                  <span className="text-3xl font-black text-[#4D5A46] tracking-tight">{todayStats.apptsCount}</span>
-                  <span className="text-[#4D5A46] bg-[#b3cea7]/30 px-2.5 py-1 rounded-full text-xs font-bold">Oggi</span>
-                </div>
-              </div>
-              {!restrictToEmployeeId && (
-                <div className="ios-card rounded-2xl p-5 border border-[var(--line)] border-l-4 border-l-[#D4AF37] flex flex-col justify-between h-32 hover:translate-y-[-2px] transition-transform duration-200 bg-white">
-                  <span className="text-[#8C9A86] text-xs font-semibold uppercase tracking-wider">Ricavo Totale</span>
-                  <div className="flex items-end justify-between">
-                    <span className="text-3xl font-black text-[#4D5A46] tracking-tight">{formatPrice(todayStats.totalRevenue)}</span>
-                    <span className="material-symbols-outlined text-[#D4AF37]">payments</span>
-                  </div>
-                </div>
-              )}
-              <div className="ios-card rounded-2xl p-5 border border-[var(--line)] flex flex-col justify-between h-32 hover:translate-y-[-2px] transition-transform duration-200 bg-white">
-                <span className="text-[#8C9A86] text-xs font-semibold uppercase tracking-wider">Nuovi Clienti</span>
-                <div className="flex items-end justify-between">
-                  <span className="text-3xl font-black text-[#4D5A46] tracking-tight">{todayStats.newCustomersCount}</span>
-                  <div className="flex -space-x-2">
-                    {todayStats.todayAppts.slice(0, 3).map((a) => (
-                      <div
-                        key={a.id}
-                        className="w-8 h-8 rounded-full border border-white bg-[#4D5A46] text-white flex items-center justify-center text-[10px] font-bold"
-                      >
-                        {a.customer_name.charAt(0).toUpperCase()}
-                      </div>
-                    ))}
-                    {todayStats.newCustomersCount > 3 && (
-                      <div className="w-8 h-8 rounded-full border border-white bg-[#D4AF37] flex items-center justify-center text-[10px] font-bold text-white">
-                        +{todayStats.newCustomersCount - 3}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </section>
 
             {/* Quick Actions */}
             <section className="mb-8">
@@ -976,6 +1078,47 @@ export function AgendaView({
                 )}
               </div>
             </section>
+
+            {/* Key Bento Metrics (bottom of the dashboard) */}
+            <section className={cn("grid grid-cols-1 gap-4 mb-8", restrictToEmployeeId ? "md:grid-cols-2" : "md:grid-cols-3")}>
+              <div className="ios-card rounded-2xl p-5 border border-[var(--line)] flex flex-col justify-between h-32 hover:translate-y-[-2px] transition-transform duration-200 bg-white">
+                <span className="text-[#8C9A86] text-xs font-semibold uppercase tracking-wider">Appuntamenti Oggi</span>
+                <div className="flex items-end justify-between">
+                  <span className="text-3xl font-black text-[#4D5A46] tracking-tight">{todayStats.apptsCount}</span>
+                  <span className="text-[#4D5A46] bg-[#b3cea7]/30 px-2.5 py-1 rounded-full text-xs font-bold">Oggi</span>
+                </div>
+              </div>
+              {!restrictToEmployeeId && (
+                <div className="ios-card rounded-2xl p-5 border border-[var(--line)] border-l-4 border-l-[#D4AF37] flex flex-col justify-between h-32 hover:translate-y-[-2px] transition-transform duration-200 bg-white">
+                  <span className="text-[#8C9A86] text-xs font-semibold uppercase tracking-wider">Ricavo Totale</span>
+                  <div className="flex items-end justify-between">
+                    <span className="text-3xl font-black text-[#4D5A46] tracking-tight">{formatPrice(todayStats.totalRevenue)}</span>
+                    <span className="material-symbols-outlined text-[#D4AF37]">payments</span>
+                  </div>
+                </div>
+              )}
+              <div className="ios-card rounded-2xl p-5 border border-[var(--line)] flex flex-col justify-between h-32 hover:translate-y-[-2px] transition-transform duration-200 bg-white">
+                <span className="text-[#8C9A86] text-xs font-semibold uppercase tracking-wider">Nuovi Clienti</span>
+                <div className="flex items-end justify-between">
+                  <span className="text-3xl font-black text-[#4D5A46] tracking-tight">{todayStats.newCustomersCount}</span>
+                  <div className="flex -space-x-2">
+                    {todayStats.todayAppts.slice(0, 3).map((a) => (
+                      <div
+                        key={a.id}
+                        className="w-8 h-8 rounded-full border border-white bg-[#4D5A46] text-white flex items-center justify-center text-[10px] font-bold"
+                      >
+                        {a.customer_name.charAt(0).toUpperCase()}
+                      </div>
+                    ))}
+                    {todayStats.newCustomersCount > 3 && (
+                      <div className="w-8 h-8 rounded-full border border-white bg-[#D4AF37] flex items-center justify-center text-[10px] font-bold text-white">
+                        +{todayStats.newCustomersCount - 3}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
         )}
 
@@ -1013,224 +1156,216 @@ export function AgendaView({
               </div>
             )}
 
-            {/* Calendar Controls Card */}
-            <div className="mb-6 ios-card rounded-2xl p-4 sm:p-5 border border-[var(--line)] shadow-sm bg-white">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center justify-between sm:justify-start gap-4">
-                  <h3 className="text-base sm:text-lg font-extrabold text-[#4D5A46] tracking-tight">
-                    {calendarView === "month" ? (
-                      `${MONTH_LABELS[currentMonth]} ${currentYear}`
-                    ) : calendarView === "week" ? (
-                      `Settimana ${getISOWeekNumber(currentWeekDays[0])} · ${MONTH_LABELS[currentWeekDays[0].getMonth()]} ${currentWeekDays[0].getFullYear()}`
-                    ) : (
-                      dayTitle(date)
-                    )}
-                  </h3>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => {
-                        if (calendarView === "month") {
-                          if (currentMonth === 0) {
-                            setCurrentMonth(11);
-                            setCurrentYear(y => y - 1);
-                          } else {
-                            setCurrentMonth(m => m - 1);
-                          }
-                        } else if (calendarView === "week") {
-                          const d = new Date(date);
-                          d.setDate(d.getDate() - 7);
-                          setDate(formatDateLocal(d));
-                        } else {
-                          const d = new Date(date);
-                          d.setDate(d.getDate() - 1);
-                          setDate(formatDateLocal(d));
-                        }
-                      }}
-                      className="p-1.5 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined border-none bg-transparent cursor-pointer text-[#4D5A46]"
-                    >
-                      chevron_left
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (calendarView === "month") {
-                          if (currentMonth === 11) {
-                            setCurrentMonth(0);
-                            setCurrentYear(y => y + 1);
-                          } else {
-                            setCurrentMonth(m => m + 1);
-                          }
-                        } else if (calendarView === "week") {
-                          const d = new Date(date);
-                          d.setDate(d.getDate() + 7);
-                          setDate(formatDateLocal(d));
-                        } else {
-                          const d = new Date(date);
-                          d.setDate(d.getDate() + 1);
-                          setDate(formatDateLocal(d));
-                        }
-                      }}
-                      className="p-1.5 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined border-none bg-transparent cursor-pointer text-[#4D5A46]"
-                    >
-                      chevron_right
-                    </button>
-                  </div>
-                </div>
+            {/* Calendar Controls — compact header */}
+            <div className="mb-4 flex items-center justify-between gap-1.5">
+              <div className="flex items-center min-w-0">
+                <button
+                  onClick={() => {
+                    if (calendarView === "month") {
+                      if (currentMonth === 0) {
+                        setCurrentMonth(11);
+                        setCurrentYear(y => y - 1);
+                      } else {
+                        setCurrentMonth(m => m - 1);
+                      }
+                    } else {
+                      const d = new Date(`${date}T00:00:00`);
+                      d.setDate(d.getDate() - (calendarView === "week" ? 7 : 1));
+                      setDate(formatDateLocal(d));
+                    }
+                  }}
+                  aria-label="Periodo precedente"
+                  className="p-1.5 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined border-none bg-transparent cursor-pointer text-[#4D5A46] text-[22px]"
+                >
+                  chevron_left
+                </button>
+                <button
+                  onClick={() => {
+                    if (calendarView === "month") {
+                      if (currentMonth === 11) {
+                        setCurrentMonth(0);
+                        setCurrentYear(y => y + 1);
+                      } else {
+                        setCurrentMonth(m => m + 1);
+                      }
+                    } else {
+                      const d = new Date(`${date}T00:00:00`);
+                      d.setDate(d.getDate() + (calendarView === "week" ? 7 : 1));
+                      setDate(formatDateLocal(d));
+                    }
+                  }}
+                  aria-label="Periodo successivo"
+                  className="p-1.5 rounded-full hover:bg-[#F4F1EB] active:scale-95 material-symbols-outlined border-none bg-transparent cursor-pointer text-[#4D5A46] text-[22px]"
+                >
+                  chevron_right
+                </button>
+                <h3 className="ml-1 text-sm sm:text-lg font-extrabold text-[#4D5A46] tracking-tight capitalize truncate">
+                  {calendarView === "month"
+                    ? `${MONTH_LABELS[currentMonth]} ${currentYear}`
+                    : calendarView === "week"
+                    ? currentWeekDays[0].getMonth() === currentWeekDays[6].getMonth()
+                      ? `${currentWeekDays[0].getDate()} – ${currentWeekDays[6].getDate()} ${MONTH_LABELS[currentWeekDays[0].getMonth()]}`
+                      : `${currentWeekDays[0].getDate()} ${MONTH_LABELS[currentWeekDays[0].getMonth()].slice(0, 3)} – ${currentWeekDays[6].getDate()} ${MONTH_LABELS[currentWeekDays[6].getMonth()].slice(0, 3)}`
+                    : dayTitle(date)}
+                </h3>
+              </div>
 
-                <div className="flex justify-center">
-                  <div className="bg-[#F4F1EB] p-1 rounded-full flex gap-1 shadow-sm border border-[var(--line)]">
+              <div className="flex items-center gap-1.5 shrink-0">
+                {date !== todayStr && (
+                  <button
+                    onClick={() => setDate(todayStr)}
+                    className="h-8 px-2.5 rounded-full border border-[var(--line)] bg-white text-[11px] font-bold text-[#4D5A46] cursor-pointer active:scale-95 transition-all"
+                  >
+                    Oggi
+                  </button>
+                )}
+                <div className="bg-[#F4F1EB] p-0.5 rounded-full flex border border-[var(--line)]">
+                  {(["day", "week", "month"] as const).map((v) => (
                     <button
-                      onClick={() => setCalendarView("day")}
+                      key={v}
+                      onClick={() => setCalendarView(v)}
+                      aria-pressed={calendarView === v}
                       className={cn(
-                        "px-4 py-1.5 rounded-full text-xs font-bold transition-all border-none cursor-pointer whitespace-nowrap",
-                        calendarView === "day"
-                          ? "bg-[#4D5A46] text-white shadow-sm"
-                          : "bg-transparent text-[#8C9A86] hover:text-[#4D5A46]"
+                        "h-8 px-2.5 sm:px-4 rounded-full text-[11px] sm:text-xs font-bold transition-all border-none cursor-pointer",
+                        calendarView === v
+                          ? "bg-[#4D5A46] !text-white shadow-sm"
+                          : "bg-transparent text-[#8C9A86]"
                       )}
                     >
-                      Giorno
+                      <span className="sm:hidden">{v === "day" ? "G" : v === "week" ? "S" : "M"}</span>
+                      <span className="hidden sm:inline">{v === "day" ? "Giorno" : v === "week" ? "Settimana" : "Mese"}</span>
                     </button>
-                    <button
-                      onClick={() => setCalendarView("week")}
-                      className={cn(
-                        "px-4 py-1.5 rounded-full text-xs font-bold transition-all border-none cursor-pointer whitespace-nowrap",
-                        calendarView === "week"
-                          ? "bg-[#4D5A46] text-white shadow-sm"
-                          : "bg-transparent text-[#8C9A86] hover:text-[#4D5A46]"
-                      )}
-                    >
-                      Settimana
-                    </button>
-                    <button
-                      onClick={() => setCalendarView("month")}
-                      className={cn(
-                        "px-4 py-1.5 rounded-full text-xs font-bold transition-all border-none cursor-pointer whitespace-nowrap",
-                        calendarView === "month"
-                          ? "bg-[#4D5A46] text-white shadow-sm"
-                          : "bg-transparent text-[#8C9A86] hover:text-[#4D5A46]"
-                      )}
-                    >
-                      Mese
-                    </button>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
 
             {/* Conditionally Render Day / Week / Month Views */}
             {calendarView === "month" ? (
-              /* MONTH VIEW (Google Calendar style with appt lists in cell grids) */
-              <div className="mb-6 ios-card rounded-2xl p-5 border border-[var(--line)] shadow-sm bg-white overflow-x-auto">
-                <div className="min-w-[700px]">
-                  {/* Days Grid Header */}
-                  <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-[#8C9A86] tracking-wider mb-2">
-                    {WEEKDAY_SHORT_LABELS.map((w, idx) => (
-                      <div key={idx} className="py-1">{w}</div>
-                    ))}
-                  </div>
-
-                  {/* Days Cells */}
-                  <div className="grid grid-cols-7 gap-1 font-medium auto-rows-[120px]">
-                    {monthDays.map((day, idx) => {
-                      if (!day) return <div key={`empty-${idx}`} className="bg-[#FAF8F5]/20 rounded-2xl border border-transparent" />;
-                      const isSelected = date === formatDateLocal(day);
-                      const isToday = todayStr === formatDateLocal(day);
-                      const dayKeyStr = formatDateLocal(day);
-
-                      const isHoliday = holidays.some(h => dayKeyStr >= h.start_date && dayKeyStr <= h.end_date);
-
-                      // Day appts list
-                      const dayAppts = filteredMonthAppts.filter(a => a.starts_at.slice(0, 10) === dayKeyStr);
-
-                      return (
-                        <div
-                          key={day.toISOString()}
-                          onClick={() => {
-                            selectCalendarDate(day);
-                            setCalendarView("day");
-                          }}
-                          className={cn(
-                            "rounded-2xl border p-2 flex flex-col justify-between transition-all cursor-pointer overflow-hidden",
-                            isSelected
-                              ? "border-[#4D5A46] bg-[#FAF8F5]/60"
-                              : isToday
-                              ? "border-[#ba1a1a]/40 bg-[#ba1a1a]/5"
-                              : isHoliday
-                              ? "border-[#ba1a1a]/20 bg-[#FFEBEB]/40"
-                              : "border-[var(--line)] hover:border-[var(--line-strong)] bg-white"
-                          )}
-                        >
-                          <div className="flex justify-between items-start">
-                            <span className={cn(
-                              "text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full",
-                              isToday ? "bg-[#ba1a1a] text-white" : isSelected ? "bg-[#4D5A46] text-white" : "text-[#4D5A46]"
-                            )}>
-                              {day.getDate()}
-                            </span>
-                            {dayAppts.length > 0 && (
-                              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-[#FAF8F5] border border-[var(--line)] text-[#8C9A86]">
-                                {dayAppts.length}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex-1 mt-1.5 space-y-1 overflow-hidden">
-                            {dayAppts.slice(0, 3).map(a => {
-                              const emp = empById.get(a.employee_id);
-                              return (
-                                <button
-                                  key={a.id}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActive(a);
-                                  }}
-                                  style={{
-                                    borderLeft: `2.5px solid ${emp?.color ?? "#8C9A86"}`,
-                                    backgroundColor: emp?.color ? `${emp.color}12` : "#FAF8F5"
-                                  }}
-                                  className="w-full text-left rounded px-1.5 py-0.5 text-[9px] font-bold text-[#4D5A46] truncate hover:opacity-85 transition-opacity border-none flex items-center justify-between"
-                                >
-                                  <span className="truncate flex-1 pr-1">
-                                    {fmtTime(new Date(a.starts_at), tz)} · {a.customer_name}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                            {dayAppts.length > 3 && (
-                              <div className="text-[8px] font-extrabold text-[#8C9A86] tracking-wider pl-1.5">
-                                + {dayAppts.length - 3} altri
-                              </div>
-                            )}
-                          </div>
+              /* MONTH VIEW — full-width fluid grid, Google Calendar style */
+              <div className="mb-6 rounded-2xl border border-[var(--line)] shadow-sm bg-white overflow-hidden">
+                <div className="grid grid-cols-7 text-center text-[10px] font-bold text-[#8C9A86] uppercase tracking-wider border-b border-[var(--line)]">
+                  {WEEKDAY_SHORT_LABELS.map((w, idx) => (
+                    <div key={idx} className="py-2">{w}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7">
+                  {monthDays.map((day, idx) => {
+                    if (!day) {
+                      return <div key={`empty-${idx}`} className="min-h-[76px] sm:min-h-[112px] border-b border-r border-[var(--line)]/40 bg-[#FAF8F5]/60" />;
+                    }
+                    const dayKeyStr = formatDateLocal(day);
+                    const isSelected = date === dayKeyStr;
+                    const isToday = todayStr === dayKeyStr;
+                    const closed = isClosedDate(dayKeyStr);
+                    const dayAppts = filteredMonthAppts.filter(a => a.starts_at.slice(0, 10) === dayKeyStr);
+                    return (
+                      <div
+                        key={day.toISOString()}
+                        onClick={() => {
+                          selectCalendarDate(day);
+                          setCalendarView("day");
+                        }}
+                        className={cn(
+                          "min-h-[76px] sm:min-h-[112px] border-b border-r border-[var(--line)]/40 p-1 sm:p-1.5 flex flex-col gap-1 cursor-pointer transition-colors overflow-hidden",
+                          closed ? "bg-[#F4F1EB]/70" : "hover:bg-[#FAF8F5]"
+                        )}
+                      >
+                        <span className={cn(
+                          "self-center shrink-0 text-[11px] sm:text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full",
+                          isToday ? "bg-[#ba1a1a] text-white" : isSelected ? "bg-[#4D5A46] text-white" : "text-[#4D5A46]"
+                        )}>
+                          {day.getDate()}
+                        </span>
+                        {closed && dayAppts.length === 0 && (
+                          <span className="text-[7px] sm:text-[8px] font-extrabold uppercase tracking-widest text-[#8C9A86]/60 text-center select-none">
+                            Chiuso
+                          </span>
+                        )}
+                        <div className="flex flex-col gap-0.5">
+                          {dayAppts.map(a => {
+                            const emp = empById.get(a.employee_id);
+                            return (
+                              <button
+                                key={a.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActive(a);
+                                }}
+                                style={{ backgroundColor: emp?.color ?? "#8C9A86", color: readableTextOn(emp?.color ?? "#8C9A86") }}
+                                className="w-full text-left rounded-[3px] px-1.5 py-0.5 text-[8px] sm:text-[10px] font-bold truncate border-none cursor-pointer leading-tight"
+                              >
+                                <span className="hidden sm:inline">{fmtTime(new Date(a.starts_at), tz)} </span>
+                                {a.customer_name}
+                              </button>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            ) : calendarView === "week" ? (
-              /* WEEK VIEW (Google Calendar style hourly grid timeline) */
-              <div className="ios-card rounded-2xl p-4 sm:p-5 border border-[var(--line)] shadow-sm bg-white overflow-x-auto">
-                <div className="min-w-[850px] relative">
-                  {/* Grid header */}
-                  <div className="grid grid-cols-[60px_1fr] border-b border-[var(--line)] pb-3">
-                    <div />
-                    <div className="grid grid-cols-7 text-center">
-                      {currentWeekDays.map((day, idx) => {
+            ) : (
+              /* DAY & WEEK VIEW — unified Google Calendar time grid */
+              (() => {
+                const isWeek = calendarView === "week";
+                const gridDays = isWeek ? currentWeekDays : [new Date(`${date}T00:00:00`)];
+                const dayKeys = gridDays.map(formatDateLocal);
+                gridDayKeysRef.current = dayKeys;
+
+                // Real working-hours range, expanded so every appointment stays visible
+                let startMin = 8 * 60;
+                let endMin = 20 * 60;
+                const openRows = businessHours.filter(h => !h.is_closed);
+                if (openRows.length > 0) {
+                  startMin = Math.min(...openRows.map(h => parseHM(h.open_time, 8 * 60)));
+                  endMin = Math.max(...openRows.map(h => parseHM(h.close_time, 20 * 60)));
+                }
+                for (const a of filteredMonthAppts) {
+                  if (!dayKeys.includes(a.starts_at.slice(0, 10))) continue;
+                  const s = parseHM(fmtTime(new Date(a.starts_at), tz), startMin);
+                  const e = parseHM(fmtTime(new Date(a.ends_at), tz), endMin);
+                  if (s < startMin) startMin = s;
+                  if (e > endMin) endMin = e;
+                }
+                startMin = Math.floor(startMin / 60) * 60;
+                endMin = Math.ceil(endMin / 60) * 60;
+                gridRangeRef.current = { startMin, endMin };
+                const gridPx = ((endMin - startMin) / 60) * HOUR_PX;
+                const hoursCount = (endMin - startMin) / 60;
+                const slotsCount = hoursCount * 2;
+                const toPx = (timeStr: string) => {
+                  const [hh, mm] = timeStr.split(":").map(Number);
+                  return Math.max(0, Math.min(gridPx, ((hh * 60 + mm - startMin) / 60) * HOUR_PX));
+                };
+                const nowPx = toPx(fmtTime(nowTick, tz));
+                const nowVisible = nowPx > 0 && nowPx < gridPx;
+                const halfHourSlots = Array.from({ length: slotsCount }).map((_, idx) => {
+                  const total = startMin + idx * 30;
+                  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+                });
+                return (
+                  <div className="mb-6 rounded-2xl border border-[var(--line)] shadow-sm bg-white overflow-hidden">
+                    {/* Day headers */}
+                    <div className="flex border-b border-[var(--line)]">
+                      <div className="w-11 sm:w-14 shrink-0" />
+                      {gridDays.map((day, idx) => {
                         const dayKeyStr = formatDateLocal(day);
                         const isToday = todayStr === dayKeyStr;
                         const isSelected = date === dayKeyStr;
                         return (
                           <div
-                            key={day.toISOString()}
+                            key={dayKeyStr}
                             onClick={() => selectCalendarDate(day)}
-                            className="flex flex-col items-center justify-center py-1.5 cursor-pointer hover:bg-[#F4F1EB] rounded-2xl transition-all"
+                            className="flex-1 min-w-0 flex flex-col items-center py-1.5 cursor-pointer"
                           >
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C9A86]">
-                              {WEEKDAY_SHORT_LABELS[idx]}
+                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[#74796f]">
+                              {isWeek ? WEEKDAY_SHORT_LABELS[idx] : WEEKDAYS_LONG[(day.getDay() + 6) % 7]}
                             </span>
                             <span className={cn(
-                              "text-base font-extrabold w-8 h-8 flex items-center justify-center rounded-full mt-1",
-                              isToday ? "bg-[#ba1a1a] text-white" : isSelected ? "bg-[#4D5A46] text-white" : "text-[#4D5A46]"
+                              "text-sm sm:text-base font-extrabold w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full mt-0.5",
+                              isToday ? "bg-[#ba1a1a] text-white" : isSelected && isWeek ? "bg-[#4D5A46] text-white" : "text-[#4D5A46]"
                             )}>
                               {day.getDate()}
                             </span>
@@ -1238,242 +1373,166 @@ export function AgendaView({
                         );
                       })}
                     </div>
-                  </div>
 
-                  {/* Hourly Scrollable timeline */}
-                  <div className="relative h-[650px] overflow-y-auto no-scrollbar grid grid-cols-[60px_1fr] mt-3">
-                    {/* Time Y-axis Labels */}
-                    <div className="relative h-full border-r border-[var(--line)]">
-                      {Array.from({ length: 13 }).map((_, idx) => {
-                        const top = (idx / 12) * 100;
-                        return (
-                          <div
-                            key={idx}
-                            style={{ top: `${top}%` }}
-                            className="absolute right-3 -translate-y-1/2 text-[10px] font-bold text-[#8C9A86]"
-                          >
-                            {String(idx + 8).padStart(2, "0")}:00
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Week Columns with absolute appointments overlay */}
-                    <div className="grid grid-cols-7 relative h-full bg-[linear-gradient(to_bottom,var(--line)_1px,transparent_1px)] bg-[size:100%_54.16px]">
-                      {currentWeekDays.map((day) => {
-                        const dayKeyStr = formatDateLocal(day);
-                        const isToday = todayStr === dayKeyStr;
-                        
-                        const dayAppts = filteredMonthAppts.filter(a => a.starts_at.slice(0, 10) === dayKeyStr);
-                        const positionStyles = computeOverlappingSlots(dayAppts);
-
-                        // Render 24 half-hour slot drop targets/click creators
-                        const halfHourSlots = Array.from({ length: 24 }).map((_, idx) => {
-                          const h = Math.floor(idx / 2) + 8;
-                          const m = (idx % 2) * 30;
-                          return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-                        });
-
-                        return (
-                          <div
-                            key={day.toISOString()}
-                            className={cn(
-                              "relative h-full border-r border-[var(--line)]/50",
-                              isToday && "bg-[#ba1a1a]/5"
-                            )}
-                          >
-                            {/* Background interactive slot cells */}
-                            {halfHourSlots.map((slot, idx) => (
-                              <div
-                                key={slot}
-                                onDragOver={(e) => e.preventDefault()}
-                                onDrop={(e) => handleDrop(e, dayKeyStr, slot)}
-                                onClick={() => {
-                                  setDate(dayKeyStr);
-                                  setNewOpen(true);
-                                }}
-                                style={{
-                                  top: `${(idx / 24) * 100}%`,
-                                  height: `${(1 / 24) * 100}%`,
-                                }}
-                                className="absolute left-0 right-0 border-b border-[var(--line)]/5 hover:bg-[#4D5A46]/5 transition-all z-0 cursor-pointer text-[8px] text-transparent hover:text-[#8C9A86]/20 flex items-start px-1 pt-0.5 select-none font-bold"
+                    {/* Time grid: no inner scroll, the page itself scrolls */}
+                    <div>
+                      <div className="relative flex" style={{ height: gridPx }}>
+                        {/* Hour labels gutter */}
+                        <div className="relative w-11 sm:w-14 shrink-0">
+                          {Array.from({ length: hoursCount }).map((_, idx) => (
+                            idx > 0 ? (
+                              <span
+                                key={idx}
+                                style={{ top: idx * HOUR_PX }}
+                                className="absolute right-1.5 sm:right-2 -translate-y-1/2 text-[9px] sm:text-[10px] font-bold text-[#74796f]"
                               >
-                                + clicca per prenotare
-                              </div>
-                            ))}
+                                {String(startMin / 60 + idx).padStart(2, "0")}:00
+                              </span>
+                            ) : null
+                          ))}
+                        </div>
 
-                            {/* Absolutely positioned appointments overlay */}
-                            {dayAppts.map((a) => {
-                              const emp = empById.get(a.employee_id);
-                              const startStr = fmtTime(new Date(a.starts_at), tz);
-                              const endStr = fmtTime(new Date(a.ends_at), tz);
-                              const topPercent = timeToPercent(startStr);
-                              const endPercent = timeToPercent(endStr);
-                              const heightPercent = Math.max(6, endPercent - topPercent);
-
-                              const style = positionStyles.get(a.id) || { left: 0, width: 100 };
-
-                              return (
-                                <div
-                                  key={a.id}
-                                  draggable
-                                  onDragStart={(e) => handleDragStart(e, a.id)}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActive(a);
-                                  }}
-                                  style={{
-                                    top: `${topPercent}%`,
-                                    height: `${heightPercent}%`,
-                                    left: `${style.left}%`,
-                                    width: `${style.width - 2}%`,
-                                    borderLeft: `3.5px solid ${emp?.color ?? "#8C9A86"}`,
-                                    backgroundColor: emp?.color ? `${emp.color}15` : "#FAF8F5",
-                                    borderColor: emp?.color ? `${emp.color}25` : "var(--line)"
-                                  }}
-                                  className="absolute rounded-xl p-2 text-xs shadow-sm cursor-grab active:cursor-grabbing border transition-all flex flex-col justify-start overflow-hidden z-10 hover:shadow-md hover:brightness-95"
-                                >
-                                  <div className="flex flex-col gap-0.5 select-none">
-                                    <span className="text-[9px] font-extrabold text-[#8C9A86]">
-                                      {startStr} - {endStr}
-                                    </span>
-                                    <span className="font-extrabold text-[#4D5A46] truncate">
-                                      {a.customer_name}
-                                    </span>
-                                    <span className="text-[9px] text-[#8C9A86] truncate">
-                                      {a.service_name} {emp ? ` · ${emp.name}` : ""}
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* DAY VIEW (Google Calendar style single day grid timeline) */
-              <div className="ios-card rounded-2xl p-4 sm:p-5 border border-[var(--line)] shadow-sm bg-white overflow-x-auto">
-                <div className="min-w-[500px] relative">
-                  {/* Grid header */}
-                  <div className="grid grid-cols-[60px_1fr] border-b border-[var(--line)] pb-3">
-                    <div />
-                    <div className="text-center py-1.5 flex flex-col items-center">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C9A86]">
-                        {WEEKDAYS_LONG[new Date(date).getDay()]}
-                      </span>
-                      <span className="text-lg font-extrabold w-9 h-9 flex items-center justify-center rounded-full mt-1 bg-[#4D5A46] text-white shadow-sm">
-                        {new Date(date).getDate()}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Hourly Scrollable timeline */}
-                  <div className="relative h-[650px] overflow-y-auto no-scrollbar grid grid-cols-[60px_1fr] mt-3">
-                    {/* Time Y-axis Labels */}
-                    <div className="relative h-full border-r border-[var(--line)]">
-                      {Array.from({ length: 13 }).map((_, idx) => {
-                        const top = (idx / 12) * 100;
-                        return (
-                          <div
-                            key={idx}
-                            style={{ top: `${top}%` }}
-                            className="absolute right-3 -translate-y-1/2 text-[10px] font-bold text-[#8C9A86]"
-                          >
-                            {String(idx + 8).padStart(2, "0")}:00
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Day Column background and overlay */}
-                    {(() => {
-                      const dayKeyStr = date;
-                      const dayAppts = filteredMonthAppts.filter(a => a.starts_at.slice(0, 10) === dayKeyStr);
-                      const positionStyles = computeOverlappingSlots(dayAppts);
-
-                      const halfHourSlots = Array.from({ length: 24 }).map((_, idx) => {
-                        const h = Math.floor(idx / 2) + 8;
-                        const m = (idx % 2) * 30;
-                        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-                      });
-
-                      return (
-                        <div className="relative h-full bg-[linear-gradient(to_bottom,var(--line)_1px,transparent_1px)] bg-[size:100%_54.16px]">
-                          {/* Background drop targets */}
-                          {halfHourSlots.map((slot, idx) => (
+                        {/* Day columns */}
+                        <div ref={gridRef} className="relative flex-1 flex">
+                          {/* Hour and half-hour background lines */}
+                          {Array.from({ length: slotsCount }).map((_, idx) => (
                             <div
-                              key={slot}
-                              onDragOver={(e) => e.preventDefault()}
-                              onDrop={(e) => handleDrop(e, dayKeyStr, slot)}
-                              onClick={() => {
-                                setNewOpen(true);
-                              }}
-                              style={{
-                                top: `${(idx / 24) * 100}%`,
-                                height: `${(1 / 24) * 100}%`,
-                              }}
-                              className="absolute left-0 right-0 border-b border-[var(--line)]/5 hover:bg-[#4D5A46]/5 transition-all z-0 cursor-pointer text-[8px] text-transparent hover:text-[#8C9A86]/20 flex items-start px-1 pt-0.5 select-none font-bold"
-                            >
-                              + clicca per prenotare
-                            </div>
+                              key={idx}
+                              style={{ top: (idx * HOUR_PX) / 2 }}
+                              className={cn(
+                                "absolute left-0 right-0 pointer-events-none z-0",
+                                idx % 2 === 0 ? "border-t border-[var(--line)]" : "border-t border-dashed border-[var(--line)]/50"
+                              )}
+                            />
                           ))}
 
-                          {/* Overlay appointments */}
-                          {dayAppts.map((a) => {
-                            const emp = empById.get(a.employee_id);
-                            const startStr = fmtTime(new Date(a.starts_at), tz);
-                            const endStr = fmtTime(new Date(a.ends_at), tz);
-                            const topPercent = timeToPercent(startStr);
-                            const endPercent = timeToPercent(endStr);
-                            const heightPercent = Math.max(6, endPercent - topPercent);
-
-                            const style = positionStyles.get(a.id) || { left: 0, width: 100 };
-
+                          {gridDays.map((day) => {
+                            const dayKeyStr = formatDateLocal(day);
+                            const isToday = todayStr === dayKeyStr;
+                            const dayAppts = filteredMonthAppts.filter(a => a.starts_at.slice(0, 10) === dayKeyStr);
+                            const positionStyles = computeOverlappingSlots(dayAppts);
+                            const closed = isClosedDate(dayKeyStr);
                             return (
                               <div
-                                key={a.id}
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, a.id)}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActive(a);
-                                }}
-                                style={{
-                                  top: `${topPercent}%`,
-                                  height: `${heightPercent}%`,
-                                  left: `${style.left}%`,
-                                  width: `${style.width - 1}%`,
-                                  borderLeft: `4px solid ${emp?.color ?? "#8C9A86"}`,
-                                  backgroundColor: emp?.color ? `${emp.color}15` : "#FAF8F5",
-                                  borderColor: emp?.color ? `${emp.color}25` : "var(--line)"
-                                }}
-                                className="absolute rounded-xl p-3 text-xs shadow-sm cursor-grab active:cursor-grabbing border transition-all flex flex-col justify-start overflow-hidden z-10 hover:shadow-md hover:brightness-95"
+                                key={dayKeyStr}
+                                className={cn(
+                                  "relative flex-1 min-w-0 border-l border-[var(--line)]/40",
+                                  closed ? "bg-[#F4F1EB]/70" : isWeek && isToday && "bg-[#ba1a1a]/[0.03]"
+                                )}
                               >
-                                <div className="flex flex-col gap-0.5 select-none">
-                                  <span className="text-[10px] font-extrabold text-[#8C9A86]">
-                                    {startStr} - {endStr}
-                                  </span>
-                                  <span className="font-extrabold text-sm text-[#4D5A46] truncate">
-                                    {a.customer_name}
-                                  </span>
-                                  <span className="text-xs text-[#8C9A86] truncate mt-0.5">
-                                    {a.service_name} {emp ? ` · ${emp.name}` : ""}
-                                  </span>
-                                </div>
+                                {closed && (
+                                  <div className="absolute inset-x-0 top-2 z-0 text-center text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-[#8C9A86]/70 select-none pointer-events-none">
+                                    Chiuso
+                                  </div>
+                                )}
+                                {/* Tap-to-create and drop targets */}
+                                {!closed && halfHourSlots.map((slot, idx) => (
+                                  <div
+                                    key={slot}
+                                    onClick={() => {
+                                      setDate(dayKeyStr);
+                                      setNewApptTime(slot);
+                                      setNewOpen(true);
+                                    }}
+                                    style={{ top: (idx * HOUR_PX) / 2, height: HOUR_PX / 2 }}
+                                    className="absolute left-0 right-0 z-0 cursor-pointer active:bg-[#4D5A46]/10 transition-colors"
+                                  />
+                                ))}
+
+                                {/* Appointment blocks */}
+                                {dayAppts.map((a) => {
+                                  const emp = empById.get(a.employee_id);
+                                  const startStr = fmtTime(new Date(a.starts_at), tz);
+                                  const endStr = fmtTime(new Date(a.ends_at), tz);
+                                  const topPx = toPx(startStr);
+                                  const heightPx = Math.max(24, toPx(endStr) - topPx);
+                                  const lane = positionStyles.get(a.id) || { left: 0, width: 100 };
+                                  return (
+                                    <div
+                                      key={a.id}
+                                      onPointerDown={(e) => startApptDrag(e, a)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (justDraggedRef.current) return;
+                                        setActive(a);
+                                      }}
+                                      style={{
+                                        top: topPx + 1,
+                                        height: heightPx - 2,
+                                        left: `${lane.left}%`,
+                                        width: `calc(${lane.width}% - 3px)`,
+                                        backgroundColor: emp?.color ?? "#4D5A46",
+                                        color: readableTextOn(emp?.color ?? "#4D5A46"),
+                                      }}
+                                      className={cn(
+                                        "absolute z-10 rounded-[4px] sm:rounded-[6px] px-1.5 py-0.5 sm:px-2 sm:py-1 overflow-hidden cursor-grab active:cursor-grabbing shadow-sm hover:brightness-105 transition-[opacity,filter] duration-150 flex flex-col",
+                                        heightPx <= 40 ? "justify-center" : "justify-start",
+                                        dragTarget?.apptId === a.id && "opacity-40"
+                                      )}
+                                    >
+                                      <p className={cn(
+                                        "font-bold truncate leading-tight select-none",
+                                        isWeek ? "text-[9px] sm:text-[11px]" : "text-[11px] sm:text-xs"
+                                      )}>
+                                        {a.customer_name}
+                                      </p>
+                                      {(!isWeek || heightPx > 36) && (
+                                        <p className={cn(
+                                          "truncate leading-tight opacity-90 select-none",
+                                          isWeek ? "text-[8px] sm:text-[9px]" : "text-[9px] sm:text-[10px]"
+                                        )}>
+                                          {isWeek ? startStr : `${startStr} – ${endStr} · ${a.service_name}`}
+                                        </p>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+
+                                {/* Drag ghost preview */}
+                                {dragTarget && dayKeys[dragTarget.col] === dayKeyStr && (
+                                  <div
+                                    style={{
+                                      top: (dragTarget.slot * HOUR_PX) / 2,
+                                      height: (dragTarget.durMin / 60) * HOUR_PX,
+                                    }}
+                                    className={cn(
+                                      "absolute left-0 right-0 z-30 rounded-[6px] border-2 border-dashed pointer-events-none",
+                                      dragTarget.valid
+                                        ? "border-[#4D5A46] bg-[#4D5A46]/10"
+                                        : "border-[#ba1a1a] bg-[#ba1a1a]/10"
+                                    )}
+                                  />
+                                )}
+
+                                {/* Now indicator */}
+                                {isToday && nowVisible && (
+                                  <div style={{ top: nowPx }} className="absolute left-0 right-0 z-20 pointer-events-none">
+                                    <div className="h-[2px] bg-[#ba1a1a]" />
+                                    <div className="absolute left-0 -top-[3px] w-2 h-2 rounded-full bg-[#ba1a1a]" />
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
                         </div>
-                      );
-                    })()}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                );
+              })()
             )}
+
+            {/* Floating action button: new appointment */}
+            <button
+              onClick={() => {
+                setNewApptTime("10:00");
+                setNewOpen(true);
+              }}
+              aria-label="Nuovo appuntamento"
+              className="fixed bottom-24 right-5 z-40 h-14 w-14 rounded-2xl bg-[#D4AF37] hover:bg-[#C59B27] text-white shadow-xl flex items-center justify-center active:scale-95 transition-all border-none cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[28px]">add</span>
+            </button>
           </div>
         )}
 
@@ -1609,6 +1668,7 @@ export function AgendaView({
         employees={employees}
         services={services}
         defaultDate={date}
+        defaultTime={newApptTime}
         restrictToEmployeeId={restrictToEmployeeId}
         apiCreateOwnerAppointment={apiCreateOwnerAppointment}
         onCreated={() => {
@@ -2197,6 +2257,7 @@ function NewApptSheet({
   employees,
   services,
   defaultDate,
+  defaultTime,
   onCreated,
   restrictToEmployeeId,
   apiCreateOwnerAppointment,
@@ -2206,6 +2267,7 @@ function NewApptSheet({
   employees: Employee[];
   services: Service[];
   defaultDate: string;
+  defaultTime?: string;
   onCreated: () => void;
   restrictToEmployeeId?: string;
   apiCreateOwnerAppointment: (arg: any) => Promise<any>;
@@ -2225,6 +2287,14 @@ function NewApptSheet({
       setEmpId(restrictToEmployeeId);
     }
   }, [restrictToEmployeeId]);
+
+  // Prefill date and time from the tapped calendar slot
+  useEffect(() => {
+    if (open) {
+      setDate(defaultDate);
+      setTime(defaultTime ?? "10:00");
+    }
+  }, [open, defaultDate, defaultTime]);
 
   const service = services.find((s) => s.id === serviceId);
 
