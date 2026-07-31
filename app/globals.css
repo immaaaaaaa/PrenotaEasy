@@ -214,6 +214,22 @@ textarea {
   color: inherit;
 }
 
+/* iOS/WebKit: date and time inputs ignore width constraints until the
+   native appearance is stripped — otherwise they overflow flex/grid parents. */
+input[type="date"],
+input[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+}
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+
 /* Inputs at >=16px to prevent iOS focus-zoom. */
 input,
 select,
