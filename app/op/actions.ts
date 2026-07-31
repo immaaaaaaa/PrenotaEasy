@@ -10,7 +10,7 @@ import {
   rescheduleMessage,
   waLink,
 } from "@/lib/whatsapp";
-import type { Appointment, Employee, Service } from "@/lib/types";
+import type { Appointment, BusinessHours, Employee, Service } from "@/lib/types";
 
 function nextDay(dateStr: string): string {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -52,6 +52,8 @@ export async function getOperatorAgendaData(
   employees: Employee[];
   services: Service[];
   appointments: Appointment[];
+  businessHours: BusinessHours[];
+  holidays: any[];
 }> {
   try {
     const { employee, business, adminSupa } = await verifyOperatorToken(token);
@@ -76,15 +78,27 @@ export async function getOperatorAgendaData(
     const dayStart = zonedToUtc(dateStr, "00:00", business.timezone).toISOString();
     const dayEnd = zonedToUtc(nextDay(dateStr), "00:00", business.timezone).toISOString();
 
-    const { data: appointments } = await adminSupa
-      .from("appointments")
-      .select("*")
-      .eq("business_id", business.id)
-      .eq("employee_id", employee.id)
-      .neq("status", "cancelled")
-      .gte("starts_at", dayStart)
-      .lt("starts_at", dayEnd)
-      .order("starts_at");
+    const [{ data: appointments }, { data: businessHours }, { data: holidays }] = await Promise.all([
+      adminSupa
+        .from("appointments")
+        .select("*")
+        .eq("business_id", business.id)
+        .eq("employee_id", employee.id)
+        .neq("status", "cancelled")
+        .gte("starts_at", dayStart)
+        .lt("starts_at", dayEnd)
+        .order("starts_at"),
+      adminSupa
+        .from("business_hours")
+        .select("*")
+        .eq("business_id", business.id)
+        .order("weekday"),
+      adminSupa
+        .from("business_holidays")
+        .select("*")
+        .eq("business_id", business.id)
+        .order("start_date"),
+    ]);
 
     return {
       business,
@@ -92,6 +106,8 @@ export async function getOperatorAgendaData(
       employees: (employees ?? []) as Employee[],
       services: (services ?? []) as Service[],
       appointments: (appointments ?? []) as Appointment[],
+      businessHours: (businessHours ?? []) as BusinessHours[],
+      holidays: (holidays ?? []) as any[],
     };
   } catch (error: any) {
     console.error("getOperatorAgendaData error:", error);

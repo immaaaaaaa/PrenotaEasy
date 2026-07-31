@@ -30,9 +30,9 @@ export default async function OperatorAgendaPage({
   const { token } = await params;
 
   let data;
+  const fetchedForDate = new Date().toISOString().slice(0, 10);
   try {
-    const todayStrStr = new Date().toISOString().slice(0, 10);
-    data = await getOperatorAgendaData(token, todayStrStr);
+    data = await getOperatorAgendaData(token, fetchedForDate);
   } catch (err: any) {
     if (err.message?.includes("Premium") || err.message?.includes("premium")) {
       return (
@@ -53,7 +53,7 @@ export default async function OperatorAgendaPage({
     notFound();
   }
 
-  const { business, employee, employees, services } = data;
+  const { business, employee, employees, services, businessHours, holidays } = data;
   const todayStr = formatInTimeZone(new Date(), business.timezone, "yyyy-MM-dd");
 
   return (
@@ -64,6 +64,9 @@ export default async function OperatorAgendaPage({
       employees={employees}
       services={services}
       todayStr={todayStr}
+      businessHours={businessHours}
+      holidays={holidays}
+      initialDayAppts={fetchedForDate === todayStr ? data.appointments : undefined}
     />
   );
 }

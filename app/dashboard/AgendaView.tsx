@@ -192,6 +192,9 @@ export function AgendaView({
   customActions,
   holidays = [],
   businessHours = [],
+  initialDayAppts,
+  initialMonthAppts,
+  initialTodayStats,
 }: {
   business: Business;
   timezone: string;
@@ -201,6 +204,14 @@ export function AgendaView({
   restrictToEmployeeId?: string;
   holidays?: any[];
   businessHours?: BusinessHours[];
+  initialDayAppts?: Appointment[];
+  initialMonthAppts?: Appointment[];
+  initialTodayStats?: {
+    apptsCount: number;
+    totalRevenue: number;
+    newCustomersCount: number;
+    todayAppts: Appointment[];
+  };
   customActions?: {
     getDayAppointments?: (date: string) => Promise<Appointment[]>;
     getTodayStats?: (date: string) => Promise<any>;
@@ -240,8 +251,8 @@ export function AgendaView({
   // Date and appointments states
   const [date, setDate] = useState(todayStr);
   const [filter, setFilter] = useState<string>(restrictToEmployeeId ?? "all");
-  const [appts, setAppts] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [appts, setAppts] = useState<Appointment[]>(initialDayAppts ?? []);
+  const [loading, setLoading] = useState(!initialDayAppts);
 
   // Appt detail sheet states
   const [active, setActive] = useState<Appointment | null>(null);
@@ -371,8 +382,11 @@ export function AgendaView({
   } | null>(null);
   const [employeeFilter, setEmployeeFilter] = useState<string>(restrictToEmployeeId ?? "all");
   // Month appointments cached per month: navigation merges data in, never blanks the grid
-  const [monthApptsMap, setMonthApptsMap] = useState<Record<string, Appointment[]>>({});
-  const loadedMonthsRef = useRef<Set<string>>(new Set());
+  const initialMonthKey = `${Number(todayStr.slice(0, 4))}-${Number(todayStr.slice(5, 7)) - 1}`;
+  const [monthApptsMap, setMonthApptsMap] = useState<Record<string, Appointment[]>>(
+    initialMonthAppts ? { [initialMonthKey]: initialMonthAppts } : {},
+  );
+  const loadedMonthsRef = useRef<Set<string>>(new Set(initialMonthAppts ? [initialMonthKey] : []));
   const monthAppts = useMemo(() => Object.values(monthApptsMap).flat(), [monthApptsMap]);
 
   const fetchMonth = useCallback(async (year: number, month: number, force = false) => {
@@ -399,7 +413,7 @@ export function AgendaView({
     totalRevenue: number;
     newCustomersCount: number;
     todayAppts: Appointment[];
-  }>({
+  }>(initialTodayStats ?? {
     apptsCount: 0,
     totalRevenue: 0,
     newCustomersCount: 0,
@@ -466,7 +480,12 @@ export function AgendaView({
     }
   }, [todayStr, apiGetTodayStats]);
 
+  const skipInitialStatsRef = useRef(Boolean(initialTodayStats));
   useEffect(() => {
+    if (skipInitialStatsRef.current) {
+      skipInitialStatsRef.current = false;
+      return;
+    }
     loadTodayStats();
   }, [loadTodayStats]);
 
@@ -530,9 +549,23 @@ export function AgendaView({
     }
   }, [date, refreshMonths, loadTodayStats, apiGetDayAppointments]);
 
+  // Skip the very first client fetch when the server already provided the data
+  const skipInitialLoadRef = useRef(Boolean(initialDayAppts));
   useEffect(() => {
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
     load();
   }, [load]);
+
+  // Warm up the routes reachable from the dashboard nav
+  useEffect(() => {
+    if (!restrictToEmployeeId) {
+      router.prefetch("/dashboard/settings");
+      router.prefetch("/dashboard/analytics");
+    }
+  }, [router, restrictToEmployeeId]);
 
   // Real-time subscription to postgres INSERT and UPDATE events on appointments table
   useEffect(() => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Employee, Service } from "@/lib/types";
+import type { Appointment, BusinessHours, Employee, Service } from "@/lib/types";
 import { AgendaView } from "@/app/dashboard/AgendaView";
 import {
   getOperatorAgendaData,
@@ -23,6 +23,9 @@ export function OperatorClientView({
   employees,
   services,
   todayStr,
+  businessHours = [],
+  holidays = [],
+  initialDayAppts,
 }: {
   token: string;
   business: any;
@@ -30,6 +33,9 @@ export function OperatorClientView({
   employees: Employee[];
   services: Service[];
   todayStr: string;
+  businessHours?: BusinessHours[];
+  holidays?: any[];
+  initialDayAppts?: Appointment[];
 }) {
   const customActions = useMemo(() => {
     return {
@@ -76,6 +82,9 @@ export function OperatorClientView({
       todayStr={todayStr}
       restrictToEmployeeId={employee.id}
       customActions={customActions}
+      businessHours={businessHours}
+      holidays={holidays}
+      initialDayAppts={initialDayAppts}
     />
   );
 }

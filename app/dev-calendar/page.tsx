@@ -5,6 +5,8 @@
  * Not linked anywhere; returns 404 in production.
  */
 
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { AgendaView } from "@/app/dashboard/AgendaView";
 import type { Appointment, Business, BusinessHours, Employee, Service } from "@/lib/types";
 
@@ -135,8 +137,10 @@ const customActions = {
   },
 };
 
-export default function DevCalendarPage() {
-  if (process.env.NODE_ENV === "production") return null;
+function DevCalendarInner() {
+  // ?op=1 renders the calendar exactly as operator "Michela" (e1) would see it
+  const searchParams = useSearchParams();
+  const asOperator = searchParams.get("op") === "1";
   return (
     <AgendaView
       business={business}
@@ -147,6 +151,16 @@ export default function DevCalendarPage() {
       holidays={holidays}
       businessHours={businessHours}
       customActions={customActions}
+      restrictToEmployeeId={asOperator ? "e1" : undefined}
     />
+  );
+}
+
+export default function DevCalendarPage() {
+  if (process.env.NODE_ENV === "production") return null;
+  return (
+    <Suspense>
+      <DevCalendarInner />
+    </Suspense>
   );
 }
