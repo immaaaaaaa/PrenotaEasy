@@ -796,8 +796,14 @@ export function AgendaView({
   const gridDayKeysRef = useRef<string[]>([]);
   const justDraggedRef = useRef(false);
   const gridRangeRef = useRef<{ startMin: number; endMin: number }>({ startMin: 8 * 60, endMin: 20 * 60 });
-  const [dragTarget, setDragTarget] = useState<{ apptId: string; durMin: number; col: number; slot: number; valid: boolean } | null>(null);
+  const [dragTarget, setDragTarget] = useState<{ apptId: string; durMin: number; col: number; slot: number; valid: boolean; reason: "past" | "closed" | null } | null>(null);
   const dragTargetRef = useRef<typeof dragTarget>(null);
+  // Month view: drop target is a whole day cell (same time, new date)
+  const [monthDragTarget, setMonthDragTarget] = useState<{ apptId: string; dayKey: string; valid: boolean; reason: "past" | "closed" | null } | null>(null);
+  const monthDragTargetRef = useRef<typeof monthDragTarget>(null);
+  // Confirm sheet after a month-view drop: lets the owner adjust the time too
+  const [monthDropPrompt, setMonthDropPrompt] = useState<{ appt: Appointment; dateStr: string } | null>(null);
+  const [monthDropTime, setMonthDropTime] = useState("09:00");
 
   const rescheduleTo = async (targetAppt: Appointment, targetDateStr: string, timeStr: string) => {
     setLoading(true);
@@ -828,7 +834,7 @@ export function AgendaView({
     const isTouch = e.pointerType !== "mouse";
     let active = false;
 
-    const setTarget = (t: { apptId: string; durMin: number; col: number; slot: number; valid: boolean } | null) => {
+    const setTarget = (t: { apptId: string; durMin: number; col: number; slot: number; valid: boolean; reason: "past" | "closed" | null } | null) => {
       dragTargetRef.current = t;
       setDragTarget(t);
     };
@@ -846,7 +852,8 @@ export function AgendaView({
       const total = startMin + slot * 30;
       const slotTime = `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
       const inPast = zonedToUtc(dayKeys[col], slotTime, tz).getTime() < Date.now();
-      setTarget({ apptId: a.id, durMin: a.duration_min, col, slot, valid: !isClosedDate(dayKeys[col]) && !inPast });
+      const reason = inPast ? ("past" as const) : isClosedDate(dayKeys[col]) ? ("closed" as const) : null;
+      setTarget({ apptId: a.id, durMin: a.duration_min, col, slot, valid: reason === null, reason });
     };
 
     const begin = (x: number, y: number) => {
@@ -892,12 +899,117 @@ export function AgendaView({
       if (!target) return;
       justDraggedRef.current = true;
       window.setTimeout(() => { justDraggedRef.current = false; }, 350);
-      if (!target.valid) return;
+      if (!target.valid) {
+        // Explain the rejection: a silent red ghost reads as a broken feature
+        setToast({
+          title: "Spostamento non consentito",
+          body:
+            target.reason === "past"
+              ? "Non puoi spostare un appuntamento nel passato."
+              : "Il giorno di destinazione è chiuso.",
+          apptDateStr: a.starts_at.slice(0, 10),
+        });
+        return;
+      }
       const total = gridRangeRef.current.startMin + target.slot * 30;
       const timeStr = `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
       const targetDateStr = gridDayKeysRef.current[target.col];
       const sameSlot = a.starts_at.slice(0, 10) === targetDateStr && fmtTime(new Date(a.starts_at), tz) === timeStr;
       if (targetDateStr && !sameSlot) rescheduleTo(a, targetDateStr, timeStr);
+    };
+
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+    document.addEventListener("pointercancel", cleanup);
+    document.addEventListener("touchmove", blockScroll, { passive: false });
+  };
+
+  // Month view drag: move the appointment to another day, keeping its time.
+  // Cells are found via elementFromPoint (row heights vary with content).
+  const startMonthApptDrag = (e: React.PointerEvent, a: Appointment) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (loading) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const isTouch = e.pointerType !== "mouse";
+    let active = false;
+    const timeStr = fmtTime(new Date(a.starts_at), tz);
+
+    const setTarget = (t: { apptId: string; dayKey: string; valid: boolean; reason: "past" | "closed" | null } | null) => {
+      monthDragTargetRef.current = t;
+      setMonthDragTarget(t);
+    };
+
+    const updateTarget = (x: number, y: number) => {
+      const el = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest("[data-daykey]") as HTMLElement | null;
+      const key = el?.dataset.daykey;
+      if (!key) {
+        setTarget(null);
+        return;
+      }
+      const inPast = zonedToUtc(key, timeStr, tz).getTime() < Date.now();
+      const reason = inPast ? ("past" as const) : isClosedDate(key) ? ("closed" as const) : null;
+      setTarget({ apptId: a.id, dayKey: key, valid: reason === null, reason });
+    };
+
+    const begin = (x: number, y: number) => {
+      active = true;
+      if (navigator.vibrate) navigator.vibrate(25);
+      updateTarget(x, y);
+    };
+
+    const timer = window.setTimeout(() => begin(startX, startY), isTouch ? 260 : 160);
+
+    const cleanup = () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointercancel", cleanup);
+      document.removeEventListener("touchmove", blockScroll);
+      setTarget(null);
+    };
+
+    const onMove = (ev: PointerEvent) => {
+      if (!active) {
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) > 8) {
+          if (isTouch) {
+            cleanup();
+          } else {
+            window.clearTimeout(timer);
+            begin(ev.clientX, ev.clientY);
+          }
+        }
+        return;
+      }
+      updateTarget(ev.clientX, ev.clientY);
+    };
+
+    const blockScroll = (ev: TouchEvent) => {
+      if (active) ev.preventDefault();
+    };
+
+    const onUp = () => {
+      const target = active ? monthDragTargetRef.current : null;
+      cleanup();
+      if (!target) return;
+      justDraggedRef.current = true;
+      window.setTimeout(() => { justDraggedRef.current = false; }, 350);
+      if (!target.valid) {
+        setToast({
+          title: "Spostamento non consentito",
+          body:
+            target.reason === "past"
+              ? "Non puoi spostare un appuntamento nel passato."
+              : "Il giorno di destinazione è chiuso.",
+          apptDateStr: a.starts_at.slice(0, 10),
+        });
+        return;
+      }
+      if (target.dayKey !== a.starts_at.slice(0, 10)) {
+        // Confirm with an editable time instead of moving straight away
+        setMonthDropTime(timeStr);
+        setMonthDropPrompt({ appt: a, dateStr: target.dayKey });
+      }
     };
 
     document.addEventListener("pointermove", onMove);
@@ -1301,13 +1413,18 @@ export function AgendaView({
                     return (
                       <div
                         key={day.toISOString()}
+                        data-daykey={dayKeyStr}
                         onClick={() => {
                           selectCalendarDate(day);
                           setCalendarView("day");
                         }}
                         className={cn(
                           "min-h-[76px] sm:min-h-[112px] border-b border-r border-[var(--line)]/40 p-1 sm:p-1.5 flex flex-col gap-1 cursor-pointer transition-colors overflow-hidden",
-                          closed ? "bg-[#F4F1EB]/70" : "hover:bg-[#FAF8F5]"
+                          closed ? "bg-[#F4F1EB]/70" : "hover:bg-[#FAF8F5]",
+                          monthDragTarget?.dayKey === dayKeyStr &&
+                            (monthDragTarget.valid
+                              ? "ring-2 ring-inset ring-[#4D5A46] bg-[#4D5A46]/5"
+                              : "ring-2 ring-inset ring-[#ba1a1a] bg-[#ba1a1a]/5")
                         )}
                       >
                         <span className={cn(
@@ -1327,12 +1444,17 @@ export function AgendaView({
                             return (
                               <button
                                 key={a.id}
+                                onPointerDown={(e) => startMonthApptDrag(e, a)}
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  if (justDraggedRef.current) return;
                                   setActive(a);
                                 }}
                                 style={{ backgroundColor: emp?.color ?? "#8C9A86", color: readableTextOn(emp?.color ?? "#8C9A86") }}
-                                className="w-full text-left rounded-[3px] px-1.5 py-0.5 text-[8px] sm:text-[10px] font-bold truncate border-none cursor-pointer leading-tight"
+                                className={cn(
+                                  "w-full text-left rounded-[3px] px-1.5 py-0.5 text-[8px] sm:text-[10px] font-bold truncate border-none cursor-grab active:cursor-grabbing leading-tight",
+                                  monthDragTarget?.apptId === a.id && "opacity-40"
+                                )}
                               >
                                 <span className="hidden sm:inline">{fmtTime(new Date(a.starts_at), tz)} </span>
                                 {a.customer_name}
@@ -1888,6 +2010,55 @@ export function AgendaView({
             >
               Chiudi
             </button>
+          </div>
+        </Sheet>
+      )}
+
+      {/* Month-view drop confirmation: target day fixed, time adjustable */}
+      {monthDropPrompt && (
+        <Sheet
+          open={!!monthDropPrompt}
+          onClose={() => setMonthDropPrompt(null)}
+          title="Sposta appuntamento"
+          dismissible={true}
+        >
+          <div className="space-y-5 py-2">
+            <p className="text-sm text-[#5e5e5c] text-center">
+              Spostare l&apos;appuntamento di{" "}
+              <strong className="text-[#4a6243]">{monthDropPrompt.appt.customer_name}</strong> a{" "}
+              <strong className="text-[#4a6243] capitalize">{dayTitle(monthDropPrompt.dateStr)}</strong>?
+            </p>
+            <label className="block max-w-[180px] mx-auto">
+              <span className="mb-1.5 block text-center text-xs font-bold text-[#4D5A46] uppercase tracking-wider">
+                Orario
+              </span>
+              <input
+                type="time"
+                value={monthDropTime}
+                onChange={(e) => setMonthDropTime(e.target.value)}
+                className="w-full h-12 rounded-xl bg-[#F4F1EB] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-center text-base text-[#4D5A46] font-bold"
+              />
+            </label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setMonthDropPrompt(null)}
+                className="flex-1 ios-btn-secondary h-12 text-sm font-bold border border-[var(--line)] bg-white"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={() => {
+                  const p = monthDropPrompt;
+                  setMonthDropPrompt(null);
+                  if (p && /^\d{2}:\d{2}$/.test(monthDropTime)) {
+                    rescheduleTo(p.appt, p.dateStr, monthDropTime);
+                  }
+                }}
+                className="flex-1 ios-btn-primary h-12 text-sm font-bold"
+              >
+                Conferma
+              </button>
+            </div>
           </div>
         </Sheet>
       )}
