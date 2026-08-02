@@ -8,6 +8,7 @@ import {
   type Slot,
 } from "@/lib/availability";
 import { computeFixedSlotOccurrences } from "@/lib/fixedSlots";
+import { clientIp, rateLimit } from "@/lib/rateLimit";
 import { weekdayMonday0, zonedToUtc } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,14 @@ function nextDay(dateStr: string): string {
 }
 
 export async function GET(req: NextRequest) {
+  // Generous limit for real clients tapping through days; stops enumeration scripts
+  if (!rateLimit(`avail:ip:${clientIp(req)}`, 60, 60_000)) {
+    return NextResponse.json(
+      { error: "Troppe richieste. Riprova tra qualche minuto." },
+      { status: 429 },
+    );
+  }
+
   const p = req.nextUrl.searchParams;
   const slug = p.get("slug");
   const serviceId = p.get("service");

@@ -2,12 +2,24 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeSlots, type DayHours } from "@/lib/availability";
 import { computeFixedSlotOccurrences } from "@/lib/fixedSlots";
+import { clientIp, rateLimit } from "@/lib/rateLimit";
 import { dayKey, fmtWhen, weekdayMonday0 } from "@/lib/time";
 import { normalizePhone } from "@/lib/whatsapp";
+
+// Hard cap of future bookings a single phone number can hold per business
+const MAX_ACTIVE_BOOKINGS_PER_PHONE = 3;
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  // First line of defense against scripted abuse
+  if (!rateLimit(`book:ip:${clientIp(req)}`, 5, 60_000)) {
+    return NextResponse.json(
+      { error: "Troppe richieste. Riprova tra qualche minuto." },
+      { status: 429 },
+    );
+  }
+
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -28,6 +40,15 @@ export async function POST(req: NextRequest) {
 
   if (!slug || !serviceId || !startUtc || !name || !phoneRaw) {
     return NextResponse.json({ error: "Compila tutti i campi." }, { status: 400 });
+  }
+  if (name.length > 80 || phoneRaw.length > 20 || (notes && notes.length > 500)) {
+    return NextResponse.json({ error: "Dati non validi." }, { status: 400 });
+  }
+  if (!rateLimit(`book:phone:${normalizePhone(phoneRaw)}`, 3, 60_000)) {
+    return NextResponse.json(
+      { error: "Troppe richieste per questo numero. Riprova tra qualche minuto." },
+      { status: 429 },
+    );
   }
 
   const start = new Date(startUtc);
@@ -206,6 +227,25 @@ export async function POST(req: NextRequest) {
   }
 
   const phone = normalizePhone(phoneRaw);
+
+  // Persistent cap: one phone number can hold at most N future bookings
+  // per business — the real anti-flood barrier, enforced by the database.
+  const { count: activeCount } = await supa
+    .from("appointments")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", business.id)
+    .eq("customer_phone", phone)
+    .neq("status", "cancelled")
+    .gte("starts_at", new Date().toISOString());
+  if ((activeCount ?? 0) >= MAX_ACTIVE_BOOKINGS_PER_PHONE) {
+    return NextResponse.json(
+      {
+        error:
+          'Hai già il numero massimo di prenotazioni attive. Puoi gestirle dalla sezione "Miei appuntamenti".',
+      },
+      { status: 409 },
+    );
+  }
 
   const { data: customer } = await supa
     .from("customers")

@@ -177,6 +177,7 @@ export function BookingFlow({
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [privacyOk, setPrivacyOk] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ whenText: string } | null>(null);
@@ -427,7 +428,7 @@ export function BookingFlow({
 
   const phoneDigits = phone.replace(/\D/g, "");
   const canSubmit =
-    name.trim().length >= 2 && phoneDigits.length >= 6 && !!slot && !!service;
+    name.trim().length >= 2 && phoneDigits.length >= 6 && !!slot && !!service && privacyOk;
 
   async function submit() {
     if (!service || !slot) return;
@@ -1250,6 +1251,9 @@ export function BookingFlow({
               <label className="block text-sm font-bold text-[var(--ink)] mb-1.5 px-1">
                 Note (facoltativo)
               </label>
+              <p className="text-[11px] text-[var(--ink-2)] mb-1.5 px-1">
+                Non inserire informazioni sulla salute o altri dati sensibili.
+              </p>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -1259,6 +1263,22 @@ export function BookingFlow({
               />
             </div>
           </div>
+
+          <label className="flex items-start gap-2.5 px-1 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={privacyOk}
+              onChange={(e) => setPrivacyOk(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)] cursor-pointer"
+            />
+            <span className="text-xs text-[var(--ink-2)] leading-relaxed">
+              Ho letto l'{" "}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-bold text-[var(--accent)] underline underline-offset-2">
+                informativa privacy
+              </a>{" "}
+              e acconsento al trattamento dei miei dati per la gestione della prenotazione.
+            </span>
+          </label>
 
           {error && (
             <p className="rounded-xl bg-[#ba1a1a]/10 px-4 py-3 text-sm font-semibold text-[#ba1a1a] border border-[#ba1a1a]/20">
