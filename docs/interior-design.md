@@ -37,3 +37,9 @@ Fixtures at `/dev-access` and `/dev-management` block submissions and server-bac
 - `npm run build` passed, including Next.js type validation and route generation.
 - Development server restarted on port 3000 with `.env.local`. Fresh login and landing loads succeeded; login button contrast was verified in the rendered DOM.
 - Whitespace diff check passed. Independent reviews covered settings action preservation, agenda label sizing, and management calculations/fixture guards.
+
+## Serverless runtime assets
+
+The shared layout embeds DM Sans in the refractive backdrop using a filesystem read. The original WOFF2 must be included in each server function, as well as being served publicly. `outputFileTracingIncludes` explicitly includes that file.
+
+`npm run build` also runs `check:runtime-assets`: five compiled route layouts are loaded from temporary directories containing only the public assets in their production file traces. This catches missing runtime files that a normal local build or `next start` can hide. Run `npm run check:runtime-assets` separately only after a production build.

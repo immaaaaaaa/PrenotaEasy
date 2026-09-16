@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && npm run check:runtime-assets",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:runtime-assets": "node --test scripts/check-runtime-assets.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
