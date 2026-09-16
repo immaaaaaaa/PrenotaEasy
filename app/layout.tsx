@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./interior.css";
 import { DynamicFavicon } from "@/components/CalendarLogo";
-import { ThemeManager } from "@/components/ThemeManager";
+import { AppExperience } from "@/components/app/AppExperience";
+import { productFont, productBackdropFontCSS } from "@/lib/typography";
 
 export const metadata: Metadata = {
   title: {
@@ -21,10 +23,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "var(--bg)" },
-    { media: "(prefers-color-scheme: dark)", color: "#191019" },
-  ],
+  colorScheme: "light",
+  themeColor: "#faf8f4",
 };
 
 export default function RootLayout({
@@ -35,11 +35,11 @@ export default function RootLayout({
   return (
     <html lang="it" suppressHydrationWarning>
       <head>
-        {/* Applies the saved theme before first paint to avoid a light flash */}
+        {/* Clear legacy theme preferences; the app now always uses light mode. */}
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();",
+              "document.documentElement.classList.remove('dark');try{localStorage.removeItem('theme');}catch(e){}",
           }}
         />
         {/* Only the icon font: the old CSS @import also pulled two unused text fonts
@@ -51,10 +51,9 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
         />
       </head>
-      <body>
+      <body className={productFont.variable}>
         <DynamicFavicon />
-        <ThemeManager />
-        {children}
+        <AppExperience fontEmbedCSS={productBackdropFontCSS}>{children}</AppExperience>
       </body>
     </html>
   );

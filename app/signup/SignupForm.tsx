@@ -44,10 +44,10 @@ export function SignupForm() {
 
   if (checkEmail) {
     return (
-      <div className="rounded-[var(--r-lg)] bg-[var(--surface-2)] p-5 text-center">
+      <div className="access-invite">
         <div className="mb-2 text-3xl">📬</div>
         <p className="font-[560]">Controlla la tua email</p>
-        <p className="mt-1 text-[0.92rem] text-[var(--ink-2)]">
+        <p className="mt-1 text-[18px] text-[var(--ink-2)]">
           Ti abbiamo inviato un link per confermare l&apos;account. Dopo la
           conferma potrai accedere.
         </p>
@@ -56,7 +56,9 @@ export function SignupForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3">
+    <form onSubmit={onSubmit} className="access-form">
+      <label className="access-field">
+        <span>Email</span>
       <input
         type="email"
         placeholder="Email"
@@ -66,6 +68,9 @@ export function SignupForm() {
         required
         className="input"
       />
+      </label>
+      <label className="access-field">
+        <span>Password</span>
       <input
         type="password"
         placeholder="Password (min. 6 caratteri)"
@@ -75,7 +80,8 @@ export function SignupForm() {
         required
         className="input"
       />
-      {error && <p className="px-1 text-[0.9rem] text-[var(--danger)]">{error}</p>}
+      </label>
+      {error && <p role="alert" className="access-error">{error}</p>}
       <Button type="submit" size="lg" fullWidth loading={loading}>
         Crea account
       </Button>

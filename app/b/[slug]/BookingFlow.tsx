@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { spring, stepVariants } from "@/lib/motion";
 import { Button } from "@/components/ui/Button";
+import { AppHeader } from "@/components/app/AppChrome";
+import "@/app/access-design.css";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { formatDuration, formatPrice } from "@/lib/constants";
 import { buildDays } from "@/lib/days";
@@ -177,41 +179,29 @@ export function BookingFlow({
   const progress = (ORDER.indexOf(step) + 1) / ORDER.length;
 
   return (
-    <div className="mx-auto flex min-h-[100dvh] max-w-[520px] flex-col bg-[var(--bg)]">
-      {/* Header */}
-      <header className="material pt-safe sticky top-0 z-20">
-        <div className="flex h-14 items-center gap-2 px-4">
-          {step !== "service" ? (
-            <button
-              onClick={back}
-              aria-label="Indietro"
-              className="-ml-2 grid h-10 w-10 place-items-center rounded-full transition-colors active:bg-[var(--surface-2)]"
-            >
-              <ChevronLeft />
-            </button>
-          ) : (
-            <div className="h-10 w-10" />
-          )}
-          <div className="min-w-0 flex-1 text-center">
-            <div className="text-headline truncate leading-tight">
-              {business.name}
-            </div>
-            <div className="text-caption">{STEP_TITLES[step]}</div>
-          </div>
-          <div className="h-10 w-10" />
+    <div className="customer-booking legacy-booking">
+      <AppHeader><span className="booking-header-business">{business.name}</span></AppHeader>
+      <div className="legacy-workspace">
+      <aside className="legacy-intro">
+        <span className="access-eyebrow">{business.name}</span>
+        <h1>{STEP_TITLES[step]}</h1>
+        <p>Il tuo prossimo appuntamento, in pochi semplici passi.</p>
+        <ol className="legacy-steps" aria-label="Passaggi della prenotazione">
+          {ORDER.map((item, index) => (
+            <li key={item} aria-current={item === step ? "step" : undefined} className={index <= ORDER.indexOf(step) ? "is-reached" : ""}>
+              <span className="material-symbols-outlined" aria-hidden="true">{index < ORDER.indexOf(step) ? "check_circle" : "radio_button_unchecked"}</span>
+              {STEP_TITLES[item]}
+            </li>
+          ))}
+        </ol>
+        <div className="legacy-progress" role="progressbar" aria-label="Avanzamento prenotazione" aria-valuenow={ORDER.indexOf(step) + 1} aria-valuemin={0} aria-valuemax={ORDER.length}>
+          <motion.div initial={false} animate={{ width: (progress * 100) + "%" }} transition={spring.default} />
         </div>
-        <div className="h-[3px] bg-[var(--surface-2)]">
-          <motion.div
-            className="h-full rounded-r-full bg-[var(--accent)]"
-            initial={false}
-            animate={{ width: `${progress * 100}%` }}
-            transition={spring.default}
-          />
-        </div>
-      </header>
-
+        {step !== "service" && <button className="legacy-back" onClick={back}><ChevronLeft /> Indietro</button>}
+      </aside>
+      <div className="legacy-content">
       {/* Step content */}
-      <main className="relative flex-1 px-5 py-5">
+      <main className="legacy-step-panel">
         <AnimatePresence mode="wait" custom={dir} initial={false}>
           <motion.div
             key={step}
@@ -298,7 +288,7 @@ export function BookingFlow({
                         <button
                           key={sl.startUtc}
                           onClick={() => selectSlot(sl)}
-                          className="h-11 rounded-[var(--r-md)] bg-[var(--surface-2)] text-[0.95rem] font-[560] transition-[transform,background-color] duration-100 active:scale-[0.95] active:bg-[var(--accent-soft)]"
+                          className="h-11 rounded-[var(--r-md)] bg-[var(--surface-2)] text-[18px] font-[560] transition-[transform,background-color] duration-100 active:scale-[0.95] active:bg-[var(--accent-soft)]"
                         >
                           {sl.time}
                         </button>
@@ -353,7 +343,7 @@ export function BookingFlow({
                 </div>
 
                 {error && (
-                  <p className="mt-4 rounded-[var(--r-sm)] bg-[color-mix(in_srgb,var(--danger)_12%,transparent)] px-3 py-2.5 text-[0.9rem] text-[var(--danger)]">
+                  <p className="mt-4 rounded-[var(--r-sm)] bg-[color-mix(in_srgb,var(--danger)_12%,transparent)] px-3 py-2.5 text-[18px] text-[var(--danger)]">
                     {error}
                   </p>
                 )}
@@ -365,7 +355,7 @@ export function BookingFlow({
 
       {/* Footer CTA (only where a commit action exists) */}
       {step === "details" && (
-        <footer className="material pb-safe sticky bottom-0 border-t border-[var(--line)] px-5 pt-3 pb-4">
+        <footer className="legacy-submit">
           <Button
             fullWidth
             size="lg"
@@ -377,6 +367,8 @@ export function BookingFlow({
           </Button>
         </footer>
       )}
+      </div>
+      </div>
     </div>
   );
 }
@@ -387,7 +379,7 @@ export function BookingFlow({
 
 function StepList({ children }: { children: React.ReactNode }) {
   return (
-    <div className="card divide-y divide-[var(--line)] overflow-hidden">
+    <div className="legacy-step-list">
       {children}
     </div>
   );
@@ -403,7 +395,7 @@ function RowButton({
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]"
+      className="legacy-row"
     >
       {children}
     </button>
@@ -431,7 +423,7 @@ function SummaryRow({
   extra?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3">
+    <div className="legacy-summary-row">
       <span className="text-caption w-24 shrink-0">{label}</span>
       <span className="flex-1 font-[540]">{value}</span>
       {extra && <span className="text-[var(--ink-2)]">{extra}</span>}
@@ -448,7 +440,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block px-1 text-[0.85rem] font-[560] text-[var(--ink-2)]">
+      <span className="mb-1.5 block px-1 text-[18px] font-[560] text-[var(--ink-2)]">
         {label}
       </span>
       {children}
@@ -501,12 +493,12 @@ function DoneScreen({
   });
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] max-w-[520px] flex-col items-center justify-center px-6 text-center">
+    <div className="customer-booking"><AppHeader /><main className="booking-confirmation access-state">
       <motion.div
         initial={reduce ? { opacity: 0 } : { scale: 0.4, opacity: 0 }}
         animate={reduce ? { opacity: 1 } : { scale: 1, opacity: 1 }}
         transition={spring.bouncy}
-        className="grid h-20 w-20 place-items-center rounded-full bg-[var(--success)] text-white"
+        className="access-state-icon access-success"
       >
         <Check />
       </motion.div>
@@ -521,7 +513,7 @@ function DoneScreen({
         <p className="mt-2 text-[var(--ink-2)]">
           {serviceName} con {operatorName}
         </p>
-        <p className="mt-1 text-[1.05rem] font-[560] capitalize">{whenText}</p>
+        <p className="mt-1 text-[18px] font-[560] capitalize">{whenText}</p>
       </motion.div>
 
       <motion.div
@@ -537,7 +529,7 @@ function DoneScreen({
         </a>
         <p className="text-caption">Ti aspettiamo da {businessName}! 💇</p>
       </motion.div>
-    </main>
+    </main></div>
   );
 }
 

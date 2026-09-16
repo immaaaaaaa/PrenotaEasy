@@ -28,7 +28,9 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3">
+    <form onSubmit={onSubmit} className="access-form">
+      <label className="access-field">
+        <span>Email</span>
       <input
         type="email"
         placeholder="Email"
@@ -38,6 +40,9 @@ export function LoginForm() {
         required
         className="input"
       />
+      </label>
+      <label className="access-field">
+        <span>Password</span>
       <input
         type="password"
         placeholder="Password"
@@ -47,7 +52,8 @@ export function LoginForm() {
         required
         className="input"
       />
-      {error && <p className="px-1 text-[0.9rem] text-[var(--danger)]">{error}</p>}
+      </label>
+      {error && <p role="alert" className="access-error">{error}</p>}
       <Button type="submit" size="lg" fullWidth loading={loading}>
         Accedi
       </Button>

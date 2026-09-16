@@ -93,6 +93,7 @@ const mkAppt = (empId: string, dateStr: string, start: string, durMin: number, n
 let appts: Appointment[] = [
   mkAppt("e1", todayStr, "09:00", 60, "Anna Bianchi", "Colore"),
   mkAppt("e2", todayStr, "09:30", 60, "Giulia Verdi", "Taglio"),
+  mkAppt("e1", todayStr, "10:30", 15, "Lucia Breve", "Consulenza"),
   mkAppt("e1", todayStr, "12:00", 90, "Marco Rossi", "Colore"),
   mkAppt("e2", todayStr, "16:30", 60, "Elena Neri", "Taglio"),
   mkAppt("e1", addDays(1), "10:00", 30, "Paola Blu", "Taglio"),
@@ -129,8 +130,8 @@ const customActions = {
   },
   updateOwnerNotes: async () => ({ ok: true }),
   updateCustomerNotes: async () => ({ ok: true }),
-  getClients: async () => [],
-  getClientHistory: async () => [],
+  getClients: async () => [{ id: "example-client", name: "Anna Bianchi", phone: "", notes: "Preferisce gli appuntamenti al mattino." }],
+  getClientHistory: async () => appts.filter(a => a.customer_name === "Anna Bianchi"),
   createOwnerAppointment: async (input: any) => {
     appts.push(mkAppt(input.employeeId, input.dateStr, input.timeStr, input.durationMin, input.customerName, input.serviceName));
     return { ok: true };

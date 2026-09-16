@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { AppHeader } from "@/components/app/AppChrome";
+import "@/app/access-design.css";
 
 export function AuthLayout({
   title,
@@ -12,14 +14,26 @@ export function AuthLayout({
   footer?: React.ReactNode;
 }) {
   return (
-    <main className="mx-auto flex min-h-[100dvh] max-w-[440px] flex-col justify-center px-6 py-12">
-      <Link href="/" className="mb-8 text-[1.05rem] font-[640]">
-        Prenota<span className="text-[var(--accent)]">Easy</span>
-      </Link>
-      <h1 className="text-title">{title}</h1>
-      {subtitle && <p className="mt-2 text-[var(--ink-2)]">{subtitle}</p>}
-      <div className="mt-7">{children}</div>
-      {footer && <div className="mt-6 text-[var(--ink-2)]">{footer}</div>}
-    </main>
+    <div className="access-page">
+      <AppHeader backHref="/">
+        <Link href="/" className="access-home-link">Torna al sito</Link>
+      </AppHeader>
+      <main className="access-layout">
+        <aside className="access-editorial" aria-label="Il tuo spazio, il tuo ritmo">
+          <img src="/images/salon-editorial.jpg" alt="Un salone luminoso, pronto per una nuova giornata" />
+          <div className="access-editorial-copy">
+            <span className="access-eyebrow">Il tuo spazio, il tuo ritmo</span>
+            <p>Più tempo<br />per il tuo talento.</p>
+          </div>
+        </aside>
+        <section className="access-card">
+          <span className="access-eyebrow">Benvenuto in PrenotaEasy</span>
+          <h1>{title}</h1>
+          {subtitle && <p className="access-description">{subtitle}</p>}
+          <div className="access-form-content">{children}</div>
+          {footer && <div className="access-footer">{footer}</div>}
+        </section>
+      </main>
+    </div>
   );
 }

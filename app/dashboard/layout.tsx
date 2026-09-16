@@ -1,5 +1,4 @@
 import { requireBusiness } from "@/lib/auth";
-import { DashboardNav } from "./DashboardNav";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +11,7 @@ export default async function DashboardLayout({
   await requireBusiness();
 
   return (
-    <div className="mx-auto min-h-[100dvh] max-w-[720px] pb-[76px] bg-[var(--bg)]">
+    <div className="dashboard-shell">
       {children}
     </div>
   );

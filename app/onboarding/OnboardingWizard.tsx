@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
+import { AppHeader, AppPageHeading } from "@/components/app/AppChrome";
+import "@/app/access-design.css";
 import { Button } from "@/components/ui/Button";
 import { Toggle } from "@/components/ui/Toggle";
 import { QRCard } from "@/components/QRCard";
@@ -40,6 +42,7 @@ export function OnboardingWizard({
   initialBusiness?: any;
 }) {
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
 
   const [name, setName] = useState(initialBusiness?.name || "");
   const [phone, setPhone] = useState(initialBusiness?.phone || "");
@@ -124,12 +127,12 @@ export function OnboardingWizard({
 
   if (doneSlug) {
     return (
-      <main className="mx-auto flex min-h-[100dvh] max-w-[520px] flex-col justify-center px-5 py-10">
+      <div className="access-page"><AppHeader /><main className="access-state onboarding-done">
         <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
+          initial={reduceMotion ? { opacity: 0 } : { scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={spring.bouncy}
-          className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full bg-[#34c759] text-3xl text-white"
+          className="access-state-icon access-success"
         >
           ✓
         </motion.div>
@@ -150,25 +153,29 @@ export function OnboardingWizard({
         >
           Vai all&apos;agenda
         </button>
-      </main>
+      </main></div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-[560px] px-5 pb-28 pt-8">
-      <h1 className="text-2xl font-extrabold text-[var(--ink)] tracking-tight">Configura la tua attività</h1>
-      <p className="mt-2 text-[var(--ink-2)] text-sm">
-        Un paio di minuti e sei pronto a ricevere prenotazioni.
-      </p>
+    <div className="onboarding-page">
+      <AppHeader backHref="/" />
+      <main className="onboarding-main">
+      <AppPageHeading eyebrow="Facciamo spazio alla tua attività" title="Ogni dettaglio, al suo posto." description="Presenta la tua attività, imposta gli orari e prepara i servizi. Le prime prenotazioni iniziano da qui." />
+      <div className="onboarding-grid">
 
       {/* Business */}
       <Section title="La tua attività" icon="storefront">
+        <label className="access-field">
+        <span>Nome dell’attività</span>
         <input
           className="w-full h-12 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[var(--ink)]"
           placeholder="Nome (es. Salone Bellezza)"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
+        </label><label className="access-field">
+        <span>Telefono <span className="access-optional">(facoltativo)</span></span>
         <input
           className="w-full h-12 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[var(--ink)] mt-3"
           placeholder="Telefono (facoltativo)"
@@ -176,24 +183,27 @@ export function OnboardingWizard({
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
         />
+        </label><label className="access-field">
+        <span>Indirizzo <span className="access-optional">(facoltativo)</span></span>
         <input
           className="w-full h-12 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[var(--ink)] mt-3"
           placeholder="Indirizzo (facoltativo)"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
         />
+        </label>
       </Section>
 
       {/* Hours */}
       <Section title="Orari di apertura" icon="schedule">
         <div className="divide-y divide-[var(--line)]">
           {hours.map((h, i) => (
-            <div key={h.weekday} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 sm:py-2.5">
-              <div className="flex items-center justify-between w-full sm:w-auto sm:gap-3">
+            <div key={h.weekday} className="onboarding-hour-row">
+              <div className="onboarding-day-label">
                 <span className="w-24 shrink-0 font-bold text-sm text-[var(--ink)]">
                   {WEEKDAYS_LONG[h.weekday]}
                 </span>
-                <div className="sm:hidden">
+                <div className="onboarding-mobile-toggle">
                   <Toggle
                     checked={!h.isClosed}
                     onChange={(v) => setHour(i, { isClosed: !v })}
@@ -204,10 +214,11 @@ export function OnboardingWizard({
               {h.isClosed ? (
                 <span className="flex-1 text-[var(--ink-2)] text-left text-xs font-semibold">Chiuso</span>
               ) : (
-                <div className="flex flex-col gap-1 w-full sm:w-auto">
-                  <div className="flex items-center gap-1.5 w-full sm:w-48">
+                <div className="onboarding-hour-inputs">
+                  <div className="onboarding-time-pair">
                     <input
                       type="time"
+                      aria-label={`Apertura ${WEEKDAYS_LONG[h.weekday]}`}
                       value={h.open}
                       onChange={(e) => setHour(i, { open: e.target.value })}
                       className="h-10 flex-1 px-2 text-center text-xs text-[var(--ink)] font-medium rounded-xl border border-[var(--line)] outline-none focus:border-[var(--ink)] bg-[var(--bg)]"
@@ -215,6 +226,7 @@ export function OnboardingWizard({
                     <span className="text-[var(--ink-2)]">–</span>
                     <input
                       type="time"
+                      aria-label={`Chiusura ${WEEKDAYS_LONG[h.weekday]}`}
                       value={h.close}
                       onChange={(e) => setHour(i, { close: e.target.value })}
                       className="h-10 flex-1 px-2 text-center text-xs text-[var(--ink)] font-medium rounded-xl border border-[var(--line)] outline-none focus:border-[var(--ink)] bg-[var(--bg)]"
@@ -228,13 +240,13 @@ export function OnboardingWizard({
                         return { ...row, open: h.open, close: h.close };
                       }));
                     }}
-                    className="h-8 px-3 mt-1.5 rounded-full bg-[var(--bg)] border border-[var(--line)] text-[9px] font-extrabold text-[var(--accent)] hover:bg-[var(--surface-2)] uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all self-end"
+                    className="h-8 px-3 mt-1.5 rounded-full bg-[var(--bg)] border border-[var(--line)] text-[18px] font-extrabold text-[var(--accent)] hover:bg-[var(--surface-2)] uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all self-end"
                   >
-                    <span className="material-symbols-outlined text-[10px]">content_copy</span> Applica a tutti
+                    <span className="material-symbols-outlined text-[18px]">content_copy</span> Applica a tutti
                   </button>
                 </div>
               )}
-              <div className="hidden sm:block">
+              <div className="onboarding-desktop-toggle">
                 <Toggle
                   checked={!h.isClosed}
                   onChange={(v) => setHour(i, { isClosed: !v })}
@@ -244,7 +256,7 @@ export function OnboardingWizard({
             </div>
           ))}
         </div>
-        <p className="text-[10px] text-[var(--ink-2)] font-medium mt-2">
+        <p className="text-[18px] text-[var(--ink-2)] font-medium mt-2">
           Le pause (es. pranzo) si aggiungono dopo, dalle impostazioni.
         </p>
       </Section>
@@ -255,7 +267,7 @@ export function OnboardingWizard({
           {services.map((s, i) => (
             <div
               key={i}
-              className="rounded-2xl bg-[var(--surface)] p-5 border border-[var(--line)] space-y-4 relative shadow-sm text-left"
+              className="onboarding-service space-y-4"
             >
               {/* Remove button at top right */}
               {services.length > 1 && (
@@ -263,7 +275,7 @@ export function OnboardingWizard({
                   type="button"
                   onClick={() => setServices((prev) => prev.filter((_, j) => j !== i))}
                   aria-label="Rimuovi servizio"
-                  className="absolute top-4 right-4 text-[#ba1a1a] hover:opacity-80 transition-opacity font-bold text-xs p-1 cursor-pointer border-none bg-transparent"
+                  className="onboarding-remove text-[var(--danger)]"
                 >
                   ✕ Rimuovi
                 </button>
@@ -271,9 +283,10 @@ export function OnboardingWizard({
 
               {/* NOME SERVIZIO */}
               <div>
-                <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Nome Servizio</label>
+                <label htmlFor={`service-name-${i}`} className="text-[18px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Nome servizio</label>
                 <input
                   className="w-full h-12 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-semibold text-[var(--ink)] transition-all"
+                  id={`service-name-${i}`}
                   placeholder="es. Taglio capelli, Massaggio..."
                   value={s.name}
                   onChange={(e) => setService(i, { name: e.target.value })}
@@ -282,9 +295,10 @@ export function OnboardingWizard({
 
               {/* DESCRIZIONE */}
               <div>
-                <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Descrizione</label>
+                <label htmlFor={`service-description-${i}`} className="text-[18px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Descrizione</label>
                 <textarea
                   className="w-full h-24 rounded-xl bg-[var(--bg)] border border-[var(--line)] p-3 outline-none focus:border-[var(--ink)] text-sm text-[var(--ink)] font-medium resize-none transition-all"
+                  id={`service-description-${i}`}
                   placeholder="Scrivi qui una breve descrizione del servizio..."
                   value={s.description}
                   onChange={(e) => setService(i, { description: e.target.value })}
@@ -295,12 +309,13 @@ export function OnboardingWizard({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* DURATA TRATTAMENTO */}
                 <div>
-                  <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Durata Trattamento</label>
+                  <label className="text-[18px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Durata Trattamento</label>
                   <div className="grid grid-cols-2 gap-2">
                     {/* Ore Input */}
                     <div className="flex h-12 items-center justify-between bg-[var(--bg)] border border-[var(--line)] rounded-xl px-3">
                       <input
                         type="number"
+                        aria-label="Durata in ore"
                         min={0}
                         max={12}
                         value={s.durationHoursRaw !== undefined ? s.durationHoursRaw : Math.floor(s.duration / 60)}
@@ -314,7 +329,7 @@ export function OnboardingWizard({
                             setService(i, { duration: h * 60 + m, durationHoursRaw: val });
                           }
                         }}
-                        className="w-12 bg-transparent text-left font-bold outline-none text-base text-[var(--ink)]"
+                        className="w-12 bg-transparent text-left font-bold outline-none text-lg text-[var(--ink)]"
                         placeholder="0"
                       />
                       <span className="text-[var(--ink-2)] text-xs font-semibold">ore</span>
@@ -323,6 +338,7 @@ export function OnboardingWizard({
                     <div className="flex h-12 items-center justify-between bg-[var(--bg)] border border-[var(--line)] rounded-xl px-3">
                       <input
                         type="number"
+                        aria-label="Durata in minuti"
                         min={0}
                         max={59}
                         step={5}
@@ -337,7 +353,7 @@ export function OnboardingWizard({
                             setService(i, { duration: h * 60 + m, durationMinutesRaw: val });
                           }
                         }}
-                        className="w-12 bg-transparent text-left font-bold outline-none text-base text-[var(--ink)]"
+                        className="w-12 bg-transparent text-left font-bold outline-none text-lg text-[var(--ink)]"
                         placeholder="0"
                       />
                       <span className="text-[var(--ink-2)] text-xs font-semibold">minuti</span>
@@ -347,10 +363,11 @@ export function OnboardingWizard({
 
                 {/* PREZZO */}
                 <div>
-                  <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Prezzo</label>
+                  <label htmlFor={`service-price-${i}`} className="text-[18px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Prezzo</label>
                   <div className="flex h-12 items-center gap-1.5 bg-[var(--bg)] border border-[var(--line)] rounded-xl px-3">
                     <span className="text-[var(--ink)] text-lg font-bold">€</span>
                     <input
+                      id={`service-price-${i}`}
                       inputMode="decimal"
                       className="w-full bg-transparent outline-none text-lg font-bold text-[var(--ink)]"
                       placeholder="0,00"
@@ -378,13 +395,15 @@ export function OnboardingWizard({
       <Section title="Operatori" icon="group">
         <div className="space-y-2.5">
           {employees.map((e, i) => (
-            <div key={i} className="flex items-center gap-2">
+            <div key={i} className="onboarding-employee">
+              <label htmlFor={`employee-name-${i}`} className="onboarding-employee-label">Nome operatore {i + 1}</label>
               <span
                 className="h-8 w-8 shrink-0 rounded-full"
                 style={{ background: EMPLOYEE_COLORS[i % EMPLOYEE_COLORS.length] }}
               />
               <input
                 className="h-11 flex-1 text-[var(--ink)] font-medium border border-[var(--line)] rounded-xl focus:border-[var(--ink)] bg-[var(--bg)] px-4 text-sm"
+                id={`employee-name-${i}`}
                 placeholder={`Nome operatore ${i + 1}`}
                 value={e}
                 onChange={(ev) =>
@@ -398,7 +417,7 @@ export function OnboardingWizard({
                   onClick={() =>
                     setEmployees((prev) => prev.filter((_, j) => j !== i))
                   }
-                  aria-label="Rimuovi operatore"
+                  aria-label={`Rimuovi operatore ${i + 1}`}
                   className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--ink-2)] transition-colors active:bg-[var(--bg)] border-none bg-transparent cursor-pointer"
                 >
                   ✕
@@ -415,14 +434,15 @@ export function OnboardingWizard({
         </button>
       </Section>
 
+      </div>
       {error && (
-        <p className="mt-5 rounded-xl bg-[color-mix(in_srgb,var(--danger)_12%,transparent)] px-3 py-2.5 text-xs font-semibold text-[var(--danger)]">
+        <p role="alert" className="access-error">
           {error}
         </p>
       )}
 
-      <footer className="material pb-safe fixed inset-x-0 bottom-0 border-t border-[var(--line)] px-5 pt-3 pb-4 bg-[var(--surface)]/80 backdrop-blur-md">
-        <div className="mx-auto max-w-[560px]">
+      <footer className="onboarding-actions">
+        <div className="onboarding-save">
           <button
             disabled={saving}
             onClick={submit}
@@ -432,6 +452,7 @@ export function OnboardingWizard({
           </button>
         </div>
       </footer>
+      </main>
     </div>
   );
 }
@@ -446,8 +467,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="ios-card mt-5 space-y-3 p-5 border border-[var(--line)] bg-[var(--surface)] shadow-sm">
-      <h2 className="text-base font-bold text-[var(--ink)] flex items-center gap-2 tracking-tight">
+    <section className="onboarding-panel">
+      <h2 className="text-lg font-bold text-[var(--ink)] flex items-center gap-2 tracking-tight">
         <span className="material-symbols-outlined text-[var(--ink)] text-[20px]">{icon}</span> {title}
       </h2>
       {children}

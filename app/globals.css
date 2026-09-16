@@ -22,7 +22,7 @@
   -------------------------
   Apple-inspired: system font stack (ships optical sizing + tracking tables),
   size-specific tracking, translucent materials, restrained palette with a
-  single warm accent. Light + dark via prefers-color-scheme. Tokens are plain
+  single warm accent. Light mode throughout. Tokens are plain
   CSS variables so they can be re-branded per business later.
 */
 
@@ -79,41 +79,6 @@
   --shadow-sheet: 0 -8px 40px rgba(62,27,51, 0.15);
 
   color-scheme: light;
-}
-
-.dark {
-  --bg: #1E1420;          /* Plum scuro */
-  --surface: #2A1D2B;     /* Card background */
-  --surface-2: #352335;   /* Inactive elements */
-  --surface-3: #422B41;
-
-  --ink: #FBF8FA;         /* Testo porcellana */
-  --ink-2: #C4AFBB;       /* Mauve chiaro */
-  --ink-3: #A18A97;
-
-  --line: rgba(251,248,250, 0.08);
-  --line-strong: rgba(251,248,250, 0.16);
-
-  --accent: #DE8CA9;       /* Rosa cipria: risalta sul plum scuro */
-  --accent-press: #E9A5BC;
-  --accent-soft: rgba(222,140,169, 0.16);
-  --on-accent: #1E1420;
-
-  --accent-2: #E9A5BC;
-  --accent-2-soft: rgba(233,165,188, 0.16);
-  --on-accent-2: #2A101E;
-
-  --material: rgba(42,29,43, 0.75);
-  --material-strong: rgba(42,29,43, 0.92);
-  --material-border: rgba(255, 255, 255, 0.05);
-  --scrim: rgba(0, 0, 0, 0.6);
-
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.55), 0 4px 10px rgba(0, 0, 0, 0.35);
-  --shadow-sheet: 0 -8px 40px rgba(0, 0, 0, 0.55);
-
-  color-scheme: dark;
 }
 
 /* Expose tokens to Tailwind utilities (bg-bg, text-ink, rounded-lg, etc.). */

@@ -1,0 +1,215 @@
+/* Administration, reporting and sharing use the same app material and type tokens. */
+.app-ui .management-layout { min-height: 100dvh; }
+.app-ui .management-page { width: min(1440px, calc(100% - 96px)); margin-inline: auto; padding-block: 0 136px; }
+.app-ui .management-page > .app-page-heading { margin-bottom: 52px; }
+.app-ui .management-eyebrow { display: block; color: var(--ink-2); font-size: 18px; font-weight: 600; letter-spacing: .06em; line-height: 1.4; }
+.app-ui .management-section { margin-top: 60px; }
+.app-ui .management-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 26px; }
+.app-ui .management-section-heading h2 { margin: 0; font-size: clamp(44px, 3.6vw, 52px); font-weight: 500; line-height: 1.06; letter-spacing: -.055em; }
+.app-ui .management-section-heading h3 { margin: 0; font-size: 28px; font-weight: 600; line-height: 1.15; letter-spacing: -.035em; }
+.app-ui .management-section-heading p { margin: 0; color: var(--ink-2); font-size: 18px; }
+.app-ui .management-panel, .app-ui .activity-card, .app-ui .management-metric, .app-ui .qr-share-card { background: var(--surface); border: 1px solid var(--line); border-radius: 36px; }
+.app-ui .management-panel { min-width: 0; padding: clamp(28px, 3vw, 46px); }
+.app-ui .management-panel h2 { margin: 14px 0 0; font-size: clamp(44px, 3.5vw, 48px); line-height: 1.08; font-weight: 500; letter-spacing: -.05em; }
+.app-ui .management-panel-heading { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; }
+.app-ui .management-panel-heading > .material-symbols-outlined { font-size: 36px; color: var(--ink-2); }
+.app-ui .management-note { color: var(--ink-2); font-size: 18px; line-height: 1.5; margin: 18px 0 0; }
+.app-ui .management-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin: 0; }
+.app-ui .management-metric { position: relative; padding: 30px 32px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-width: 0; }
+.app-ui .management-metric-icon { font-size: 28px; color: var(--ink-2); margin-bottom: 18px; }
+.app-ui .management-metric > strong, .app-ui .management-metric dd { margin: 0; font-size: clamp(54px, 6vw, 88px); line-height: .98; font-weight: 500; letter-spacing: -.065em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.app-ui .management-metric > span:last-child, .app-ui .management-metric dt { font-size: 20px; color: var(--ink-2); line-height: 1.35; }
+.app-ui .management-metric:first-child { background: var(--surface-2); }
+.app-ui .activity-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.app-ui .activity-card { display: flex; flex-direction: column; min-width: 0; padding: 32px; }
+.app-ui .activity-card-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 18px; margin-bottom: 28px; }
+.app-ui .activity-symbol { width: 62px; height: 62px; display: grid; place-items: center; border-radius: 50%; background: var(--surface-2); font-size: 28px; }
+.app-ui .activity-card h3 { margin: 0; font-size: clamp(28px, 2.8vw, 38px); line-height: 1.15; letter-spacing: -.04em; font-weight: 600; overflow-wrap: anywhere; }
+.app-ui .management-status { display: inline-flex; align-items: center; gap: 9px; font-size: 18px; line-height: 1.35; padding: 10px 15px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); background: var(--surface-2); }
+.app-ui .management-status > span { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: var(--warning); }
+.app-ui .management-status.is-ready > span { background: var(--success); }
+.app-ui .activity-details { display: grid; gap: 20px; margin-block: 26px 30px; }
+.app-ui .activity-details dt { margin-bottom: 5px; font-size: 18px; color: var(--ink-2); }
+.app-ui .activity-details dd { margin: 0; font-size: 20px; line-height: 1.35; overflow-wrap: anywhere; }
+.app-ui .activity-actions { margin-top: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-top: 24px; border-top: 1px solid var(--line); }
+.app-ui .management-action { display: inline-flex; justify-content: center; align-items: center; gap: 10px; min-height: 54px; padding: 12px 20px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 18px; font-weight: 600; line-height: 1.3; text-align: center; text-decoration: none; cursor: pointer; transition: background-color 160ms ease, transform 160ms ease; }
+.app-ui .management-action .material-symbols-outlined { font-size: 23px; flex-shrink: 0; }
+.app-ui .management-action-danger { border-color: color-mix(in srgb, var(--danger) 35%, transparent); color: var(--danger); }
+.app-ui .management-action:disabled { opacity: .5; cursor: default; }
+.app-ui .management-action:active:not(:disabled) { transform: scale(.97); }
+.app-ui .management-empty { grid-column: 1 / -1; padding: 42px 28px; background: var(--surface-2); border-radius: 30px; text-align: center; }
+.app-ui .management-empty > .material-symbols-outlined { display: block; font-size: 40px; color: var(--ink-2); margin-bottom: 18px; }
+.app-ui .management-empty h3 { margin: 0 0 16px; font-size: 30px; font-weight: 500; line-height: 1.15; }
+.app-ui .management-empty p { max-width: 580px; margin: 0 auto; color: var(--ink-2); font-size: 20px; line-height: 1.5; }
+.app-ui .management-empty > button { margin-top: 24px; }
+.app-ui .management-form { display: grid; gap: 24px; padding-top: 12px; }
+.app-ui .management-sheet-intro { margin: 0 0 4px; color: var(--ink-2); font-size: 20px; line-height: 1.5; }
+.app-ui .management-field { display: grid; gap: 10px; }
+.app-ui .management-field label { font-size: 18px; font-weight: 600; }
+.app-ui .management-field input, .app-ui .operator-link-card input { min-width: 0; width: 100%; min-height: 58px; padding: 14px 20px; border: 1px solid var(--line-strong); border-radius: 20px; color: var(--ink); background: var(--surface-2); font: inherit; font-size: 18px; }
+.app-ui .management-field input::placeholder { color: var(--ink-2); opacity: 1; }
+.app-ui .management-field p { margin: 0; font-size: 18px; color: var(--ink-2); line-height: 1.45; overflow-wrap: anywhere; }
+.app-ui .management-error { margin: 0; padding: 18px 20px; border-radius: 20px; background: color-mix(in srgb, var(--danger) 10%, transparent); font-size: 18px; color: var(--danger); }
+.app-ui .management-form-actions { display: grid; gap: 12px; margin-top: 10px; }
+.app-ui .operator-management { display: grid; gap: 30px; padding-top: 12px; }
+.app-ui .operator-access-setting { display: flex; align-items: center; gap: 24px; border-radius: 28px; border: 1px solid var(--line); background: var(--surface-2); padding: 28px; }
+.app-ui .operator-access-setting > div { flex: 1; min-width: 0; }
+.app-ui .operator-access-setting h3 { margin: 12px 0 8px; font-size: 28px; line-height: 1.15; font-weight: 600; letter-spacing: -.035em; }
+.app-ui .operator-access-setting p { margin: 0; font-size: 18px; color: var(--ink-2); line-height: 1.45; }
+.app-ui .management-switch { width: 66px; height: 44px; flex-shrink: 0; padding: 5px; background: var(--surface-3); border: 1px solid var(--line-strong); border-radius: 999px; cursor: pointer; }
+.app-ui .management-switch > span { display: block; width: 32px; height: 32px; background: var(--surface); border-radius: 50%; transition: transform 180ms ease; box-shadow: 0 2px 5px #0002; }
+.app-ui .management-switch[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+.app-ui .management-switch[aria-checked="true"] > span { transform: translateX(22px); background: var(--on-accent); }
+.app-ui .management-switch:disabled { opacity: .5; cursor: wait; }
+.app-ui .operator-link-list { display: grid; gap: 18px; }
+.app-ui .operator-link-card { min-width: 0; padding: 24px; border: 1px solid var(--line); border-radius: 28px; background: var(--surface); }
+.app-ui .operator-link-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.app-ui .operator-link-heading h4 { display: flex; align-items: center; gap: 12px; min-width: 0; margin: 0; font-size: 24px; line-height: 1.3; font-weight: 600; overflow-wrap: anywhere; }
+.app-ui .operator-color { height: 12px; width: 12px; flex-shrink: 0; border: 1px solid var(--line-strong); border-radius: 50%; }
+.app-ui .operator-link-card input { background: var(--bg); }
+.app-ui .operator-link-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.app-ui .analytics-overview { display: grid; grid-template-columns: .9fr 1.3fr; gap: 24px; }
+.app-ui .analytics-spotlight { display: flex; flex-direction: column; background: var(--surface-2); }
+.app-ui .analytics-hero-number { margin-top: 44px; font-size: clamp(90px, 10vw, 150px); line-height: .9; font-weight: 500; letter-spacing: -.075em; font-variant-numeric: tabular-nums; }
+.app-ui .analytics-hero-unit { font-size: 24px; line-height: 1.3; margin: 20px 0 0; }
+.app-ui .analytics-month-total { display: flex; gap: 20px; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 34px; font-size: 18px; }
+.app-ui .analytics-month-total strong { font-size: 40px; line-height: 1; font-weight: 500; letter-spacing: -.05em; }
+.app-ui .revenue-chart { margin: 36px 0 0; }
+.app-ui .revenue-bars { height: 210px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: end; border-bottom: 1px solid var(--line-strong); }
+.app-ui .revenue-bar-track { height: 100%; display: flex; align-items: end; padding-inline: 10px; }
+.app-ui .revenue-bar { width: 100%; border-radius: 24px 24px 0 0; background: var(--accent); }
+.app-ui .revenue-bar-0 { background: color-mix(in srgb, var(--accent) 40%, var(--surface-2)); }
+.app-ui .revenue-bar-1 { background: color-mix(in srgb, var(--accent) 70%, var(--surface-2)); }
+.app-ui .revenue-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 22px 0 0; text-align: center; }
+.app-ui .revenue-values dt { font-size: 18px; color: var(--ink-2); }
+.app-ui .revenue-values dd { font-size: clamp(22px, 2.5vw, 34px); font-weight: 500; letter-spacing: -.05em; margin: 8px 0 0; overflow-wrap: anywhere; }
+.app-ui .analytics-detail-grid { display: grid; grid-template-columns: 1.3fr .9fr; gap: 24px; margin-top: 24px; }
+.app-ui .analytics-team-list { list-style: none; margin: 28px 0 0; padding: 0; }
+.app-ui .analytics-team-list li { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 22px 0; border-top: 1px solid var(--line); }
+.app-ui .analytics-team-list li:last-child { padding-bottom: 0; }
+.app-ui .analytics-employee { display: flex; gap: 18px; align-items: center; min-width: 0; }
+.app-ui .analytics-avatar { display: grid; place-items: center; width: 58px; height: 58px; flex-shrink: 0; border-radius: 50%; border: 3px solid var(--accent); background: var(--surface-2); color: var(--ink); font-size: 26px; font-weight: 600; }
+.app-ui .analytics-employee h3 { font-size: 24px; font-weight: 600; line-height: 1.25; margin: 0; overflow-wrap: anywhere; }
+.app-ui .analytics-employee p { color: var(--ink-2); font-size: 18px; margin: 6px 0 0; }
+.app-ui .analytics-employee-count { text-align: right; }
+.app-ui .analytics-employee-count strong { display: block; font-size: 36px; letter-spacing: -.04em; line-height: 1; font-weight: 500; }
+.app-ui .analytics-employee-count span { display: block; font-size: 18px; color: var(--ink-2); margin-top: 8px; }
+.app-ui .analytics-team .management-empty { margin-top: 24px; }
+.app-ui .analytics-client-counts { display: grid; gap: 0; margin: 28px 0 0; }
+.app-ui .analytics-client-counts > div { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-block: 24px; border-top: 1px solid var(--line); }
+.app-ui .analytics-client-counts > div:last-child { padding-bottom: 0; }
+.app-ui .analytics-client-counts dt { font-size: 20px; color: var(--ink-2); }
+.app-ui .analytics-client-counts dd { margin: 0; font-size: 58px; line-height: 1; letter-spacing: -.06em; font-weight: 500; }
+.app-ui .analytics-appointments .management-metric { gap: 28px; }
+.app-ui .share-layout { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 32px; }
+.app-ui .qr-share-card { min-width: 0; width: 100%; padding: 32px; color: var(--ink); }
+.app-ui .qr-share-topline { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.app-ui .qr-share-topline .material-symbols-outlined { font-size: 28px; color: var(--ink-2); }
+.app-ui .qr-share-art { display: grid; place-items: center; padding: 38px 0 28px; }
+.app-ui .qr-share-code { width: min(100%, 296px); background: #fff; border-radius: 30px; padding: 12px; box-shadow: 0 10px 32px #3925340d; }
+.app-ui .qr-share-code canvas { display: block; width: 100% !important; height: auto !important; aspect-ratio: 1; }
+.app-ui .qr-share-caption { text-align: center; }
+.app-ui .qr-share-caption h2 { margin: 0; font-size: clamp(30px, 3.2vw, 42px); line-height: 1.1; font-weight: 500; letter-spacing: -.045em; }
+.app-ui .qr-share-caption p { margin: 12px 0 0; font-size: 20px; color: var(--ink-2); }
+.app-ui .qr-share-link { display: grid; gap: 8px; margin-top: 30px; padding: 20px; border-radius: 24px; border: 1px solid var(--line); background: var(--surface-2); }
+.app-ui .qr-share-link > span { font-size: 18px; color: var(--ink-2); }
+.app-ui .qr-share-link a { width: fit-content; font-size: 20px; line-height: 1.45; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 4px; overflow-wrap: anywhere; user-select: all; }
+.app-ui .qr-share-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+.app-ui .qr-share-feedback { font-size: 18px; line-height: 1.4; color: var(--ink-2); text-align: center; margin: 20px 0 0; }
+.app-ui .qr-share-feedback.is-error { color: var(--danger); }
+.app-ui .share-instructions { margin-top: 38px; background: transparent; border: 0; padding-inline: 28px; }
+.app-ui .share-instructions h2 { font-size: clamp(44px, 4.3vw, 64px); max-width: 540px; }
+.app-ui .share-steps { list-style: none; margin: 42px 0; padding: 0; display: grid; gap: 34px; }
+.app-ui .share-steps li { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 20px; }
+.app-ui .share-steps li > .material-symbols-outlined { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 50%; background: var(--surface-2); font-size: 26px; }
+.app-ui .share-steps h3 { margin: 0; font-size: 28px; line-height: 1.2; letter-spacing: -.035em; font-weight: 600; }
+.app-ui .share-steps p { margin: 10px 0 0; color: var(--ink-2); font-size: 20px; line-height: 1.5; }
+.app-ui .share-preview-link { text-align: left; }
+@media (hover: hover) and (pointer: fine) {
+  .app-ui .management-action:hover:not(:disabled) { background: var(--surface-2); }
+}
+@media (max-width: 1100px) {
+  .app-ui .management-page { width: calc(100% - 64px); }
+  .app-ui .activity-card { padding: 28px; }
+  .app-ui .analytics-overview, .app-ui .analytics-detail-grid { grid-template-columns: 1fr 1fr; }
+  .app-ui .analytics-employee { gap: 12px; }
+  .app-ui .analytics-avatar { width: 48px; height: 48px; }
+  .app-ui .analytics-team-list li { flex-wrap: wrap; }
+  .app-ui .analytics-employee-count { display: flex; align-items: baseline; gap: 10px; margin-left: auto; }
+  .app-ui .analytics-employee-count span { margin-top: 0; }
+  .app-ui .share-layout { gap: 20px; }
+  .app-ui .share-instructions { padding-inline: 12px; }
+}
+@media (max-width: 800px) {
+  .app-ui .activity-grid, .app-ui .analytics-overview, .app-ui .analytics-detail-grid, .app-ui .share-layout { grid-template-columns: 1fr; }
+  .app-ui .management-metric { padding: 26px 22px; }
+  .app-ui .management-metric > span:last-child { font-size: 18px; }
+  .app-ui .analytics-spotlight { min-height: 440px; }
+  .app-ui .analytics-hero-number { font-size: 112px; }
+  .app-ui .analytics-team-list li { flex-wrap: nowrap; }
+  .app-ui .analytics-employee-count { display: block; }
+  .app-ui .analytics-employee-count span { margin-top: 8px; }
+  .app-ui .share-instructions { margin-top: 20px; padding-inline: 0; }
+  .app-ui .qr-share-art { padding-block: 32px; }
+}
+@media (max-width: 600px) {
+  .app-ui .management-page { width: calc(100% - 36px); padding-block: 0 136px; }
+  .app-ui .management-page > .app-page-heading { margin-bottom: 36px; }
+  .app-ui .management-section { margin-top: 44px; }
+  .app-ui .management-section-heading { align-items: start; flex-direction: column; gap: 14px; margin-bottom: 24px; }
+  .app-ui .management-section-heading h2 { font-size: 44px; }
+  .app-ui .management-metrics { grid-template-columns: 1fr; gap: 12px; }
+  .app-ui .management-metric { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 18px; border-radius: 28px; padding: 24px; }
+  .app-ui .management-metric-icon { grid-column: 1; grid-row: 1; margin: 0; }
+  .app-ui .management-metric > strong { grid-column: 2; grid-row: 1 / 3; font-size: 64px; }
+  .app-ui .management-metric > span:last-child { grid-column: 1; grid-row: 2; }
+  .app-ui .management-metric dd { font-size: 64px; }
+  .app-ui .management-metric dt { font-size: 20px; }
+  .app-ui .activity-card { padding: 26px 24px; border-radius: 30px; }
+  .app-ui .activity-card-heading { gap: 12px; margin-bottom: 24px; }
+  .app-ui .activity-symbol { width: 50px; height: 50px; font-size: 24px; }
+  .app-ui .management-status { font-size: 18px; padding: 9px 12px; }
+  .app-ui .activity-card h3 { font-size: 32px; }
+  .app-ui .activity-details { gap: 18px; }
+  .app-ui .activity-actions { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .app-ui .management-action { min-height: 54px; }
+  .app-ui .management-panel { padding: 28px 24px; border-radius: 30px; }
+  .app-ui .management-panel h2 { font-size: 44px; }
+  .app-ui .management-panel-heading > .material-symbols-outlined { display: none; }
+  .app-ui .analytics-spotlight { min-height: 420px; }
+  .app-ui .analytics-hero-number { margin-top: 36px; font-size: 112px; }
+  .app-ui .analytics-month-total { padding-top: 28px; }
+  .app-ui .revenue-bars { gap: 12px; height: 170px; }
+  .app-ui .revenue-bar-track { padding-inline: 5px; }
+  .app-ui .revenue-bar { border-radius: 16px 16px 0 0; }
+  .app-ui .revenue-values { grid-template-columns: 1fr; gap: 0; text-align: left; margin-top: 18px; }
+  .app-ui .revenue-values > div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+  .app-ui .revenue-values dd { margin: 0; font-size: 28px; }
+  .app-ui .analytics-team-list li { flex-wrap: wrap; gap: 16px; }
+  .app-ui .analytics-employee-count { display: flex; gap: 10px; align-items: baseline; margin-left: 60px; text-align: left; }
+  .app-ui .analytics-employee-count strong { font-size: 30px; }
+  .app-ui .analytics-employee-count span { margin-top: 0; }
+  .app-ui .analytics-client-counts dd { font-size: 54px; }
+  .app-ui .management-empty { padding: 32px 22px; border-radius: 28px; }
+  .app-ui .management-empty h3 { font-size: 28px; }
+  .app-ui .management-empty p { font-size: 18px; }
+  .app-ui .operator-access-setting { flex-wrap: wrap; padding: 24px; gap: 22px; }
+  .app-ui .operator-access-setting > div { flex-basis: 100%; }
+  .app-ui .operator-link-card { padding: 22px 18px; }
+  .app-ui .operator-link-actions { display: grid; grid-template-columns: 1fr; }
+  .app-ui .management-field input, .app-ui .operator-link-card input { padding-inline: 16px; }
+  .app-ui .qr-share-card { padding: 26px 22px; border-radius: 30px; }
+  .app-ui .qr-share-code { padding: 8px; border-radius: 24px; }
+  .app-ui .qr-share-caption h2 { font-size: 34px; }
+  .app-ui .qr-share-link { padding: 18px; margin-top: 26px; }
+  .app-ui .qr-share-actions { grid-template-columns: 1fr; gap: 12px; }
+  .app-ui .share-instructions h2 { font-size: 44px; }
+  .app-ui .share-steps { gap: 30px; margin-block: 32px; }
+  .app-ui .share-steps li { grid-template-columns: 48px minmax(0, 1fr); gap: 16px; }
+  .app-ui .share-steps li > .material-symbols-outlined { width: 48px; height: 48px; font-size: 24px; }
+  .app-ui .share-steps h3 { font-size: 26px; }
+  .app-ui .share-steps p { font-size: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-ui .management-action, .app-ui .management-switch > span { transition: none; }
+}

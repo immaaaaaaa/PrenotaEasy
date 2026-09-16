@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/ui/Sheet";
-import { CalendarLogo } from "@/components/CalendarLogo";
-import { Wordmark } from "@/components/Wordmark";
+import { AppHeader, AppNav, AppPageHeading } from "@/components/app/AppChrome";
+import "./agenda-design.css";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -86,7 +86,7 @@ const timeToPercent = (timeStr: string): number => {
 };
 
 // Google Calendar-style grid geometry: fixed px per hour
-const HOUR_PX = 64;
+const HOUR_PX = 112;
 
 const parseHM = (t: string | null | undefined, fallback: number): number => {
   if (!t) return fallback;
@@ -1082,80 +1082,47 @@ export function AgendaView({
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] pb-24 font-sans overflow-x-clip">
-      {/* TopAppBar */}
-      <header className="w-full top-0 sticky z-40 bg-[var(--bg)]/85 backdrop-blur-md border-b border-[var(--line)]">
-        <div className="flex justify-between items-center px-4 sm:px-6 py-4 max-w-7xl mx-auto">
-          <div className="flex items-center gap-3">
-            <CalendarLogo size={48} />
-            <Wordmark />
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setQrOpen(true)}
-              className="material-symbols-outlined text-[var(--ink-2)] cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
-              title="Codice QR di Prenotazione"
-            >
-              qr_code
-            </button>
-            <button 
-              onClick={() => setNotifBellOpen(true)}
-              className="relative material-symbols-outlined text-[var(--ink-2)] cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
-            >
-              notifications
-              {unreadCount > 0 && (
-                <>
-                  <span className="absolute top-0.5 right-0.5 h-2.5 w-2.5 rounded-full bg-[var(--accent)] border-2 border-[#FBF8FA] animate-ping" />
-                  <span className="absolute top-0.5 right-0.5 h-2.5 w-2.5 rounded-full bg-[var(--accent)] border-2 border-[#FBF8FA]" />
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="agenda-experience">
+      <AppHeader>
+        <button onClick={() => setQrOpen(true)} aria-label="Codice QR di prenotazione"><span className="material-symbols-outlined" aria-hidden="true">qr_code</span></button>
+        <button onClick={() => setNotifBellOpen(true)} aria-label={unreadCount ? `Notifiche, ${unreadCount} da leggere` : "Notifiche"} className="relative">
+          <span className="material-symbols-outlined" aria-hidden="true">notifications</span>
+          {unreadCount > 0 && <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-[var(--accent)]" />}
+        </button>
+      </AppHeader>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 mt-6">
+      <main className="agenda-main">
         {/* TAB 1: DASHBOARD */}
         {ownerTab === "dashboard" && (
-          <div>
-            {/* Dashboard Title */}
-            <div className="mb-8">
-              <h2 className="text-2xl md:text-3xl font-extrabold text-[var(--ink)] tracking-tight">
-                {restrictToEmployeeId ? "Agenda Personale" : "Dashboard Titolare"}
-              </h2>
-              <p className="text-[var(--ink-2)] text-sm mt-1">
-                {restrictToEmployeeId 
-                  ? `Benvenuto ${employees.find(e => e.id === restrictToEmployeeId)?.name ?? ""}, ecco la tua panoramica.`
-                  : "Benvenuto, ecco la panoramica di oggi."}
-              </p>
-            </div>
+          <div className="agenda-overview">
+            <AppPageHeading eyebrow={business.name} title={restrictToEmployeeId ? "La tua giornata." : "Il tuo salone. Oggi."} description={restrictToEmployeeId ? `Ciao ${employees.find(e => e.id === restrictToEmployeeId)?.name ?? ""}. È tutto qui.` : "Più ordine. Più tempo per i tuoi clienti."} />
 
             {/* Quick Actions */}
-            <section className="mb-8">
-              <h3 className="text-xs font-bold text-[var(--ink-2)] uppercase tracking-widest mb-4">Azioni Rapide</h3>
-              <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar">
+            <section className="agenda-quick-actions">
+              <h2 className="sr-only">Azioni rapide</h2>
+              <div className="agenda-quick-buttons">
                 <button
                   onClick={() => setNewOpen(true)}
-                  className="flex-shrink-0 ios-btn-primary h-12 text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-sm"
+                  className="flex-shrink-0 ios-btn-primary h-12 text-[18px] font-bold uppercase tracking-widest flex items-center gap-2 shadow-sm"
                 >
                   <span className="material-symbols-outlined text-lg">add_circle</span>
-                  Aggiungi Appuntamento
+                  Nuovo appuntamento
                 </button>
                 {!restrictToEmployeeId && (
                   <>
                     <button
                       onClick={() => router.push("/dashboard/settings")}
-                      className="flex-shrink-0 ios-btn-secondary h-12 text-xs font-bold uppercase tracking-widest flex items-center gap-2 border border-[var(--line)] shadow-sm bg-[var(--surface)]"
+                      className="flex-shrink-0 ios-btn-secondary h-12 text-[18px] font-bold uppercase tracking-widest flex items-center gap-2 border border-[var(--line)] shadow-sm bg-[var(--surface)]"
                     >
                       <span className="material-symbols-outlined text-lg">settings_suggest</span>
-                      Gestisci Servizi
+                      Gestisci lo studio
                     </button>
                     <button
                       onClick={() => router.push("/dashboard/analytics")}
-                      className="flex-shrink-0 ios-btn-secondary h-12 text-xs font-bold uppercase tracking-widest flex items-center gap-2 border border-[var(--line)] shadow-sm bg-[var(--surface)]"
+                      className="flex-shrink-0 ios-btn-secondary h-12 text-[18px] font-bold uppercase tracking-widest flex items-center gap-2 border border-[var(--line)] shadow-sm bg-[var(--surface)]"
                     >
                       <span className="material-symbols-outlined text-lg">monitoring</span>
-                      Vedi Analytics
+                      Statistiche
                     </button>
                   </>
                 )}
@@ -1163,10 +1130,11 @@ export function AgendaView({
             </section>
 
             {/* Daily Timeline */}
-            <section className="mb-12">
+            <section className="agenda-day-list">
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-3">
                   <button
+                    aria-label="Giorno precedente"
                     onClick={() => setDate(addDaysStr(date, -1))}
                     className="grid h-10 w-10 place-items-center rounded-full text-[var(--ink)] hover:bg-[var(--surface-2)] active:scale-95 border-none bg-transparent cursor-pointer"
                   >
@@ -1176,6 +1144,7 @@ export function AgendaView({
                     {rel ?? dayTitle(date)}
                   </h3>
                   <button
+                    aria-label="Giorno successivo"
                     onClick={() => setDate(addDaysStr(date, 1))}
                     className="grid h-10 w-10 place-items-center rounded-full text-[var(--ink)] hover:bg-[var(--surface-2)] active:scale-95 border-none bg-transparent cursor-pointer"
                   >
@@ -1183,7 +1152,7 @@ export function AgendaView({
                   </button>
                 </div>
                 {date !== todayStr && (
-                  <span onClick={() => setDate(todayStr)} className="text-[var(--ink-2)] text-xs font-bold underline cursor-pointer hover:opacity-85">
+                  <span onClick={() => setDate(todayStr)} className="text-[var(--ink-2)] text-[18px] font-bold underline cursor-pointer hover:opacity-85">
                     Torna a oggi
                   </span>
                 )}
@@ -1202,7 +1171,7 @@ export function AgendaView({
                 ) : visible.length === 0 ? (
                   <div className="py-12 text-center text-[var(--ink-2)]">
                     <span className="material-symbols-outlined text-4xl">calendar_today</span>
-                    <p className="mt-2 text-sm">Nessun appuntamento per questo giorno.</p>
+                    <p className="mt-2 text-[18px]">Nessun appuntamento per questo giorno.</p>
                   </div>
                 ) : (
                   visible.map((a) => {
@@ -1218,6 +1187,9 @@ export function AgendaView({
                         )}
 
                         <div
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setActive(a); } }}
                           onClick={() => setActive(a)}
                           className={cn(
                             "ios-card p-4 flex justify-between items-center group cursor-pointer hover:shadow-md transition-all active:scale-[0.99] border-none bg-[var(--surface)]",
@@ -1229,13 +1201,13 @@ export function AgendaView({
                               <span className="material-symbols-outlined text-[28px]">person</span>
                             </div>
                             <div>
-                              <p className="font-bold text-[var(--ink)] flex items-center gap-2 text-sm">
+                              <p className="font-bold text-[var(--ink)] flex items-center gap-2 text-[18px]">
                                 {a.customer_name}
                                 {isLive && (
                                   <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse"></span>
                                 )}
                               </p>
-                              <p className="text-xs text-[var(--ink-2)] mt-0.5 font-medium">
+                              <p className="text-[18px] text-[var(--ink-2)] mt-0.5 font-medium">
                                 {a.service_name}
                                 {a.addons && a.addons.length > 0 ? ` +${a.addons.length} extra` : ""}
                                 {emp ? ` · ${emp.name}` : ""}
@@ -1243,10 +1215,10 @@ export function AgendaView({
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className={cn("text-sm font-bold", isLive ? "text-[var(--accent)]" : "text-[var(--ink)]")}>
+                            <p className={cn("text-[18px] font-bold", isLive ? "text-[var(--accent)]" : "text-[var(--ink)]")}>
                               {isLive ? "ORA" : fmtTime(new Date(a.starts_at), tz)}
                             </p>
-                            <span className="text-[10px] bg-[var(--surface-3)] px-2 py-0.5 rounded text-[var(--ink-2)] font-bold mt-1 inline-block">
+                            <span className="text-[18px] bg-[var(--surface-3)] px-2 py-0.5 rounded text-[var(--ink-2)] font-bold mt-1 inline-block">
                               {isLive ? "LIVE" : `${a.duration_min} min`}
                             </span>
                           </div>
@@ -1259,17 +1231,17 @@ export function AgendaView({
             </section>
 
             {/* Key Bento Metrics (bottom of the dashboard) */}
-            <section className={cn("grid grid-cols-1 gap-4 mb-8", restrictToEmployeeId ? "md:grid-cols-2" : "md:grid-cols-3")}>
+            <section className="agenda-metrics" aria-label="La giornata in numeri">
               <div className="ios-card rounded-2xl p-5 border border-[var(--line)] flex flex-col justify-between h-32 hover:translate-y-[-2px] transition-transform duration-200 bg-[var(--surface)]">
-                <span className="text-[var(--ink-2)] text-xs font-semibold uppercase tracking-wider">Appuntamenti Oggi</span>
+                <span className="text-[var(--ink-2)] text-[18px] font-semibold uppercase tracking-wider">Appuntamenti Oggi</span>
                 <div className="flex items-end justify-between">
                   <span className="text-3xl font-black text-[var(--ink)] tracking-tight">{todayStats.apptsCount}</span>
-                  <span className="text-[var(--ink)] bg-[var(--accent-2)]/30 px-2.5 py-1 rounded-full text-xs font-bold">Oggi</span>
+                  <span className="text-[var(--ink)] bg-[var(--accent-2)]/30 px-2.5 py-1 rounded-full text-[18px] font-bold">Oggi</span>
                 </div>
               </div>
               {!restrictToEmployeeId && (
                 <div className="ios-card rounded-2xl p-5 border border-[var(--line)] border-l-4 border-l-[var(--accent)] flex flex-col justify-between h-32 hover:translate-y-[-2px] transition-transform duration-200 bg-[var(--surface)]">
-                  <span className="text-[var(--ink-2)] text-xs font-semibold uppercase tracking-wider">Ricavo Totale</span>
+                  <span className="text-[var(--ink-2)] text-[18px] font-semibold uppercase tracking-wider">Ricavo Totale</span>
                   <div className="flex items-end justify-between">
                     <span className="text-3xl font-black text-[var(--ink)] tracking-tight">{formatPrice(todayStats.totalRevenue)}</span>
                     <span className="material-symbols-outlined text-[var(--accent)]">payments</span>
@@ -1277,20 +1249,20 @@ export function AgendaView({
                 </div>
               )}
               <div className="ios-card rounded-2xl p-5 border border-[var(--line)] flex flex-col justify-between h-32 hover:translate-y-[-2px] transition-transform duration-200 bg-[var(--surface)]">
-                <span className="text-[var(--ink-2)] text-xs font-semibold uppercase tracking-wider">Nuovi Clienti</span>
+                <span className="text-[var(--ink-2)] text-[18px] font-semibold uppercase tracking-wider">Nuovi Clienti</span>
                 <div className="flex items-end justify-between">
                   <span className="text-3xl font-black text-[var(--ink)] tracking-tight">{todayStats.newCustomersCount}</span>
                   <div className="flex -space-x-2">
                     {todayStats.todayAppts.slice(0, 3).map((a) => (
                       <div
                         key={a.id}
-                        className="w-8 h-8 rounded-full border border-white bg-[var(--ink)] text-[var(--bg)] flex items-center justify-center text-[10px] font-bold"
+                        className="w-8 h-8 rounded-full border border-white bg-[var(--ink)] text-[var(--bg)] flex items-center justify-center text-[18px] font-bold"
                       >
                         {a.customer_name.charAt(0).toUpperCase()}
                       </div>
                     ))}
                     {todayStats.newCustomersCount > 3 && (
-                      <div className="w-8 h-8 rounded-full border border-white bg-[var(--accent)] flex items-center justify-center text-[10px] font-bold text-[var(--on-accent)]">
+                      <div className="w-8 h-8 rounded-full border border-white bg-[var(--accent)] flex items-center justify-center text-[18px] font-bold text-[var(--on-accent)]">
                         +{todayStats.newCustomersCount - 3}
                       </div>
                     )}
@@ -1303,13 +1275,14 @@ export function AgendaView({
 
         {/* TAB 2: CALENDAR (iOS Style, Drag and Drop rescheduling) */}
         {ownerTab === "calendar" && (
-          <div className="select-none">
+          <div className="agenda-calendar select-none">
+            <AppPageHeading eyebrow={business.name} title="L’agenda." />
             {/* Employee Filter Bar */}            {!restrictToEmployeeId && employees.length > 1 && (
               <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
                 <button
                   onClick={() => setEmployeeFilter("all")}
                   className={cn(
-                    "px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap cursor-pointer transition-all border-none",
+                    "px-4 py-2 rounded-full text-[18px] font-bold whitespace-nowrap cursor-pointer transition-all border-none",
                     employeeFilter === "all"
                       ? "bg-[var(--ink)] !text-[var(--bg)]"
                       : "bg-[var(--surface-2)] text-[var(--ink-2)] hover:bg-[var(--surface-3)]"
@@ -1322,7 +1295,7 @@ export function AgendaView({
                     key={e.id}
                     onClick={() => setEmployeeFilter(e.id)}
                     className={cn(
-                      "px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap cursor-pointer transition-all flex items-center gap-1.5 border-none",
+                      "px-4 py-2 rounded-full text-[18px] font-bold whitespace-nowrap cursor-pointer transition-all flex items-center gap-1.5 border-none",
                       employeeFilter === e.id
                         ? "bg-[var(--ink)] !text-[var(--bg)]"
                         : "bg-[var(--surface-2)] text-[var(--ink-2)] hover:bg-[var(--surface-3)]"
@@ -1336,7 +1309,7 @@ export function AgendaView({
             )}
 
             {/* Calendar Controls — compact header */}
-            <div className="mb-4 flex items-center justify-between gap-1.5">
+            <div className="agenda-calendar-controls">
               <div className="flex items-center min-w-0">
                 <button
                   onClick={() => {
@@ -1378,7 +1351,7 @@ export function AgendaView({
                 >
                   chevron_right
                 </button>
-                <h3 className="ml-1 text-sm sm:text-lg font-extrabold text-[var(--ink)] tracking-tight capitalize truncate">
+                <h3 className="ml-1 text-[18px] sm:text-lg font-extrabold text-[var(--ink)] tracking-tight capitalize truncate">
                   {calendarView === "month"
                     ? `${MONTH_LABELS[currentMonth]} ${currentYear}`
                     : calendarView === "week"
@@ -1393,7 +1366,7 @@ export function AgendaView({
                 {date !== todayStr && (
                   <button
                     onClick={() => setDate(todayStr)}
-                    className="h-8 px-2.5 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[11px] font-bold text-[var(--ink)] cursor-pointer active:scale-95 transition-all"
+                    className="h-8 px-2.5 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[18px] font-bold text-[var(--ink)] cursor-pointer active:scale-95 transition-all"
                   >
                     Oggi
                   </button>
@@ -1405,14 +1378,13 @@ export function AgendaView({
                       onClick={() => setCalendarView(v)}
                       aria-pressed={calendarView === v}
                       className={cn(
-                        "h-8 px-2.5 sm:px-4 rounded-full text-[11px] sm:text-xs font-bold transition-all border-none cursor-pointer",
+                        "min-h-[48px] px-4 rounded-full text-[18px] sm:text-[18px] font-bold transition-all border-none cursor-pointer",
                         calendarView === v
                           ? "bg-[var(--ink)] !text-[var(--bg)] shadow-sm"
                           : "bg-transparent text-[var(--ink-2)]"
                       )}
                     >
-                      <span className="sm:hidden">{v === "day" ? "G" : v === "week" ? "S" : "M"}</span>
-                      <span className="hidden sm:inline">{v === "day" ? "Giorno" : v === "week" ? "Settimana" : "Mese"}</span>
+                      <span>{v === "day" ? "Giorno" : v === "week" ? "Settimana" : "Mese"}</span>
                     </button>
                   ))}
                 </div>
@@ -1420,10 +1392,11 @@ export function AgendaView({
             </div>
 
             {/* Conditionally Render Day / Week / Month Views */}
+            <div className="agenda-calendar-scroll" data-view={calendarView} tabIndex={0} role="region" aria-label="Calendario appuntamenti, scorri orizzontalmente per vedere tutti i giorni">
             {calendarView === "month" ? (
               /* MONTH VIEW — full-width fluid grid, Google Calendar style */
               <div className="mb-6 rounded-2xl border border-[var(--line)] shadow-sm bg-[var(--surface)] overflow-hidden">
-                <div className="grid grid-cols-7 text-center text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider border-b border-[var(--line)]">
+                <div className="grid grid-cols-7 text-center text-[18px] font-bold text-[var(--ink-2)] uppercase tracking-wider border-b border-[var(--line)]">
                   {WEEKDAY_SHORT_LABELS.map((w, idx) => (
                     <div key={idx} className="py-2">{w}</div>
                   ))}
@@ -1456,13 +1429,13 @@ export function AgendaView({
                         )}
                       >
                         <span className={cn(
-                          "self-center shrink-0 text-[11px] sm:text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full",
+                          "self-center shrink-0 text-[18px] sm:text-[18px] font-bold w-6 h-6 flex items-center justify-center rounded-full",
                           isToday ? "bg-[#ba1a1a] text-white" : isSelected ? "bg-[var(--ink)] text-[var(--bg)]" : "text-[var(--ink)]"
                         )}>
                           {day.getDate()}
                         </span>
                         {closed && dayAppts.length === 0 && (
-                          <span className="text-[7px] sm:text-[8px] font-extrabold uppercase tracking-widest text-[var(--ink-2)]/60 text-center select-none">
+                          <span className="text-[18px] sm:text-[18px] font-extrabold uppercase tracking-widest text-[var(--ink-2)]/60 text-center select-none">
                             Chiuso
                           </span>
                         )}
@@ -1480,7 +1453,7 @@ export function AgendaView({
                                 }}
                                 style={{ backgroundColor: emp?.color ?? "#A18A97", color: readableTextOn(emp?.color ?? "#A18A97") }}
                                 className={cn(
-                                  "w-full text-left rounded-[3px] px-1.5 py-0.5 text-[8px] sm:text-[10px] font-bold truncate border-none cursor-grab active:cursor-grabbing leading-tight",
+                                  "agenda-month-event w-full text-left rounded-[3px] px-1.5 py-0.5 text-[18px] sm:text-[18px] font-bold truncate border-none cursor-grab active:cursor-grabbing leading-tight",
                                   monthDragTarget?.apptId === a.id && "opacity-40"
                                 )}
                               >
@@ -1538,7 +1511,7 @@ export function AgendaView({
                   <div className="mb-6 rounded-2xl border border-[var(--line)] shadow-sm bg-[var(--surface)] overflow-hidden">
                     {/* Day headers */}
                     <div className="flex border-b border-[var(--line)]">
-                      <div className="w-11 sm:w-14 shrink-0" />
+                      <div className="w-[76px] shrink-0" />
                       {gridDays.map((day, idx) => {
                         const dayKeyStr = formatDateLocal(day);
                         const isToday = todayStr === dayKeyStr;
@@ -1549,11 +1522,11 @@ export function AgendaView({
                             onClick={() => selectCalendarDate(day)}
                             className="flex-1 min-w-0 flex flex-col items-center py-1.5 cursor-pointer"
                           >
-                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[var(--ink-2)]">
+                            <span className="text-[18px] sm:text-[18px] font-bold uppercase tracking-wider text-[var(--ink-2)]">
                               {isWeek ? WEEKDAY_SHORT_LABELS[idx] : WEEKDAYS_LONG[(day.getDay() + 6) % 7]}
                             </span>
                             <span className={cn(
-                              "text-sm sm:text-base font-extrabold w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full mt-0.5",
+                              "text-[18px] sm:text-[18px] font-extrabold w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full mt-0.5",
                               isToday ? "bg-[#ba1a1a] text-white" : isSelected && isWeek ? "bg-[var(--ink)] text-[var(--bg)]" : "text-[var(--ink)]"
                             )}>
                               {day.getDate()}
@@ -1567,13 +1540,13 @@ export function AgendaView({
                     <div>
                       <div className="relative flex" style={{ height: gridPx }}>
                         {/* Hour labels gutter */}
-                        <div className="relative w-11 sm:w-14 shrink-0">
+                        <div className="relative w-[76px] shrink-0">
                           {Array.from({ length: hoursCount }).map((_, idx) => (
                             idx > 0 ? (
                               <span
                                 key={idx}
                                 style={{ top: idx * HOUR_PX }}
-                                className="absolute right-1.5 sm:right-2 -translate-y-1/2 text-[9px] sm:text-[10px] font-bold text-[var(--ink-2)]"
+                                className="absolute right-1.5 sm:right-2 -translate-y-1/2 text-[18px] sm:text-[18px] font-bold text-[var(--ink-2)]"
                               >
                                 {String(startMin / 60 + idx).padStart(2, "0")}:00
                               </span>
@@ -1610,7 +1583,7 @@ export function AgendaView({
                                 )}
                               >
                                 {closed && (
-                                  <div className="absolute inset-x-0 top-2 z-0 text-center text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-[var(--ink-2)]/70 select-none pointer-events-none">
+                                  <div className="absolute inset-x-0 top-2 z-0 text-center text-[18px] sm:text-[18px] font-extrabold uppercase tracking-widest text-[var(--ink-2)]/70 select-none pointer-events-none">
                                     Chiuso
                                   </div>
                                 )}
@@ -1639,6 +1612,11 @@ export function AgendaView({
                                   return (
                                     <div
                                       key={a.id}
+                                      role="button"
+                                      tabIndex={0}
+                                      aria-label={`${a.customer_name}, ${startStr}, ${a.service_name}`}
+                                      data-compact={heightPx < 64}
+                                      onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setActive(a); } }}
                                       onPointerDown={(e) => startApptDrag(e, a)}
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -1654,21 +1632,21 @@ export function AgendaView({
                                         color: readableTextOn(emp?.color ?? "#3E1B33"),
                                       }}
                                       className={cn(
-                                        "absolute z-10 rounded-[4px] sm:rounded-[6px] px-1.5 py-0.5 sm:px-2 sm:py-1 overflow-hidden cursor-grab active:cursor-grabbing shadow-sm hover:brightness-105 transition-[opacity,filter] duration-150 flex flex-col",
-                                        heightPx <= 40 ? "justify-center" : "justify-start",
+                                        "agenda-event-block absolute z-10 rounded-[4px] sm:rounded-[6px] px-1.5 py-0.5 sm:px-2 sm:py-1 overflow-hidden cursor-grab active:cursor-grabbing shadow-sm hover:brightness-105 transition-[opacity,filter] duration-150 flex flex-col",
+                                        heightPx <= 60 ? "justify-center" : "justify-start",
                                         dragTarget?.apptId === a.id && "opacity-40"
                                       )}
                                     >
                                       <p className={cn(
                                         "font-bold truncate leading-tight select-none",
-                                        isWeek ? "text-[9px] sm:text-[11px]" : "text-[11px] sm:text-xs"
+                                        isWeek ? "text-[18px] sm:text-[18px]" : "text-[18px] sm:text-[18px]"
                                       )}>
                                         {a.customer_name}
                                       </p>
-                                      {(!isWeek || heightPx > 36) && (
+                                      {(heightPx >= 64) && (
                                         <p className={cn(
                                           "truncate leading-tight opacity-90 select-none",
-                                          isWeek ? "text-[8px] sm:text-[9px]" : "text-[9px] sm:text-[10px]"
+                                          isWeek ? "text-[18px] sm:text-[18px]" : "text-[18px] sm:text-[18px]"
                                         )}>
                                           {isWeek
                                             ? startStr
@@ -1690,7 +1668,7 @@ export function AgendaView({
                                       "absolute left-0 right-0 z-30 rounded-[6px] border-2 border-dashed pointer-events-none",
                                       dragTarget.valid
                                         ? "border-[var(--ink)] bg-[var(--ink)]/10"
-                                        : "border-[#ba1a1a] bg-[#ba1a1a]/10"
+                                        : "border-[var(--danger)] bg-[#ba1a1a]/10"
                                     )}
                                   />
                                 )}
@@ -1713,6 +1691,8 @@ export function AgendaView({
               })()
             )}
 
+            </div>
+
             {/* Floating action button: new appointment */}
             <button
               onClick={() => {
@@ -1720,7 +1700,7 @@ export function AgendaView({
                 setNewOpen(true);
               }}
               aria-label="Nuovo appuntamento"
-              className="fixed bottom-24 right-5 z-40 h-14 w-14 rounded-2xl bg-[#8A3D6E] hover:bg-[#6F2F57] !text-white shadow-xl flex items-center justify-center active:scale-95 transition-all border-none cursor-pointer"
+              className="agenda-add-button fixed bottom-24 right-5 z-40 h-14 w-14 rounded-2xl bg-[#8A3D6E] hover:bg-[#6F2F57] !text-white shadow-xl flex items-center justify-center active:scale-95 transition-all border-none cursor-pointer"
             >
               <span className="material-symbols-outlined text-[28px]">add</span>
             </button>
@@ -1732,18 +1712,18 @@ export function AgendaView({
           <div>
             <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl md:text-3xl font-extrabold text-[var(--ink)] tracking-tight">Contatti Clienti</h2>
-                <p className="text-[var(--ink-2)] text-sm mt-1">Visualizza la lista dei clienti registrati ed il loro storico trattamenti.</p>
+                <AppPageHeading eyebrow={business.name} title="I tuoi clienti." description="Ogni storia, a portata di mano." />
               </div>
 
               {/* Search bar */}
               <div className="relative w-full md:w-80">
                 <input
                   type="text"
-                  placeholder="Cerca cliente..."
+                  placeholder="Cerca cliente…"
+                  aria-label="Cerca cliente"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-11 rounded-xl bg-[var(--surface)] border border-[var(--line)] outline-none focus:border-[var(--ink)] px-10 text-sm font-medium shadow-sm"
+                  className="w-full h-11 rounded-xl bg-[var(--surface)] border border-[var(--line)] outline-none focus:border-[var(--ink)] px-10 text-[18px] font-medium shadow-sm"
                 />
                 <span className="material-symbols-outlined absolute left-3 top-3 text-[var(--ink-2)] text-lg">search</span>
               </div>
@@ -1758,13 +1738,16 @@ export function AgendaView({
             ) : filteredClients.length === 0 ? (
               <div className="ios-card rounded-2xl p-12 text-center text-[var(--ink-2)] bg-[var(--surface)]">
                 <span className="material-symbols-outlined text-4xl">contacts</span>
-                <p className="mt-2 text-sm">Nessun cliente corrispondente alla ricerca.</p>
+                <p className="mt-2 text-[18px]">Nessun cliente corrispondente alla ricerca.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {filteredClients.map(c => (
                   <div
                     key={c.id}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); loadClientHistoryDetails(c); } }}
                     onClick={() => loadClientHistoryDetails(c)}
                     className="ios-card rounded-xl p-4 border border-[var(--line)] hover:border-[var(--ink)] hover:shadow-md cursor-pointer transition-all flex items-center justify-between bg-[var(--surface)]"
                   >
@@ -1773,8 +1756,8 @@ export function AgendaView({
                         {c.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <h4 className="font-bold text-sm text-[var(--ink)] truncate">{c.name}</h4>
-                        <p className="text-xs text-[var(--ink-2)] mt-0.5">{c.phone}</p>
+                        <h4 className="font-bold text-[18px] text-[var(--ink)] truncate">{c.name}</h4>
+                        <p className="text-[18px] text-[var(--ink-2)] mt-0.5">{c.phone}</p>
                       </div>
                     </div>
                     <span className="material-symbols-outlined text-[var(--ink-2)] hover:text-[var(--ink)]">chevron_right</span>
@@ -1786,55 +1769,12 @@ export function AgendaView({
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 w-full z-50 bg-[var(--surface)]/85 backdrop-blur-md shadow-[0_-8px_30px_rgba(62,27,51,0.06)] border-t border-[var(--line)]/20">
-        <div className="flex justify-around items-center w-full px-6 py-3 pb-safe max-w-screen-md mx-auto">
-          <button
-            onClick={() => setOwnerTab("dashboard")}
-            className={cn(
-              "flex flex-col items-center justify-center gap-1 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent",
-              ownerTab === "dashboard" ? "text-[var(--ink)] font-bold" : "text-[var(--ink-2)] hover:opacity-85"
-            )}
-          >
-            <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: ownerTab === "dashboard" ? "'FILL' 1" : undefined }}>
-              grid_view
-            </span>
-            <span className="text-[10px] font-bold uppercase tracking-wider">Dashboard</span>
-          </button>
-          <button
-            onClick={() => setOwnerTab("calendar")}
-            className={cn(
-              "flex flex-col items-center justify-center gap-1 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent",
-              ownerTab === "calendar" ? "text-[var(--ink)] font-bold" : "text-[var(--ink-2)] hover:opacity-85"
-            )}
-          >
-            <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: ownerTab === "calendar" ? "'FILL' 1" : undefined }}>
-              calendar_month
-            </span>
-            <span className="text-[10px] font-bold uppercase tracking-wider">Calendario</span>
-          </button>
-          <button
-            onClick={() => setOwnerTab("clients")}
-            className={cn(
-              "flex flex-col items-center justify-center gap-1 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent",
-              ownerTab === "clients" ? "text-[var(--ink)] font-bold" : "text-[var(--ink-2)] hover:opacity-85"
-            )}
-          >
-            <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: ownerTab === "clients" ? "'FILL' 1" : undefined }}>
-              group
-            </span>
-            <span className="text-[10px] font-bold uppercase tracking-wider">Clienti</span>
-          </button>
-          {!restrictToEmployeeId && (
-            <button
-              onClick={() => router.push("/dashboard/settings")}
-              className="flex flex-col items-center justify-center gap-1 text-[var(--ink-2)] hover:opacity-85 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent"
-            >
-              <span className="material-symbols-outlined text-[24px]">content_cut</span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider">Servizi</span>
-            </button>
-          )}
-        </div>
-      </nav>
+      <AppNav items={[
+        { label: "Oggi", icon: "grid_view", active: ownerTab === "dashboard", onClick: () => setOwnerTab("dashboard") },
+        { label: "Agenda", icon: "calendar_month", active: ownerTab === "calendar", onClick: () => setOwnerTab("calendar") },
+        { label: "Clienti", icon: "group", active: ownerTab === "clients", onClick: () => setOwnerTab("clients") },
+        ...(!restrictToEmployeeId ? [{ label: "Studio", icon: "tune", href: "/dashboard/settings" }] : []),
+      ]} />
 
       {/* Appointment detail / edit / cancel sheet */}
       {apptSheetData && (
@@ -1874,7 +1814,7 @@ export function AgendaView({
       <Sheet
           open={!!selectedClient}
           onClose={() => setSelectedClient(null)}
-          title={`Scheda Cliente: ${clientSheetData?.name ?? ""}`}
+          title={clientSheetData?.name ?? "Cliente"}
           dismissible={true}
         >
         {clientSheetData && (<>
@@ -1885,14 +1825,14 @@ export function AgendaView({
             </div>
 
             <div className="space-y-2 mt-4 bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-4">
-              <h4 className="text-base font-bold text-[var(--ink)] pb-1 flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-sm">assignment</span> Note Generali Contatto
+              <h4 className="text-[18px] font-bold text-[var(--ink)] pb-1 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[18px]">assignment</span> Note del cliente
               </h4>
-              <p className="text-[10px] text-[var(--ink-2)] font-bold uppercase tracking-wider">
-                Da ricordare assolutamente (es. allergie, formule colore)
+              <p className="text-[18px] text-[var(--ink-2)] font-bold uppercase tracking-wider">
+                Preferenze e dettagli da ricordare.
               </p>
               <textarea
-                className="w-full h-24 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] placeholder-[var(--ink-2)]/70 p-3 outline-none border border-transparent focus:border-[var(--ink)] transition-all font-medium text-xs resize-none"
+                className="w-full h-24 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] placeholder-[var(--ink-2)]/70 p-3 outline-none border border-transparent focus:border-[var(--ink)] transition-all font-medium text-[18px] resize-none"
                 value={customerNotesText}
                 onChange={(e) => setCustomerNotesText(e.target.value)}
                 placeholder="Scrivi qui formule colore, allergie o cose da ricordare..."
@@ -1911,14 +1851,14 @@ export function AgendaView({
                   }
                 }}
                 disabled={savingCustomerNotes}
-                className="w-full h-11 rounded-full bg-[var(--accent)] hover:bg-[var(--accent-press)] !text-[var(--on-accent)] font-bold text-xs active:scale-95 transition-all cursor-pointer shadow-md border-none"
+                className="w-full h-11 rounded-full bg-[var(--accent)] hover:bg-[var(--accent-press)] !text-[var(--on-accent)] font-bold text-[18px] active:scale-95 transition-all cursor-pointer shadow-md border-none"
               >
-                {savingCustomerNotes ? "Salvataggio..." : "Salva Note Contatto"}
+                {savingCustomerNotes ? "Salvataggio..." : "Salva note"}
               </button>
             </div>
 
-            <h4 className="text-base font-bold text-[var(--ink)] border-b border-[var(--line)] pb-1 flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-sm">history</span> Cronologia Trattamenti
+            <h4 className="text-[18px] font-bold text-[var(--ink)] border-b border-[var(--line)] pb-1 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[18px]">history</span> Cronologia Trattamenti
             </h4>
 
             {loadingHistory ? (
@@ -1928,26 +1868,26 @@ export function AgendaView({
                 ))}
               </div>
             ) : clientHistory.length === 0 ? (
-              <p className="text-xs text-[var(--ink-2)] italic">Nessun appuntamento completato in precedenza.</p>
+              <p className="text-[18px] text-[var(--ink-2)] italic">Nessun appuntamento completato in precedenza.</p>
             ) : (
               <div className="space-y-3 overflow-y-auto max-h-[300px] no-scrollbar">
                 {clientHistory.map(a => (
                   <div key={a.id} className="ios-card rounded-xl p-3 border border-[var(--line)] bg-[var(--surface)] shadow-sm space-y-2">
-                    <div className="flex justify-between items-start text-xs">
+                    <div className="flex justify-between items-start text-[18px]">
                       <div>
-                        <span className="font-bold text-[var(--ink)] text-sm block">{a.service_name}</span>
+                        <span className="font-bold text-[var(--ink)] text-[18px] block">{a.service_name}</span>
                         <span className="text-[var(--ink-2)]">{formatHistoryDate(a.starts_at)}</span>
                       </div>
                       <span className={cn(
-                        "text-[9px] uppercase font-bold px-1.5 py-0.5 rounded",
-                        a.status === "cancelled" ? "bg-[#ba1a1a]/10 text-[#ba1a1a]" : "bg-[var(--bg)] text-[var(--ink-2)]"
+                        "text-[18px] uppercase font-bold px-1.5 py-0.5 rounded",
+                        a.status === "cancelled" ? "bg-[#ba1a1a]/10 text-[var(--danger)]" : "bg-[var(--bg)] text-[var(--ink-2)]"
                       )}>
                         {a.status}
                       </span>
                     </div>
 
                     {a.owner_notes && (
-                      <div className="bg-[var(--surface-2)]/40 p-2.5 rounded-lg border border-[var(--line)] text-[11px] leading-relaxed">
+                      <div className="bg-[var(--surface-2)]/40 p-2.5 rounded-lg border border-[var(--line)] text-[18px] leading-relaxed">
                         <span className="font-bold text-[var(--ink)] block mb-0.5">Nota Titolare:</span>
                         <span className="text-[var(--ink-2)] italic">{a.owner_notes}</span>
                       </div>
@@ -1957,7 +1897,7 @@ export function AgendaView({
               </div>
             )}
 
-            <button onClick={() => setSelectedClient(null)} className="w-full ios-btn-secondary h-12 text-sm font-bold">
+            <button onClick={() => setSelectedClient(null)} className="w-full ios-btn-secondary h-12 text-[18px] font-bold">
               Chiudi
             </button>
           </div>
@@ -1972,7 +1912,7 @@ export function AgendaView({
           dismissible={true}
         >
           <div className="space-y-6 py-2 text-center">
-            <p className="text-[var(--ink-2)] text-xs font-semibold uppercase tracking-wider">
+            <p className="text-[var(--ink-2)] text-[18px] font-semibold uppercase tracking-wider">
               Mostra questo QR Code al cliente o stampalo per il tuo negozio.
             </p>
 
@@ -1980,7 +1920,7 @@ export function AgendaView({
               <QRCodeCanvas value={`${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/b/${business.slug}`} size={200} level="M" marginSize={0} />
             </div>
 
-            <div className="bg-[var(--bg)] rounded-xl p-3 border border-[var(--line-strong)]/20 break-all text-xs font-bold text-[var(--ink)]">
+            <div className="bg-[var(--bg)] rounded-xl p-3 border border-[var(--line-strong)]/20 break-all text-[18px] font-bold text-[var(--ink)]">
               {`${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/b/${business.slug}`}
             </div>
 
@@ -1993,7 +1933,7 @@ export function AgendaView({
                     setTimeout(() => setCopied(false), 1500);
                   } catch {}
                 }}
-                className="flex-1 h-12 rounded-xl bg-[var(--surface-2)] border border-[var(--line-strong)]/30 font-semibold text-xs text-[var(--ink)] active:scale-95 transition-all cursor-pointer"
+                className="flex-1 h-12 rounded-xl bg-[var(--surface-2)] border border-[var(--line-strong)]/30 font-semibold text-[18px] text-[var(--ink)] active:scale-95 transition-all cursor-pointer"
               >
                 {copied ? "Copiato!" : "Copia Link"}
               </button>
@@ -2027,7 +1967,7 @@ export function AgendaView({
                   `);
                   win.document.close();
                 }}
-                className="flex-grow h-12 rounded-xl satin-gold font-semibold text-xs text-white active:scale-95 transition-all cursor-pointer uppercase tracking-wider"
+                className="flex-grow h-12 rounded-xl satin-gold font-semibold text-[18px] text-white active:scale-95 transition-all cursor-pointer uppercase tracking-wider"
               >
                 Stampa QR
               </button>
@@ -2035,7 +1975,7 @@ export function AgendaView({
 
             <button
               onClick={() => setQrOpen(false)}
-              className="text-xs font-bold text-[var(--ink-2)] uppercase tracking-wider cursor-pointer hover:opacity-85"
+              className="text-[18px] font-bold text-[var(--ink-2)] uppercase tracking-wider cursor-pointer hover:opacity-85"
             >
               Chiudi
             </button>
@@ -2051,26 +1991,26 @@ export function AgendaView({
         >
         {monthDropData && (<>
           <div className="space-y-5 py-2">
-            <p className="text-sm text-[var(--ink-2)] text-center">
+            <p className="text-[18px] text-[var(--ink-2)] text-center">
               Spostare l&apos;appuntamento di{" "}
               <strong className="text-[var(--accent)]">{monthDropData.appt.customer_name}</strong> a{" "}
               <strong className="text-[var(--accent)] capitalize">{dayTitle(monthDropData.dateStr)}</strong>?
             </p>
             <label className="block max-w-[180px] mx-auto">
-              <span className="mb-1.5 block text-center text-xs font-bold text-[var(--ink)] uppercase tracking-wider">
+              <span className="mb-1.5 block text-center text-[18px] font-bold text-[var(--ink)] uppercase tracking-wider">
                 Orario
               </span>
               <input
                 type="time"
                 value={monthDropTime}
                 onChange={(e) => setMonthDropTime(e.target.value)}
-                className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-center text-base text-[var(--ink)] font-bold"
+                className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-center text-[18px] text-[var(--ink)] font-bold"
               />
             </label>
             <div className="flex gap-2">
               <button
                 onClick={() => setMonthDropPrompt(null)}
-                className="flex-1 ios-btn-secondary h-12 text-sm font-bold border border-[var(--line)] bg-[var(--surface)]"
+                className="flex-1 ios-btn-secondary h-12 text-[18px] font-bold border border-[var(--line)] bg-[var(--surface)]"
               >
                 Annulla
               </button>
@@ -2082,7 +2022,7 @@ export function AgendaView({
                     rescheduleTo(p.appt, p.dateStr, monthDropTime);
                   }
                 }}
-                className="flex-1 ios-btn-primary h-12 text-sm font-bold"
+                className="flex-1 ios-btn-primary h-12 text-[18px] font-bold"
               >
                 Conferma
               </button>
@@ -2100,7 +2040,7 @@ export function AgendaView({
         >
         {dragResultData && (<>
           <div className="space-y-6 py-2 text-center">
-            <p className="text-[var(--ink-2)] text-sm">
+            <p className="text-[var(--ink-2)] text-[18px]">
               L&apos;appuntamento di <strong className="text-[var(--accent)]">{dragResultData.customerName}</strong> è stato spostato a:
             </p>
             <div className="bg-[var(--surface-2)] rounded-2xl p-4 border border-[var(--line-strong)]/30 font-bold font-serif text-[var(--accent)] text-lg">
@@ -2109,20 +2049,20 @@ export function AgendaView({
             
             {dragResultData.waHref ? (
               <>
-                <p className="text-xs text-[var(--ink-2)] font-medium uppercase tracking-wider">
+                <p className="text-[18px] text-[var(--ink-2)] font-medium uppercase tracking-wider">
                   Avvisa il cliente su WhatsApp del cambio di orario:
                 </p>
                 <WhatsAppButton href={dragResultData.waHref} />
               </>
             ) : (
-              <p className="text-xs text-[var(--ink-2)] italic">
+              <p className="text-[18px] text-[var(--ink-2)] italic">
                 Nessun numero di telefono registrato per questo cliente.
               </p>
             )}
 
             <button
               onClick={() => setDragRescheduleResult(null)}
-              className="text-xs font-bold text-[var(--ink-2)] uppercase tracking-wider cursor-pointer hover:opacity-85"
+              className="text-[18px] font-bold text-[var(--ink-2)] uppercase tracking-wider cursor-pointer hover:opacity-85"
             >
               Chiudi
             </button>
@@ -2143,9 +2083,9 @@ export function AgendaView({
             <span className="material-symbols-outlined text-[20px] animate-bounce">notifications_active</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-serif font-bold text-sm text-[var(--ink)] leading-none mb-1">{toast.title}</h4>
-            <p className="text-xs text-[var(--ink-2)] font-medium leading-relaxed mb-1.5">{toast.body}</p>
-            <span className="text-[10px] text-[var(--ink)] font-bold uppercase tracking-wider block">
+            <h4 className="font-serif font-bold text-[18px] text-[var(--ink)] leading-none mb-1">{toast.title}</h4>
+            <p className="text-[18px] text-[var(--ink-2)] font-medium leading-relaxed mb-1.5">{toast.body}</p>
+            <span className="text-[18px] text-[var(--ink)] font-bold uppercase tracking-wider block">
               Clicca per visualizzare nell&apos;agenda
             </span>
           </div>
@@ -2167,7 +2107,7 @@ export function AgendaView({
           {notifications.length === 0 ? (
             <div className="text-center py-12">
               <span className="material-symbols-outlined text-[var(--ink-2)] text-[48px] opacity-40 mb-3 block">notifications_off</span>
-              <p className="text-sm text-[var(--ink-2)] italic">Nessuna nuova prenotazione in questa sessione.</p>
+              <p className="text-[18px] text-[var(--ink-2)] italic">Nessuna nuova prenotazione in questa sessione.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -2188,9 +2128,9 @@ export function AgendaView({
                     {!n.read && (
                       <span className="absolute top-4 right-4 h-2.5 w-2.5 rounded-full bg-[var(--accent)]" />
                     )}
-                    <h4 className="font-serif font-bold text-sm text-[var(--ink)] mb-1 pr-6">{n.title}</h4>
-                    <p className="text-xs text-[var(--ink-2)] leading-relaxed mb-2 font-medium">{n.body}</p>
-                    <span className="text-[10px] text-[var(--ink-2)]/70 font-semibold uppercase tracking-wider block">
+                    <h4 className="font-serif font-bold text-[18px] text-[var(--ink)] mb-1 pr-6">{n.title}</h4>
+                    <p className="text-[18px] text-[var(--ink-2)] leading-relaxed mb-2 font-medium">{n.body}</p>
+                    <span className="text-[18px] text-[var(--ink-2)]/70 font-semibold uppercase tracking-wider block">
                       {n.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -2201,7 +2141,7 @@ export function AgendaView({
                   setNotifications([]);
                   setNotifBellOpen(false);
                 }}
-                className="w-full text-center py-2 text-xs font-bold text-[var(--ink-2)] uppercase tracking-wider border-t border-[var(--line-strong)]/25 pt-3 hover:text-[var(--ink)] transition-colors cursor-pointer"
+                className="w-full text-center py-2 text-[18px] font-bold text-[var(--ink-2)] uppercase tracking-wider border-t border-[var(--line-strong)]/25 pt-3 hover:text-[var(--ink)] transition-colors cursor-pointer"
               >
                 Cancella tutte le notifiche
               </button>
@@ -2356,9 +2296,9 @@ function ApptSheet({
           <p className="text-[var(--ink-2)]">{result.text}</p>
           {result.href ? (
             <>
-              <p className="font-bold text-sm text-[var(--ink)]">Avvisa il cliente su WhatsApp:</p>
+              <p className="font-bold text-[18px] text-[var(--ink)]">Avvisa il cliente su WhatsApp:</p>
               <WhatsAppButton href={result.href} />
-              <button onClick={onClose} className="w-full py-2.5 text-[var(--ink-2)] text-sm font-bold border-none bg-transparent cursor-pointer">
+              <button onClick={onClose} className="w-full py-2.5 text-[var(--ink-2)] text-[18px] font-bold border-none bg-transparent cursor-pointer">
                 Chiudi
               </button>
             </>
@@ -2397,7 +2337,7 @@ function ApptSheet({
 
           {/* Owner Notes Box */}
           <div className="space-y-1.5 p-1 border-t border-[var(--line)] pt-3">
-            <label className="block text-xs font-bold text-[var(--ink)] uppercase tracking-wider">
+            <label className="block text-[18px] font-bold text-[var(--ink)] uppercase tracking-wider">
               Note Trattamento (Cosa hai fatto al cliente)
             </label>
             <textarea
@@ -2405,18 +2345,18 @@ function ApptSheet({
               onChange={(e) => setONotes(e.target.value)}
               placeholder="Inserisci formule colore, taglio o note utili per la prossima volta..."
               rows={3}
-              className="w-full rounded-xl bg-[var(--surface-2)] text-[var(--ink)] placeholder-[var(--ink-2)]/70 px-4 py-3 outline-none border border-transparent focus:border-[var(--ink)] transition-all font-medium resize-none shadow-sm text-sm"
+              className="w-full rounded-xl bg-[var(--surface-2)] text-[var(--ink)] placeholder-[var(--ink-2)]/70 px-4 py-3 outline-none border border-transparent focus:border-[var(--ink)] transition-all font-medium resize-none shadow-sm text-[18px]"
             />
             <button
               onClick={saveNotes}
               disabled={savingNotes}
-              className="mt-1 px-4 py-2 bg-[var(--ink)] text-[var(--bg)] rounded-full text-xs font-bold transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer border-none"
+              className="mt-1 px-4 py-2 bg-[var(--ink)] text-[var(--bg)] rounded-full text-[18px] font-bold transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer border-none"
             >
               {savingNotes ? "Salvataggio..." : "Salva Note"}
             </button>
           </div>
 
-          {error && <p className="text-sm font-semibold text-[#ba1a1a]">{error}</p>}
+          {error && <p className="text-[18px] font-semibold text-[var(--danger)]">{error}</p>}
 
           <div className="space-y-2.5">
             {appt.customer_phone && (
@@ -2442,7 +2382,7 @@ function ApptSheet({
             </button>
             <button
               onClick={doCancel}
-              className="w-full h-12 rounded-full border border-[#ba1a1a] text-[#ba1a1a] font-bold hover:bg-[#ba1a1a]/5 transition-all active:scale-[0.98] cursor-pointer bg-transparent"
+              className="w-full h-12 rounded-full border border-[var(--danger)] text-[var(--danger)] font-bold hover:bg-[#ba1a1a]/5 transition-all active:scale-[0.98] cursor-pointer bg-transparent"
             >
               Annulla appuntamento
             </button>
@@ -2452,7 +2392,7 @@ function ApptSheet({
         <div className="space-y-4">
           <div className="flex gap-2">
             <label className="flex-1">
-              <span className="mb-1.5 block px-1 text-xs font-bold text-[var(--ink)] uppercase tracking-wider">
+              <span className="mb-1.5 block px-1 text-[18px] font-bold text-[var(--ink)] uppercase tracking-wider">
                 Data
               </span>
               <input
@@ -2460,30 +2400,30 @@ function ApptSheet({
                 value={rDate}
                 min={dayKey(new Date(), tz)}
                 onChange={(e) => setRDate(e.target.value)}
-                className="w-full min-w-0 max-w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-sm text-[var(--ink)] font-medium"
+                className="w-full min-w-0 max-w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-[18px] text-[var(--ink)] font-medium"
               />
             </label>
             <label className="w-[38%]">
-              <span className="mb-1.5 block px-1 text-xs font-bold text-[var(--ink)] uppercase tracking-wider">
+              <span className="mb-1.5 block px-1 text-[18px] font-bold text-[var(--ink)] uppercase tracking-wider">
                 Ora
               </span>
               <input
                 type="time"
                 value={rTime}
                 onChange={(e) => setRTime(e.target.value)}
-                className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-center text-sm text-[var(--ink)] font-medium"
+                className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-center text-[18px] text-[var(--ink)] font-medium"
               />
             </label>
           </div>
           <label className="block">
-            <span className="mb-1.5 block px-1 text-xs font-bold text-[var(--ink)] uppercase tracking-wider">
+            <span className="mb-1.5 block px-1 text-[18px] font-bold text-[var(--ink)] uppercase tracking-wider">
               Operatore
             </span>
             <select
               value={rEmp}
               onChange={(e) => setREmp(e.target.value)}
               disabled={!!restrictToEmployeeId}
-              className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] disabled:opacity-75 text-sm text-[var(--ink)] font-medium"
+              className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] disabled:opacity-75 text-[18px] text-[var(--ink)] font-medium"
             >
               {employees.map((e) => (
                 <option key={e.id} value={e.id}>
@@ -2493,18 +2433,18 @@ function ApptSheet({
             </select>
           </label>
 
-          {error && <p className="px-1 text-sm font-semibold text-[#ba1a1a]">{error}</p>}
+          {error && <p className="px-1 text-[18px] font-semibold text-[var(--danger)]">{error}</p>}
 
           <div className="flex gap-2 pt-1">
             <button
               onClick={() => setMode("view")}
-              className="flex-1 ios-btn-secondary h-12 text-sm font-bold border border-[var(--line)] bg-[var(--surface)]"
+              className="flex-1 ios-btn-secondary h-12 text-[18px] font-bold border border-[var(--line)] bg-[var(--surface)]"
             >
               Indietro
             </button>
             <button
               onClick={doReschedule}
-              className="flex-1 ios-btn-primary h-12 text-sm font-bold"
+              className="flex-1 ios-btn-primary h-12 text-[18px] font-bold"
             >
               Conferma
             </button>
@@ -2592,22 +2532,25 @@ function NewApptSheet({
     <Sheet open={open} onClose={onClose} title="Nuovo Appuntamento" dismissible={false}>
       <div className="space-y-4 py-1">
         <input
+          aria-label="Nome cliente"
           placeholder="Nome cliente"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium text-sm text-[var(--ink)]"
+          className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium text-[18px] text-[var(--ink)]"
         />
         <input
           type="tel"
+          aria-label="Numero WhatsApp, facoltativo"
           placeholder="Numero WhatsApp (facoltativo)"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium text-sm text-[var(--ink)]"
+          className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium text-[18px] text-[var(--ink)]"
         />
         <select
+          aria-label="Servizio"
           value={serviceId}
           onChange={(e) => setServiceId(e.target.value)}
-          className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium text-sm text-[var(--ink)]"
+          className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium text-[18px] text-[var(--ink)]"
         >
           {services.length === 0 && <option value="">Nessun servizio</option>}
           {services.map((s) => (
@@ -2617,10 +2560,11 @@ function NewApptSheet({
           ))}
         </select>
         <select
+          aria-label="Operatore"
           value={empId}
           onChange={(e) => setEmpId(e.target.value)}
           disabled={!!restrictToEmployeeId}
-          className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium disabled:opacity-75 text-sm text-[var(--ink)]"
+          className="w-full h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium disabled:opacity-75 text-[18px] text-[var(--ink)]"
         >
           {employees.map((e) => (
             <option key={e.id} value={e.id}>
@@ -2631,24 +2575,26 @@ function NewApptSheet({
         <div className="flex gap-2">
           <input
             type="date"
+            aria-label="Data appuntamento"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="flex-1 h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium text-sm text-[var(--ink)]"
+            className="flex-1 h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] font-medium text-[18px] text-[var(--ink)]"
           />
           <input
             type="time"
+            aria-label="Orario appuntamento"
             value={time}
             onChange={(e) => setTime(e.target.value)}
-            className="w-[38%] h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-center font-medium text-sm text-[var(--ink)]"
+            className="w-[38%] h-12 rounded-xl bg-[var(--surface-2)] px-4 outline-none border border-transparent focus:border-[var(--ink)] text-center font-medium text-[18px] text-[var(--ink)]"
           />
         </div>
 
-        {error && <p className="px-1 text-sm font-semibold text-[#ba1a1a]">{error}</p>}
+        {error && <p className="px-1 text-[18px] font-semibold text-[var(--danger)]">{error}</p>}
 
         <button
           onClick={submit}
           disabled={pending}
-          className="w-full h-14 rounded-full ios-btn-primary font-sans text-xs font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3"
+          className="w-full h-14 rounded-full ios-btn-primary font-sans text-[18px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3"
         >
           Aggiungi appuntamento
         </button>
@@ -2663,7 +2609,7 @@ function WhatsAppButton({ href }: { href: string }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] text-sm font-bold text-white transition-all active:scale-[0.97] border-none cursor-pointer shadow-sm"
+      className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] text-[18px] font-bold text-white transition-all active:scale-[0.97] border-none cursor-pointer shadow-sm"
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-white">
         <path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.3-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.9-4.44 9.9-9.9S17.5 2 12.04 2Zm5.8 14.16c-.24.68-1.4 1.3-1.94 1.34-.5.05-1.13.24-3.66-.77-3.08-1.24-5.05-4.38-5.2-4.58-.15-.2-1.24-1.65-1.24-3.15s.79-2.24 1.07-2.55c.28-.31.61-.38.82-.38.2 0 .41 0 .59.01.19.01.44-.07.69.53.24.6.83 2.06.9 2.21.07.15.12.32.02.52-.1.2-.15.32-.3.5-.15.17-.31.39-.44.52-.15.15-.3.31-.13.6.17.3.76 1.25 1.63 2.02 1.12 1 2.07 1.31 2.37 1.46.3.15.47.12.65-.07.18-.2.75-.87.95-1.17.2-.3.4-.25.67-.15.28.1 1.74.82 2.04.97.3.15.5.22.57.35.07.12.07.72-.17 1.4Z" />
@@ -2675,9 +2621,9 @@ function WhatsAppButton({ href }: { href: string }) {
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start gap-3 px-4 py-3">
-      <span className="text-xs font-bold text-[var(--ink-2)] w-20 shrink-0 pt-0.5 uppercase tracking-wider">{label}</span>
-      <span className="flex-1 font-bold text-sm text-[var(--ink)]">{value}</span>
+    <div className="agenda-detail-row">
+      <span>{label}</span>
+      <span>{value || "—"}</span>
     </div>
   );
 }

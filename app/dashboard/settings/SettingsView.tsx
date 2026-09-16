@@ -3,8 +3,8 @@
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/ui/Sheet";
-import { CalendarLogo } from "@/components/CalendarLogo";
-import { Wordmark } from "@/components/Wordmark";
+import { AppHeader, AppNav, AppPageHeading } from "@/components/app/AppChrome";
+import "./settings-design.css";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/Button";
 import { Toggle } from "@/components/ui/Toggle";
@@ -40,7 +40,6 @@ import {
   deleteServiceAddon,
 } from "./actions";
 import { cn } from "@/lib/cn";
-import { applyThemeMode, getThemeMode, type ThemeMode } from "@/components/ThemeManager";
 
 const DAY_LETTERS = ["L", "M", "M", "G", "V", "S", "D"];
 
@@ -61,8 +60,8 @@ function DayMultiPicker({
   const all = [0, 1, 2, 3, 4, 5, 6];
 
   return (
-    <div className="space-y-2">
-      <div className="flex gap-1.5">
+    <div className="settings-day-picker">
+      <div className="settings-day-grid">
         {DAY_LETTERS.map((l, d) => (
           <button
             key={d}
@@ -71,7 +70,7 @@ function DayMultiPicker({
             aria-label={WEEKDAYS_LONG[d]}
             aria-pressed={selDays.includes(d)}
             className={cn(
-              "w-9 h-9 rounded-full text-xs font-extrabold border transition-all cursor-pointer active:scale-95",
+              "w-full h-14 rounded-full text-[18px] font-bold border transition-all cursor-pointer active:scale-95",
               selDays.includes(d)
                 ? "bg-[var(--ink)] !text-[var(--bg)] border-[var(--ink)]"
                 : "bg-[var(--surface)] text-[var(--ink-2)] border-[var(--line)] hover:border-[var(--ink)]/40"
@@ -81,12 +80,12 @@ function DayMultiPicker({
           </button>
         ))}
       </div>
-      <div className="flex gap-1.5">
+      <div className="settings-day-presets">
         <button
           type="button"
           onClick={() => setSelDays(same(selDays, open) ? [] : open)}
           className={cn(
-            "h-7 px-2.5 rounded-full text-[10px] font-bold uppercase tracking-wider border cursor-pointer transition-all",
+            "min-h-12 px-4 rounded-full text-[18px] font-bold border cursor-pointer transition-all",
             same(selDays, open)
               ? "bg-[var(--ink)]/10 text-[var(--ink)] border-[var(--ink)]/40"
               : "bg-[var(--surface)] text-[var(--ink-2)] border-[var(--line)]"
@@ -98,7 +97,7 @@ function DayMultiPicker({
           type="button"
           onClick={() => setSelDays(same(selDays, all) ? [] : all)}
           className={cn(
-            "h-7 px-2.5 rounded-full text-[10px] font-bold uppercase tracking-wider border cursor-pointer transition-all",
+            "min-h-12 px-4 rounded-full text-[18px] font-bold border cursor-pointer transition-all",
             same(selDays, all)
               ? "bg-[var(--ink)]/10 text-[var(--ink)] border-[var(--ink)]/40"
               : "bg-[var(--surface)] text-[var(--ink-2)] border-[var(--line)]"
@@ -133,112 +132,77 @@ export function SettingsView({
   employees: Employee[];
   initialHolidays?: any[];
 }) {
-  const router = useRouter();
-
   // QR Code share modal states
   const [qrOpen, setQrOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] pb-32 font-sans">
-      {/* TopAppBar */}
-      <header className="w-full top-0 sticky z-45 bg-[var(--bg)]/85 backdrop-blur-md border-b border-[var(--line)]">
-        <div className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
-          <div className="flex items-center gap-3">
-            <CalendarLogo size={48} />
-            <Wordmark />
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setQrOpen(true)}
-              className="material-symbols-outlined text-[var(--ink-2)] cursor-pointer hover:opacity-80 transition-opacity active:scale-95 border-none bg-transparent"
-              title="Codice QR di Prenotazione"
-            >
-              qr_code
-            </button>
-            <button className="material-symbols-outlined text-[var(--ink-2)] cursor-pointer hover:opacity-80 transition-opacity active:scale-95 border-none bg-transparent">
-              notifications
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="settings-view">
+      <AppHeader>
+        <button
+          onClick={() => setQrOpen(true)}
+          className="settings-header-action"
+          aria-label="Condividi il link di prenotazione"
+          title="Condividi prenotazioni"
+        >
+          <span className="material-symbols-outlined" aria-hidden="true">qr_code_2</span>
+          <span>Condividi</span>
+        </button>
+      </AppHeader>
 
-      <main className="max-w-3xl mx-auto px-6 mt-8 space-y-6">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-extrabold text-[var(--ink)] tracking-tight">Gestione Impostazioni</h2>
-          <p className="text-[var(--ink-2)] text-sm mt-1">Configura la tua attività, gli orari di apertura, i servizi e lo staff.</p>
-        </div>
-
-        <BusinessSection business={business} />
-        <HoursSection initial={hours} />
-        <ServicesSection
-          initial={services}
-          employees={employees}
-          openWeekdays={hours.filter((h) => !h.isClosed).map((h) => h.weekday)}
+      <main className="settings-main">
+        <AppPageHeading
+          eyebrow="Studio"
+          title="Il tuo spazio, le tue regole."
+          description="Servizi, persone e disponibilità. Tutto pronto per accogliere il prossimo appuntamento."
         />
-        <EmployeesSection initial={employees} />
-        <HolidaysSection initial={initialHolidays} />
-        <ThemeSection />
+        <nav className="settings-sections" aria-label="Sezioni dello studio">
+          <a href="#attivita">Attività</a>
+          <a href="#servizi">Servizi <span>{services.length}</span></a>
+          <a href="#orari">Orari</a>
+          <a href="#team">Team <span>{employees.length}</span></a>
+          <a href="#chiusure">Chiusure</a>
+        </nav>
+
+        <div className="settings-layout">
+          <BusinessSection business={business} />
+          <ServicesSection
+            initial={services}
+            employees={employees}
+            openWeekdays={hours.filter((h) => !h.isClosed).map((h) => h.weekday)}
+          />
+          <HoursSection initial={hours} />
+          <EmployeesSection initial={employees} />
+          <HolidaysSection initial={initialHolidays} />
+        </div>
         <AccountSection />
       </main>
 
-      <nav className="fixed bottom-0 left-0 w-full z-50 bg-[var(--surface)]/85 backdrop-blur-md shadow-[0_-8px_30px_rgba(62,27,51,0.06)] border-t border-[var(--line)]/20">
-        <div className="flex justify-around items-center w-full px-6 py-3 pb-safe max-w-screen-md mx-auto">
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="flex flex-col items-center justify-center gap-1 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent text-[var(--ink-2)] hover:opacity-85"
-          >
-            <span className="material-symbols-outlined text-[24px]">
-              grid_view
-            </span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider">Dashboard</span>
-          </button>
-          <button
-            onClick={() => router.push("/dashboard?tab=calendar")}
-            className="flex flex-col items-center justify-center gap-1 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent text-[var(--ink-2)] hover:opacity-85"
-          >
-            <span className="material-symbols-outlined text-[24px]">
-              calendar_month
-            </span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider">Calendario</span>
-          </button>
-          <button
-            onClick={() => router.push("/dashboard?tab=clients")}
-            className="flex flex-col items-center justify-center gap-1 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent text-[var(--ink-2)] hover:opacity-85"
-          >
-            <span className="material-symbols-outlined text-[24px]">
-              group
-            </span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider">Clienti</span>
-          </button>
-          <button
-            onClick={() => router.push("/dashboard/settings")}
-            className="flex flex-col items-center justify-center gap-1 active:scale-95 transition-all duration-200 cursor-pointer border-none bg-transparent text-[var(--ink)] font-bold"
-          >
-            <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>content_cut</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider">Servizi</span>
-          </button>
-        </div>
-      </nav>
+      <AppNav items={[
+        { label: "Oggi", icon: "grid_view", href: "/dashboard" },
+        { label: "Agenda", icon: "calendar_month", href: "/dashboard?tab=calendar" },
+        { label: "Clienti", icon: "group", href: "/dashboard?tab=clients" },
+        { label: "Studio", icon: "tune", href: "/dashboard/settings", active: true },
+      ]} />
 
       {/* QR Code Share Sheet */}
       <Sheet
           open={qrOpen}
           onClose={() => setQrOpen(false)}
-          title="QR Code di Prenotazione"
+          title="Condividi prenotazioni"
           dismissible={true}
         >
-          <div className="space-y-6 py-2 text-center">
-            <p className="text-[var(--ink-2)] text-xs font-semibold uppercase tracking-wider">
-              Mostra questo QR Code al cliente o stampalo per il tuo negozio.
+          <div className="settings-qr space-y-6 py-2 text-center">
+            <p className="text-[var(--ink-2)] text-[18px] font-semibold">
+              Un QR da mostrare, stampare o condividere con i clienti.
             </p>
 
             <div ref={qrRef} className="mx-auto w-fit rounded-2xl bg-[var(--surface)] p-4 border border-[var(--line-strong)]/30 shadow-sm">
               <QRCodeCanvas value={`${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/b/${business.slug}`} size={200} level="M" marginSize={0} />
             </div>
 
-            <div className="bg-[var(--bg)] rounded-xl p-3 border border-[var(--line-strong)]/20 break-all text-xs font-bold text-[var(--ink)]">
+            <div className="bg-[var(--bg)] rounded-2xl p-3 border border-[var(--line-strong)]/20 break-all text-[18px] font-bold text-[var(--ink)]">
               {`${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/b/${business.slug}`}
             </div>
 
@@ -251,7 +215,7 @@ export function SettingsView({
                     setTimeout(() => setCopied(false), 1500);
                   } catch {}
                 }}
-                className="flex-1 h-12 rounded-xl bg-[var(--surface-2)] border border-[var(--line-strong)]/30 font-semibold text-xs text-[var(--ink)] active:scale-95 transition-all cursor-pointer"
+                className="flex-1 h-14 rounded-2xl bg-[var(--surface-2)] border border-[var(--line-strong)]/30 font-semibold text-[18px] text-[var(--ink)] active:scale-95 transition-all cursor-pointer"
               >
                 {copied ? "Copiato!" : "Copia Link"}
               </button>
@@ -270,7 +234,7 @@ export function SettingsView({
                           body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif; text-align: center; }
                           img { width: 300px; height: 300px; margin-bottom: 20px; }
                           h1 { color: #3E1B33; font-size: 24px; margin: 0 0 10px 0; }
-                          p { color: #A18A97; font-size: 16px; margin: 0; }
+                          p { color: #A18A97; font-size: 18px; margin: 0; }
                         </style>
                       </head>
                       <body onload="window.print(); window.close();">
@@ -279,13 +243,13 @@ export function SettingsView({
                         <br/>
                         <img src="${dataUrl}" />
                         <br/>
-                        <p style="font-size: 12px; word-break: break-all;">${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/b/${business.slug}</p>
+                        <p style="font-size: 18px; word-break: break-all;">${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/b/${business.slug}</p>
                       </body>
                     </html>
                   `);
                   win.document.close();
                 }}
-                className="flex-grow h-12 rounded-full ios-btn-primary font-bold text-xs active:scale-95 transition-all cursor-pointer uppercase tracking-wider"
+                className="flex-grow h-14 rounded-full ios-btn-primary font-bold text-[18px] active:scale-95 transition-all cursor-pointer"
               >
                 Stampa QR
               </button>
@@ -293,7 +257,7 @@ export function SettingsView({
 
             <button
               onClick={() => setQrOpen(false)}
-              className="text-xs font-bold text-[var(--ink-2)] uppercase tracking-wider cursor-pointer hover:opacity-85 border-none bg-transparent"
+              className="text-[18px] font-bold text-[var(--ink-2)] cursor-pointer hover:opacity-85 border-none bg-transparent"
             >
               Chiudi
             </button>
@@ -307,22 +271,31 @@ export function SettingsView({
 
 function Saved({ show }: { show: boolean }) {
   if (!show) return null;
-  return <span className="text-xs font-bold text-[var(--accent)] animate-pulse">Salvato ✓</span>;
+  return <span role="status" className="text-[18px] font-semibold text-[var(--accent)]">Salvato ✓</span>;
 }
 
 function Card({
   title,
+  description,
+  id,
+  className,
   action,
   children,
 }: {
   title: string;
+  description?: string;
+  id?: string;
+  className?: string;
   action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section className="ios-card rounded-2xl p-5 border border-[var(--line)] bg-[var(--surface)] shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-base font-bold text-[var(--ink)] tracking-tight">{title}</h3>
+    <section id={id} className={cn("settings-panel", className)}>
+      <div className="settings-panel-heading">
+        <div>
+          <h2>{title}</h2>
+          {description && <p>{description}</p>}
+        </div>
         {action}
       </div>
       {children}
@@ -355,26 +328,26 @@ function BusinessSection({ business }: { business: Business }) {
   // Read-only recap: saved data is visible, editing is explicit
   if (!editing) {
     return (
-      <Card title="La tua attività" action={<Saved show={saved} />}>
-        <div className="space-y-2">
-          <div className="flex items-start gap-3">
-            <span className="text-xs font-bold text-[var(--ink-2)] w-20 shrink-0 pt-0.5 uppercase tracking-wider">Nome</span>
-            <span className="flex-1 font-bold text-sm text-[var(--ink)]">{name}</span>
+      <Card id="attivita" className="settings-business" title="La tua attività" description="Le informazioni che vedono i tuoi clienti." action={<Saved show={saved} />}>
+        <div className="settings-business-recap">
+          <div className="settings-detail">
+            <span className="text-[18px] font-bold text-[var(--ink-2)]">Nome</span>
+            <span className="flex-1 font-bold text-[18px] text-[var(--ink)]">{name}</span>
           </div>
-          <div className="flex items-start gap-3">
-            <span className="text-xs font-bold text-[var(--ink-2)] w-20 shrink-0 pt-0.5 uppercase tracking-wider">Telefono</span>
-            <span className="flex-1 font-bold text-sm text-[var(--ink)]">{phone || "—"}</span>
+          <div className="settings-detail">
+            <span className="text-[18px] font-bold text-[var(--ink-2)]">Telefono</span>
+            <span className="flex-1 font-bold text-[18px] text-[var(--ink)]">{phone || "—"}</span>
           </div>
-          <div className="flex items-start gap-3">
-            <span className="text-xs font-bold text-[var(--ink-2)] w-20 shrink-0 pt-0.5 uppercase tracking-wider">Indirizzo</span>
-            <span className="flex-1 font-bold text-sm text-[var(--ink)]">{address || "—"}</span>
+          <div className="settings-detail">
+            <span className="text-[18px] font-bold text-[var(--ink-2)]">Indirizzo</span>
+            <span className="flex-1 font-bold text-[18px] text-[var(--ink)]">{address || "—"}</span>
           </div>
           <button
             onClick={() => setEditing(true)}
-            className="w-full h-12 !mt-4 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] font-bold text-xs uppercase tracking-wider cursor-pointer active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            className="w-full h-14 !mt-4 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] font-bold text-[18px] cursor-pointer active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            <span className="material-symbols-outlined text-[16px]">edit</span>
-            Modifica informazioni
+            <span className="material-symbols-outlined text-[18px]">edit</span>
+            Modifica attività
           </button>
         </div>
       </Card>
@@ -382,35 +355,44 @@ function BusinessSection({ business }: { business: Business }) {
   }
 
   return (
-    <Card title="La tua attività" action={<Saved show={saved} />}>
-      <div className="space-y-3">
-        <input
-          className="w-full h-12 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[var(--ink)]"
+    <Card id="attivita" className="settings-business" title="La tua attività" description="Le informazioni che vedono i tuoi clienti." action={<Saved show={saved} />}>
+      <div className="settings-business-form space-y-4">
+        <label>
+          <span className="text-[18px] font-semibold text-[var(--ink-2)]">Nome attività</span>
+        <input aria-label="Nome"
+          className="w-full h-14 rounded-2xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-[18px] font-medium text-[var(--ink)]"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nome Attività"
         />
-        <input
-          className="w-full h-12 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[var(--ink)]"
+        </label>
+        <label>
+          <span className="text-[18px] font-semibold text-[var(--ink-2)]">Telefono</span>
+        <input aria-label="Telefono"
+          className="w-full h-14 rounded-2xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-[18px] font-medium text-[var(--ink)]"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           placeholder="Telefono"
           type="tel"
         />
-        <input
-          className="w-full h-12 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[var(--ink)]"
+        </label>
+        <label>
+          <span className="text-[18px] font-semibold text-[var(--ink-2)]">Indirizzo</span>
+        <input aria-label="Indirizzo"
+          className="w-full h-14 rounded-2xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-[18px] font-medium text-[var(--ink)]"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder="Indirizzo"
         />
-        {error && <p className="px-1 text-xs font-bold text-[#ba1a1a]">{error}</p>}
+        </label>
+        {error && <p role="alert" className="px-1 text-[18px] font-bold text-[var(--danger)]">{error}</p>}
         <div className="flex flex-col sm:flex-row gap-2">
           <button
             disabled={pending}
             onClick={save}
-            className="sm:order-2 sm:flex-grow h-12 rounded-full ios-btn-primary font-bold text-xs uppercase tracking-wider disabled:opacity-55"
+            className="sm:order-2 sm:flex-grow h-14 rounded-full ios-btn-primary font-bold text-[18px] disabled:opacity-55"
           >
-            {pending ? "Salvataggio..." : "Salva Informazioni"}
+            {pending ? "Salvataggio..." : "Salva attività"}
           </button>
           <button
             disabled={pending}
@@ -422,9 +404,9 @@ function BusinessSection({ business }: { business: Business }) {
               setEditing(false);
             }}
             title="Chiudi senza salvare: le modifiche non salvate vengono scartate"
-            className="sm:order-1 h-12 px-4 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] font-bold text-[11px] uppercase tracking-wider whitespace-nowrap cursor-pointer active:scale-[0.98] transition-all disabled:opacity-55"
+            className="sm:order-1 h-14 px-4 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] font-bold text-[18px] whitespace-nowrap cursor-pointer active:scale-[0.98] transition-all disabled:opacity-55"
           >
-            Annulla modifiche
+            Annulla
           </button>
         </div>
       </div>
@@ -456,173 +438,125 @@ function HoursSection({ initial }: { initial: HourRow[] }) {
     });
   }
 
-  // Read-only recap: the owner sees the saved data and edits explicitly
-  if (!editing) {
-    return (
-      <Card title="Orari di apertura" action={<Saved show={saved} />}>
-        <div className="divide-y divide-[var(--line)]">
-          {rows.map((r) => (
-            <div key={r.weekday} className="flex items-center justify-between py-2.5">
-              <span className="font-bold text-sm text-[var(--ink)]">{WEEKDAYS_LONG[r.weekday]}</span>
-              {r.isClosed ? (
-                <span className="text-xs font-semibold text-[var(--ink-2)]">Chiuso</span>
-              ) : (
-                <span className="text-xs font-bold text-[var(--ink)]">
-                  {r.open} – {r.close}
-                  {r.breakStart && (
-                    <span className="text-[var(--ink-2)] font-semibold"> · pausa {r.breakStart}–{r.breakEnd}</span>
+  return (
+    <Card id="orari" className="settings-hours" title="Orari di apertura" description="Il ritmo della tua settimana." action={<Saved show={saved} />}>
+      {editing ? (
+        <div className="settings-hours-editor">
+          {rows.map((r, i) => (
+            <div key={r.weekday} className="settings-hours-day">
+              <div className="settings-hours-day-heading">
+                <h3>{WEEKDAYS_LONG[r.weekday]}</h3>
+                <div className="settings-hours-status">
+                  <span>{r.isClosed ? "Chiuso" : "Aperto"}</span>
+                  <Toggle checked={!r.isClosed} onChange={(v) => set(i, { isClosed: !v })} label={WEEKDAYS_LONG[r.weekday]} />
+                </div>
+              </div>
+              {!r.isClosed && (
+                <>
+                  <div className="settings-time-pair">
+                    <label>
+                      <span>Apertura</span>
+                      <input type="time" value={r.open} onChange={(e) => set(i, { open: e.target.value })} />
+                    </label>
+                    <label>
+                      <span>Chiusura</span>
+                      <input type="time" value={r.close} onChange={(e) => set(i, { close: e.target.value })} />
+                    </label>
+                  </div>
+                  {r.breakStart != null && (
+                    <div className="settings-break">
+                      <div className="settings-time-pair">
+                        <label>
+                          <span>Inizio pausa</span>
+                          <input type="time" value={r.breakStart} onChange={(e) => set(i, { breakStart: e.target.value })} />
+                        </label>
+                        <label>
+                          <span>Fine pausa</span>
+                          <input type="time" value={r.breakEnd ?? "14:00"} onChange={(e) => set(i, { breakEnd: e.target.value })} />
+                        </label>
+                      </div>
+                    </div>
                   )}
-                </span>
+                  <div className="settings-day-actions">
+                    {r.breakStart != null ? (
+                      <button className="settings-text-button settings-danger" onClick={() => set(i, { breakStart: null, breakEnd: null })}>
+                        <span className="material-symbols-outlined" aria-hidden="true">remove</span>
+                        Rimuovi pausa
+                      </button>
+                    ) : (
+                      <button className="settings-text-button" onClick={() => set(i, { breakStart: "13:00", breakEnd: "14:00" })}>
+                        <span className="material-symbols-outlined" aria-hidden="true">add</span>
+                        Aggiungi pausa
+                      </button>
+                    )}
+                    <button
+                      className="settings-text-button"
+                      onClick={() => {
+                        setRows(prev => prev.map((row) => {
+                          if (row.weekday === r.weekday || row.isClosed) return row;
+                          return {
+                            ...row,
+                            open: r.open,
+                            close: r.close,
+                            breakStart: r.breakStart,
+                            breakEnd: r.breakEnd,
+                          };
+                        }));
+                      }}
+                      title="Copia orario e pausa di questo giorno su tutti gli altri giorni aperti"
+                    >
+                      <span className="material-symbols-outlined" aria-hidden="true">content_copy</span>
+                      Applica a tutti
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           ))}
         </div>
-        <button
-          onClick={() => setEditing(true)}
-          className="w-full h-12 mt-4 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] font-bold text-xs uppercase tracking-wider cursor-pointer active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-        >
-          <span className="material-symbols-outlined text-[16px]">edit</span>
-          Modifica orari
-        </button>
-      </Card>
-    );
-  }
-
-  return (
-    <Card title="Orari di apertura" action={<Saved show={saved} />}>
-      <div className="divide-y divide-[var(--line)]">
-        {rows.map((r, i) => (
-          <div key={r.weekday} className="py-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center justify-between w-full sm:w-auto">
-                <span className="w-20 shrink-0 font-bold text-sm text-[var(--ink)]">{WEEKDAYS_LONG[r.weekday]}</span>
-                <div className="sm:hidden">
-                  <Toggle checked={!r.isClosed} onChange={(v) => set(i, { isClosed: !v })} label={WEEKDAYS_LONG[r.weekday]} />
-                </div>
-              </div>
-              {r.isClosed ? (
-                <span className="flex-grow text-[var(--ink-2)] text-xs font-semibold">Chiuso</span>
-              ) : (
-                <div className="flex flex-grow items-center justify-end gap-1 px-1 w-full sm:w-auto">
-                  <input
-                    type="time"
-                    value={r.open}
-                    onChange={(e) => set(i, { open: e.target.value })}
-                    className="h-9 w-20 rounded-xl bg-[var(--bg)] border border-[var(--line)] text-center text-xs font-bold text-[var(--ink)] outline-none focus:border-[var(--ink)] transition-all"
-                  />
-                  <span className="text-[var(--ink-2)] text-xs font-bold">–</span>
-                  <input
-                    type="time"
-                    value={r.close}
-                    onChange={(e) => set(i, { close: e.target.value })}
-                    className="h-9 w-20 rounded-xl bg-[var(--bg)] border border-[var(--line)] text-center text-xs font-bold text-[var(--ink)] outline-none focus:border-[var(--ink)] transition-all"
-                  />
-                </div>
-              )}
-              <div className="hidden sm:block">
-                <Toggle checked={!r.isClosed} onChange={(v) => set(i, { isClosed: !v })} label={WEEKDAYS_LONG[r.weekday]} />
+      ) : (
+        <div className="settings-hours-summary">
+          {rows.map((r) => (
+            <div key={r.weekday} className="settings-hours-summary-row">
+              <span>{WEEKDAYS_LONG[r.weekday]}</span>
+              <div>
+                {r.isClosed ? (
+                  <span className="settings-closed">Chiuso</span>
+                ) : (
+                  <>
+                    <strong>{r.open} – {r.close}</strong>
+                    {r.breakStart && <span className="settings-hours-break">Pausa {r.breakStart}–{r.breakEnd}</span>}
+                  </>
+                )}
               </div>
             </div>
-            {!r.isClosed &&
-              (r.breakStart != null ? (
-                <div className="mt-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
-                  <div className="flex items-center justify-between w-full sm:w-auto">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-2)] mr-1">Pausa</span>
-                      <input
-                        type="time"
-                        value={r.breakStart}
-                        onChange={(e) => set(i, { breakStart: e.target.value })}
-                        className="h-8 w-20 rounded-xl bg-[var(--bg)] border border-[var(--line)] text-center text-[11px] font-bold text-[var(--ink)] outline-none focus:border-[var(--ink)] transition-all"
-                      />
-                      <span className="text-[var(--ink-2)] text-xs font-bold">–</span>
-                      <input
-                        type="time"
-                        value={r.breakEnd ?? "14:00"}
-                        onChange={(e) => set(i, { breakEnd: e.target.value })}
-                        className="h-8 w-20 rounded-xl bg-[var(--bg)] border border-[var(--line)] text-center text-[11px] font-bold text-[var(--ink)] outline-none focus:border-[var(--ink)] transition-all"
-                      />
-                    </div>
-                    <button
-                      onClick={() => set(i, { breakStart: null, breakEnd: null })}
-                      aria-label="Rimuovi pausa"
-                      className="text-[#ba1a1a] hover:opacity-80 p-1.5 border-none bg-transparent cursor-pointer flex items-center justify-center transition-opacity ml-2"
-                    >
-                      <span className="material-symbols-outlined text-base">delete</span>
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setRows(prev => prev.map((row) => {
-                        if (row.weekday === r.weekday || row.isClosed) return row;
-                        return {
-                          ...row,
-                          open: r.open,
-                          close: r.close,
-                          breakStart: r.breakStart,
-                          breakEnd: r.breakEnd
-                        };
-                      }));
-                    }}
-                    className="h-8 px-3 rounded-full bg-[var(--bg)] border border-[var(--line)] text-[9px] font-extrabold text-[var(--accent)] hover:bg-[var(--surface-2)] uppercase tracking-wider cursor-pointer flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto whitespace-nowrap"
-                    title="Copia orario e pausa di questo giorno su tutti gli altri giorni aperti"
-                  >
-                    <span className="material-symbols-outlined text-[10px]">content_copy</span> Applica a tutti
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-2.5 flex flex-col gap-2 w-full sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                  <button
-                    onClick={() => set(i, { breakStart: "13:00", breakEnd: "14:00" })}
-                    className="h-8 px-3 rounded-full bg-[var(--surface-2)] text-[9px] font-extrabold text-[var(--ink)] hover:bg-[var(--surface-3)] uppercase tracking-wider border-none cursor-pointer flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto whitespace-nowrap"
-                  >
-                    <span className="material-symbols-outlined text-[10px]">add</span> Aggiungi pausa
-                  </button>
-                  <button
-                    onClick={() => {
-                      setRows(prev => prev.map((row) => {
-                        if (row.weekday === r.weekday || row.isClosed) return row;
-                        return {
-                          ...row,
-                          open: r.open,
-                          close: r.close,
-                          breakStart: r.breakStart,
-                          breakEnd: r.breakEnd
-                        };
-                      }));
-                    }}
-                    className="h-8 px-3 rounded-full bg-[var(--bg)] border border-[var(--line)] text-[9px] font-extrabold text-[var(--accent)] hover:bg-[var(--surface-2)] uppercase tracking-wider cursor-pointer flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto whitespace-nowrap"
-                    title="Copia orario e pausa di questo giorno su tutti gli altri giorni aperti"
-                  >
-                    <span className="material-symbols-outlined text-[10px]">content_copy</span> Applica a tutti
-                  </button>
-                </div>
-              ))}
-          </div>
-        ))}
-      </div>
-      {error && <p className="mt-2 px-1 text-xs font-bold text-[#ba1a1a]">{error}</p>}
-      <div className="flex flex-col sm:flex-row gap-2 mt-4">
-        <button
-          disabled={pending}
-          onClick={save}
-          className="sm:order-2 sm:flex-grow h-12 rounded-full ios-btn-primary font-bold text-xs uppercase tracking-wider disabled:opacity-55"
-        >
-          {pending ? "Salvataggio..." : "Salva orari"}
+          ))}
+        </div>
+      )}
+      {error && <p role="alert" className="settings-error">{error}</p>}
+      {editing ? (
+        <div className="settings-actions">
+          <button
+            disabled={pending}
+            onClick={() => {
+              setRows(initial);
+              setError(null);
+              setEditing(false);
+            }}
+            className="settings-button settings-button-secondary"
+          >
+            Annulla
+          </button>
+          <button disabled={pending} onClick={save} className="settings-button ios-btn-primary">
+            {pending ? "Salvataggio..." : "Salva orari"}
+          </button>
+        </div>
+      ) : (
+        <button onClick={() => setEditing(true)} className="settings-button settings-button-secondary settings-edit-hours">
+          <span className="material-symbols-outlined" aria-hidden="true">edit</span>
+          Modifica orari
         </button>
-        <button
-          disabled={pending}
-          onClick={() => {
-            setRows(initial);
-            setError(null);
-            setEditing(false);
-          }}
-          title="Chiudi senza salvare: le modifiche non salvate vengono scartate"
-          className="sm:order-1 h-12 px-4 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] font-bold text-[11px] uppercase tracking-wider whitespace-nowrap cursor-pointer active:scale-[0.98] transition-all disabled:opacity-55"
-        >
-          Annulla modifiche
-        </button>
-      </div>
+      )}
     </Card>
   );
 }
@@ -644,11 +578,14 @@ function ServicesSection({
 
   return (
     <Card
+      id="servizi"
+      className="settings-services"
+      description="Il tuo catalogo, pronto da prenotare."
       title="Servizi"
       action={
         <button
           onClick={() => setWizardOpen(true)}
-          className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider cursor-pointer hover:opacity-85 border-none bg-transparent"
+          className="text-[18px] font-bold text-[var(--ink)] cursor-pointer hover:opacity-85 border-none bg-transparent"
         >
           + Aggiungi
         </button>
@@ -658,12 +595,12 @@ function ServicesSection({
         {initial.length === 0 ? (
           <div className="text-center py-8 space-y-3">
             <span className="material-symbols-outlined text-[40px] text-[var(--ink-2)]/50">content_cut</span>
-            <p className="text-sm text-[var(--ink-2)]">
+            <p className="text-[18px] text-[var(--ink-2)]">
               Nessun servizio ancora: crea il primo.<br />Bastano nome, durata e prezzo.
             </p>
             <button
               onClick={() => setWizardOpen(true)}
-              className="ios-btn-primary h-11 px-6 rounded-full text-xs font-bold uppercase tracking-wider"
+              className="ios-btn-primary h-14 px-6 rounded-full text-[18px] font-bold"
             >
               Crea il primo servizio
             </button>
@@ -788,17 +725,17 @@ function ServiceEditor({
   if (service && !editing) {
     const totalMin = (Number(durationHours) || 0) * 60 + (Number(durationMinutes) || 0);
     return (
-      <div className="rounded-2xl bg-[var(--surface)] p-4 border border-[var(--line)] shadow-sm flex items-center justify-between gap-3">
+      <div className="settings-service-row">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h4 className="font-bold text-sm text-[var(--ink)] truncate">{name}</h4>
+            <h4 className="settings-service-name">{name}</h4>
             {bookingMode === "fixed_slots" && (
-              <span className="shrink-0 text-[9px] font-extrabold uppercase tracking-wider bg-[var(--accent-2)]/30 text-[var(--ink)] px-2 py-0.5 rounded-full">
+              <span className="shrink-0 text-[18px] font-bold bg-[var(--accent-2)]/30 text-[var(--ink)] px-2 py-0.5 rounded-full">
                 Slot fissi
               </span>
             )}
           </div>
-          <p className="text-xs text-[var(--ink-2)] mt-0.5 font-medium">
+          <p className="text-[18px] text-[var(--ink-2)] mt-0.5 font-medium">
             {formatDuration(totalMin)} · {formatPrice(eurosToCents(price))}
           </p>
         </div>
@@ -806,9 +743,9 @@ function ServiceEditor({
           <Saved show={saved} />
           <button
             onClick={() => (onEdit ? onEdit() : setEditing(true))}
-            className="h-9 px-4 rounded-full border border-[var(--line)] bg-[var(--bg)] text-[11px] font-bold uppercase tracking-wider text-[var(--ink)] cursor-pointer active:scale-95 transition-all flex items-center gap-1.5"
+            className="h-14 px-4 rounded-full border border-[var(--line)] bg-[var(--bg)] text-[18px] font-bold text-[var(--ink)] cursor-pointer active:scale-95 transition-all flex items-center gap-1.5"
           >
-            <span className="material-symbols-outlined text-[14px]">edit</span>
+            <span className="material-symbols-outlined text-[18px]">edit</span>
             Modifica
           </button>
         </div>
@@ -825,12 +762,12 @@ function ServiceEditor({
   }
 
   return (
-    <div className="rounded-2xl bg-[var(--surface)] p-5 border border-[var(--line)] space-y-4 relative shadow-sm text-left">
+    <div className="settings-editor space-y-5">
       {/* NOME SERVIZIO */}
       <div>
-        <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Nome Servizio</label>
-        <input
-          className="w-full h-12 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-semibold text-[var(--ink)] transition-all"
+        <label className="text-[18px] font-bold text-[var(--ink-2)] mb-1 block">Nome Servizio</label>
+        <input aria-label="Nome"
+          className="w-full h-14 rounded-2xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-[18px] font-semibold text-[var(--ink)] transition-all"
           placeholder="es. Taglio capelli, Massaggio..."
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -839,9 +776,9 @@ function ServiceEditor({
 
       {/* DESCRIZIONE */}
       <div>
-        <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Descrizione</label>
-        <textarea
-          className="w-full h-24 rounded-xl bg-[var(--bg)] border border-[var(--line)] p-3 outline-none focus:border-[var(--ink)] text-sm text-[var(--ink)] font-medium resize-none transition-all"
+        <label className="text-[18px] font-bold text-[var(--ink-2)] mb-1 block">Descrizione</label>
+        <textarea aria-label="Descrizione"
+          className="w-full h-24 rounded-2xl bg-[var(--bg)] border border-[var(--line)] p-3 outline-none focus:border-[var(--ink)] text-[18px] text-[var(--ink)] font-medium resize-none transition-all"
           placeholder="Scrivi qui una breve descrizione del servizio..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -852,11 +789,11 @@ function ServiceEditor({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* DURATA TRATTAMENTO */}
         <div>
-          <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Durata Trattamento</label>
+          <label className="text-[18px] font-bold text-[var(--ink-2)] mb-1 block">Durata Trattamento</label>
           <div className="grid grid-cols-2 gap-2">
             {/* Ore Input */}
-            <div className="flex h-12 items-center justify-between bg-[var(--bg)] border border-[var(--line)] rounded-xl px-3">
-              <input
+            <div className="settings-compound-field">
+              <input aria-label="Durata in ore"
                 type="number"
                 min={0}
                 max={12}
@@ -869,14 +806,14 @@ function ServiceEditor({
                     setDurationHours(Math.max(0, Math.min(12, Number(val))));
                   }
                 }}
-                className="w-12 bg-transparent text-left font-bold outline-none text-base text-[var(--ink)]"
+                className="w-12 bg-transparent text-left font-bold outline-none text-[18px] text-[var(--ink)]"
                 placeholder="0"
               />
-              <span className="text-[var(--ink-2)] text-xs font-semibold">ore</span>
+              <span className="text-[var(--ink-2)] text-[18px] font-semibold">ore</span>
             </div>
             {/* Minuti Input */}
-            <div className="flex h-12 items-center justify-between bg-[var(--bg)] border border-[var(--line)] rounded-xl px-3">
-              <input
+            <div className="settings-compound-field">
+              <input aria-label="Durata in minuti"
                 type="number"
                 min={0}
                 max={59}
@@ -890,20 +827,20 @@ function ServiceEditor({
                     setDurationMinutes(Math.max(0, Math.min(59, Number(val))));
                   }
                 }}
-                className="w-12 bg-transparent text-left font-bold outline-none text-base text-[var(--ink)]"
+                className="w-12 bg-transparent text-left font-bold outline-none text-[18px] text-[var(--ink)]"
                 placeholder="0"
               />
-              <span className="text-[var(--ink-2)] text-xs font-semibold">minuti</span>
+              <span className="text-[var(--ink-2)] text-[18px] font-semibold">minuti</span>
             </div>
           </div>
         </div>
 
         {/* PREZZO */}
         <div>
-          <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Prezzo</label>
-          <div className="flex h-12 items-center gap-1.5 bg-[var(--bg)] border border-[var(--line)] rounded-xl px-3">
+          <label className="text-[18px] font-bold text-[var(--ink-2)] mb-1 block">Prezzo</label>
+          <div className="settings-compound-field">
             <span className="text-[var(--ink)] text-lg font-bold">€</span>
-            <input
+            <input aria-label="Prezzo in euro"
               inputMode="decimal"
               className="w-full bg-transparent outline-none text-[var(--ink)] text-lg font-bold"
               placeholder="0,00"
@@ -916,7 +853,7 @@ function ServiceEditor({
 
       {/* MODALITÀ DI PRENOTAZIONE */}
       <div>
-        <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">
+        <label className="text-[18px] font-bold text-[var(--ink-2)] mb-1 block">
           Disponibilità
         </label>
         <div className="bg-[var(--surface-2)] p-0.5 rounded-full flex border border-[var(--line)] w-fit">
@@ -930,7 +867,7 @@ function ServiceEditor({
               onClick={() => setBookingMode(opt.value)}
               aria-pressed={bookingMode === opt.value}
               className={cn(
-                "h-9 px-4 rounded-full text-xs font-bold transition-all border-none cursor-pointer",
+                "h-14 px-4 rounded-full text-[18px] font-bold transition-all border-none cursor-pointer",
                 bookingMode === opt.value
                   ? "bg-[var(--ink)] !text-[var(--bg)] shadow-sm"
                   : "bg-transparent text-[var(--ink-2)]"
@@ -940,7 +877,7 @@ function ServiceEditor({
             </button>
           ))}
         </div>
-        <p className="text-[10px] text-[var(--ink-2)] mt-1.5 leading-relaxed">
+        <p className="text-[18px] text-[var(--ink-2)] mt-1.5 leading-relaxed">
           {bookingMode === "auto"
             ? "Le clienti scelgono liberamente tra gli orari di apertura disponibili."
             : "Le clienti possono prenotare solo negli orari fissi che definisci qui sotto."}
@@ -962,13 +899,13 @@ function ServiceEditor({
         <DraftAddonsEditor addons={draftAddons} setAddons={setDraftAddons} />
       )}
 
-      {error && <p className="text-xs font-bold text-[#ba1a1a]">{error}</p>}
+      {error && <p role="alert" className="text-[18px] font-bold text-[var(--danger)]">{error}</p>}
 
       <div className="space-y-2 pt-2">
         <button
           disabled={pending}
           onClick={save}
-          className="w-full h-12 rounded-full ios-btn-primary font-bold text-xs uppercase tracking-wider"
+          className="w-full h-14 rounded-full ios-btn-primary font-bold text-[18px]"
         >
           {pending ? "Salvataggio..." : service ? "Salva modifiche" : "Aggiungi"}
         </button>
@@ -978,13 +915,13 @@ function ServiceEditor({
               disabled={pending}
               onClick={cancelEdit}
               title="Chiudi senza salvare: le modifiche non salvate vengono scartate"
-              className="flex-1 h-11 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] font-bold text-[11px] uppercase tracking-wider whitespace-nowrap cursor-pointer active:scale-[0.98] transition-all disabled:opacity-55"
+              className="flex-1 h-14 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] font-bold text-[18px] whitespace-nowrap cursor-pointer active:scale-[0.98] transition-all disabled:opacity-55"
             >
-              Annulla modifiche
+              Annulla
             </button>
             <button
               onClick={remove}
-              className="flex-1 h-11 rounded-full border border-[#ba1a1a] text-[#ba1a1a] font-bold text-[11px] uppercase tracking-wider whitespace-nowrap active:scale-[0.98] transition-all cursor-pointer bg-transparent"
+              className="flex-1 h-14 rounded-full border border-[var(--danger)] text-[var(--danger)] font-bold text-[18px] whitespace-nowrap active:scale-[0.98] transition-all cursor-pointer bg-transparent"
             >
               Elimina servizio
             </button>
@@ -1125,107 +1062,89 @@ function ServiceWizard({
   }
 
   const inputCls =
-    "w-full h-12 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-semibold text-[var(--ink)] transition-all";
+    "w-full h-14 rounded-2xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-[18px] font-semibold text-[var(--ink)] transition-all";
 
   return (
     <Sheet open={open} onClose={close} title={createdName ? "Fatto!" : service ? "Modifica servizio" : "Nuovo servizio"} dismissible={true}>
       {createdName ? (
         /* Success state */
-        <div className="space-y-5 py-4 text-center">
+        <div className="settings-wizard-success space-y-5 py-4 text-center">
           <span className="material-symbols-outlined text-[52px] text-[var(--accent)]">check_circle</span>
-          <p className="text-sm text-[var(--ink)]">
+          <p className="text-[18px] text-[var(--ink)]">
             {service ? (
               <>Le modifiche a <strong>«{createdName}»</strong> sono state salvate.</>
             ) : (
               <><strong>«{createdName}»</strong> è pronto per le prenotazioni.</>
             )}
           </p>
-          <div className="flex gap-2">
+          <div className="settings-actions">
             {!service && (
-              <button onClick={reset} className="flex-1 ios-btn-secondary h-12 text-xs font-bold uppercase tracking-wider border border-[var(--line)] bg-[var(--surface)]">
+              <button onClick={reset} className="flex-1 ios-btn-secondary h-14 text-[18px] font-bold border border-[var(--line)] bg-[var(--surface)]">
                 Crea un altro
               </button>
             )}
-            <button onClick={close} className="flex-1 ios-btn-primary h-12 text-xs font-bold uppercase tracking-wider">
+            <button onClick={close} className="flex-1 ios-btn-primary h-14 text-[18px] font-bold">
               Chiudi
             </button>
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
-          {/* Progress */}
-          <div className="flex items-center justify-center gap-2">
+        <div className="settings-wizard">
+          <ol className="settings-wizard-progress" aria-label="Passaggi del servizio">
             {stepLabels.map((label, i) => (
-              <div key={label} className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className={cn(
-                      "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-extrabold",
-                      i < step
-                        ? "bg-[var(--accent-2)]/50 text-[var(--on-accent-2)]"
-                        : i === step
-                        ? "bg-[var(--ink)] text-[var(--bg)]"
-                        : "bg-[var(--surface-2)] text-[var(--ink-2)]"
-                    )}
-                  >
-                    {i < step ? "✓" : i + 1}
-                  </span>
-                  <span className={cn("text-[10px] font-bold uppercase tracking-wider", i === step ? "text-[var(--ink)]" : "text-[var(--ink-2)]/70")}>
-                    {label}
-                  </span>
-                </div>
-                {i < stepLabels.length - 1 && <span className="w-4 h-px bg-[var(--line)]" />}
-              </div>
+              <li key={label} data-active={i === step} data-complete={i < step} aria-current={i === step ? "step" : undefined}>
+                <span className="settings-step-number" aria-hidden="true">{i < step ? "✓" : i + 1}</span>
+                <span>{label}</span>
+              </li>
             ))}
-          </div>
+          </ol>
 
-          {/* Step body */}
-          <div className="max-h-[55vh] overflow-y-auto space-y-4 px-0.5 -mx-0.5">
+          <div className="settings-wizard-body">
             {step === 0 && (
               <>
                 <div>
-                  <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Nome del servizio</label>
-                  <input
+                  <label className="text-[18px] font-bold text-[var(--ink-2)] mb-1 block">Nome del servizio</label>
+                  <input aria-label="Nome"
                     className={inputCls}
                     placeholder="es. Taglio, Microblading, Massaggio..."
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="settings-service-fields">
                   <div>
-                    <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Durata</label>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <div className="flex h-12 items-center justify-between bg-[var(--bg)] border border-[var(--line)] rounded-xl px-2.5">
-                        <input
+                    <label className="text-[18px] font-bold text-[var(--ink-2)] mb-1 block">Durata</label>
+                    <div className="settings-duration-fields">
+                      <div className="settings-compound-field">
+                        <input aria-label="Durata in ore"
                           type="number"
                           min={0}
                           max={12}
                           value={durationHours}
                           onChange={(e) => setDurationHours(e.target.value === "" ? "" : Math.max(0, Math.min(12, Number(e.target.value))))}
-                          className="w-8 bg-transparent font-bold outline-none text-base text-[var(--ink)]"
+                          className="w-12 min-w-0 bg-transparent font-bold outline-none text-[18px] text-[var(--ink)]"
                         />
-                        <span className="text-[var(--ink-2)] text-[10px] font-semibold">ore</span>
+                        <span className="text-[var(--ink-2)] text-[18px] font-semibold">ore</span>
                       </div>
-                      <div className="flex h-12 items-center justify-between bg-[var(--bg)] border border-[var(--line)] rounded-xl px-2.5">
-                        <input
+                      <div className="settings-compound-field">
+                        <input aria-label="Durata in minuti"
                           type="number"
                           min={0}
                           max={59}
                           step={5}
                           value={durationMinutes}
                           onChange={(e) => setDurationMinutes(e.target.value === "" ? "" : Math.max(0, Math.min(59, Number(e.target.value))))}
-                          className="w-8 bg-transparent font-bold outline-none text-base text-[var(--ink)]"
+                          className="w-12 min-w-0 bg-transparent font-bold outline-none text-[18px] text-[var(--ink)]"
                         />
-                        <span className="text-[var(--ink-2)] text-[10px] font-semibold">min</span>
+                        <span className="text-[var(--ink-2)] text-[18px] font-semibold">min</span>
                       </div>
                     </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Prezzo</label>
-                    <div className="flex h-12 items-center gap-1.5 bg-[var(--bg)] border border-[var(--line)] rounded-xl px-3">
+                    <label className="text-[18px] font-bold text-[var(--ink-2)] mb-1 block">Prezzo</label>
+                    <div className="settings-compound-field">
                       <span className="text-[var(--ink)] text-lg font-bold">€</span>
-                      <input
+                      <input aria-label="Prezzo in euro"
                         inputMode="decimal"
                         className="w-full bg-transparent outline-none text-[var(--ink)] text-lg font-bold"
                         placeholder="0,00"
@@ -1237,10 +1156,10 @@ function ServiceWizard({
                 </div>
                 {showDescription ? (
                   <div>
-                    <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Descrizione</label>
-                    <textarea
-                      className="w-full h-20 rounded-xl bg-[var(--bg)] border border-[var(--line)] p-3 outline-none focus:border-[var(--ink)] text-sm text-[var(--ink)] font-medium resize-none transition-all"
-                      placeholder="Breve descrizione visibile alle clienti..."
+                    <label className="text-[18px] font-bold text-[var(--ink-2)] mb-1 block">Descrizione</label>
+                    <textarea aria-label="Descrizione"
+                      className="w-full h-20 rounded-2xl bg-[var(--bg)] border border-[var(--line)] p-3 outline-none focus:border-[var(--ink)] text-[18px] text-[var(--ink)] font-medium resize-none transition-all"
+                      placeholder="Una breve descrizione per i clienti"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                     />
@@ -1249,10 +1168,10 @@ function ServiceWizard({
                   <button
                     type="button"
                     onClick={() => setShowDescription(true)}
-                    className="h-9 px-3.5 rounded-full bg-[var(--surface-2)] text-[11px] font-bold text-[var(--ink)] cursor-pointer border-none hover:bg-[var(--surface-3)] active:scale-95 transition-all flex items-center gap-1.5"
+                    className="h-14 px-3.5 rounded-full bg-[var(--surface-2)] text-[18px] font-bold text-[var(--ink)] cursor-pointer border-none hover:bg-[var(--surface-3)] active:scale-95 transition-all flex items-center gap-1.5"
                   >
-                    <span className="material-symbols-outlined text-[14px]">add</span>
-                    Descrizione (facoltativa)
+                    <span className="material-symbols-outlined text-[18px]">add</span>
+                    Aggiungi descrizione
                   </button>
                 )}
               </>
@@ -1260,19 +1179,19 @@ function ServiceWizard({
 
             {step === 1 && (
               <>
-                <p className="text-xs text-[var(--ink-2)]">Quando possono prenotare le clienti questo servizio?</p>
+                <p className="text-[18px] text-[var(--ink-2)]">Quando si può prenotare questo servizio?</p>
                 {([
                   {
                     value: "auto" as const,
                     icon: "event_available",
                     title: "Orari liberi",
-                    desc: "Qualsiasi orario disponibile nei tuoi orari di apertura. Perfetto per la maggior parte dei servizi.",
+                    desc: "I clienti scelgono tra gli orari disponibili durante l’apertura.",
                   },
                   {
                     value: "fixed_slots" as const,
                     icon: "pin_drop",
                     title: "Solo orari fissi",
-                    desc: "Solo negli orari che decidi tu. Es: solo il martedì alle 9:00 e alle 11:00.",
+                    desc: "Scegli tu giorni e orari dedicati a questo servizio.",
                   },
                 ]).map((opt) => (
                   <button
@@ -1281,7 +1200,7 @@ function ServiceWizard({
                     onClick={() => setBookingMode(opt.value)}
                     aria-pressed={bookingMode === opt.value}
                     className={cn(
-                      "w-full text-left rounded-2xl border p-4 flex gap-3 items-start cursor-pointer transition-all bg-[var(--surface)]",
+                      "settings-booking-choice w-full text-left rounded-2xl border p-4 flex gap-3 items-start cursor-pointer transition-all bg-[var(--surface)]",
                       bookingMode === opt.value
                         ? "border-[var(--ink)] shadow-sm ring-1 ring-[var(--ink)]"
                         : "border-[var(--line)] hover:border-[var(--ink)]/40"
@@ -1296,8 +1215,8 @@ function ServiceWizard({
                       {opt.icon}
                     </span>
                     <span>
-                      <span className="block font-bold text-sm text-[var(--ink)]">{opt.title}</span>
-                      <span className="block text-xs text-[var(--ink-2)] mt-0.5 leading-relaxed">{opt.desc}</span>
+                      <span className="block font-bold text-[18px] text-[var(--ink)]">{opt.title}</span>
+                      <span className="block text-[18px] text-[var(--ink-2)] mt-0.5 leading-relaxed">{opt.desc}</span>
                     </span>
                   </button>
                 ))}
@@ -1312,8 +1231,8 @@ function ServiceWizard({
 
             {step === 2 && (
               <>
-                <p className="text-xs text-[var(--ink-2)]">
-                  Extra facoltativi che le clienti possono aggiungere (es. trattamento aggiuntivo). Puoi saltare questo passaggio.
+                <p className="text-[18px] text-[var(--ink-2)]">
+                  Aggiungi gli extra disponibili. Questo passaggio è facoltativo.
                 </p>
                 {service ? (
                   <AddonsManager service={service} />
@@ -1323,12 +1242,12 @@ function ServiceWizard({
 
                 {/* Recap */}
                 <div className="rounded-2xl border border-[var(--line)] bg-[var(--bg)]/70 p-4 space-y-1.5">
-                  <p className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1">Riepilogo</p>
-                  <p className="text-sm font-bold text-[var(--ink)]">
+                  <p className="text-[18px] font-bold text-[var(--ink-2)] mb-1">Riepilogo</p>
+                  <p className="text-[18px] font-bold text-[var(--ink)]">
                     {name.trim() || "—"}
                     <span className="font-medium text-[var(--ink-2)]"> · {formatDuration(totalMinutes)} · {formatPrice(eurosToCents(price))}</span>
                   </p>
-                  <p className="text-xs text-[var(--ink-2)] font-medium">
+                  <p className="text-[18px] text-[var(--ink-2)] font-medium">
                     {bookingMode === "auto"
                       ? "Orari liberi (segue gli orari di apertura)"
                       : service
@@ -1343,7 +1262,7 @@ function ServiceWizard({
                     type="button"
                     onClick={removeService}
                     disabled={pending}
-                    className="w-full h-11 rounded-full border border-[#ba1a1a] text-[#ba1a1a] text-[11px] font-bold uppercase tracking-wider bg-transparent cursor-pointer active:scale-[0.98] transition-all disabled:opacity-50"
+                    className="w-full h-14 rounded-full border border-[var(--danger)] text-[var(--danger)] text-[18px] font-bold bg-transparent cursor-pointer active:scale-[0.98] transition-all disabled:opacity-50"
                   >
                     Elimina servizio
                   </button>
@@ -1352,10 +1271,10 @@ function ServiceWizard({
             )}
           </div>
 
-          {error && <p className="text-xs font-bold text-[#ba1a1a]">{error}</p>}
+          {error && <p role="alert" className="text-[18px] font-bold text-[var(--danger)]">{error}</p>}
 
           {/* Footer */}
-          <div className="flex gap-2 pt-1">
+          <div className="settings-wizard-footer">
             {step > 0 && (
               <button
                 disabled={pending}
@@ -1363,20 +1282,20 @@ function ServiceWizard({
                   setError(null);
                   setStep((s) => s - 1);
                 }}
-                className="h-12 px-5 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] font-bold text-xs uppercase tracking-wider cursor-pointer active:scale-[0.98] transition-all disabled:opacity-55"
+                className="h-14 px-5 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] font-bold text-[18px] cursor-pointer active:scale-[0.98] transition-all disabled:opacity-55"
               >
                 Indietro
               </button>
             )}
             {step < 2 ? (
-              <button onClick={next} className="flex-grow ios-btn-primary h-12 rounded-full font-bold text-xs uppercase tracking-wider">
+              <button onClick={next} className="flex-grow ios-btn-primary h-14 rounded-full font-bold text-[18px]">
                 Avanti
               </button>
             ) : (
               <button
                 disabled={pending}
                 onClick={create}
-                className="flex-grow ios-btn-primary h-12 rounded-full font-bold text-xs uppercase tracking-wider disabled:opacity-55"
+                className="flex-grow ios-btn-primary h-14 rounded-full font-bold text-[18px] disabled:opacity-55"
               >
                 {pending ? "Salvataggio..." : service ? "Salva modifiche" : "Crea servizio"}
               </button>
@@ -1409,15 +1328,15 @@ function DraftSlotsEditor({
     id ? (employees.find((e) => e.id === id)?.name ?? "—") : "Qualsiasi";
 
   const inputCls =
-    "h-10 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-3 outline-none focus:border-[var(--ink)] text-xs font-semibold text-[var(--ink)] transition-all";
+    "h-14 rounded-2xl bg-[var(--bg)] border border-[var(--line)] px-3 outline-none focus:border-[var(--ink)] text-[18px] font-semibold text-[var(--ink)] transition-all";
 
   return (
-    <div className="rounded-xl border border-[var(--line)] bg-[var(--bg)]/60 p-4 space-y-3">
-      <p className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider">
-        Slot ricorrenti settimanali
+    <div className="settings-subpanel space-y-4">
+      <p className="text-[18px] font-bold text-[var(--ink-2)]">
+        Orari settimanali
       </p>
       {slots.length === 0 ? (
-        <p className="text-[11px] text-[var(--ink-2)] italic">
+        <p className="text-[18px] text-[var(--ink-2)]">
           Aggiungi almeno uno slot: senza slot il servizio non sarà prenotabile.
         </p>
       ) : (
@@ -1425,19 +1344,19 @@ function DraftSlotsEditor({
           {slots.map((s, i) => (
             <div
               key={`${s.weekday}-${s.startTime}-${i}`}
-              className="flex items-center justify-between gap-2 bg-[var(--surface)] border border-[var(--line)] rounded-xl px-3 py-2"
+              className="settings-record"
             >
-              <span className="text-xs font-bold text-[var(--ink)]">
+              <span className="text-[18px] font-bold text-[var(--ink)]">
                 {WEEKDAYS_LONG[s.weekday]} · {s.startTime}
               </span>
-              <span className="text-[10px] font-semibold text-[var(--ink-2)] flex-1 text-right">
+              <span className="text-[18px] font-semibold text-[var(--ink-2)] flex-1 text-right">
                 {empName(s.employeeId)}
               </span>
               <button
                 type="button"
                 onClick={() => setSlots((prev) => prev.filter((_, j) => j !== i))}
                 aria-label="Rimuovi slot"
-                className="material-symbols-outlined text-[18px] text-[#ba1a1a] cursor-pointer border-none bg-transparent hover:opacity-80"
+                className="material-symbols-outlined text-[18px] text-[var(--danger)] cursor-pointer border-none bg-transparent hover:opacity-80"
               >
                 delete
               </button>
@@ -1446,9 +1365,9 @@ function DraftSlotsEditor({
         </div>
       )}
       <DayMultiPicker selDays={selDays} setSelDays={setSelDays} openWeekdays={openWeekdays} />
-      <div className="flex flex-wrap gap-2 items-center">
-        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={cn(inputCls, "w-24 text-center")} />
-        <select value={emp} onChange={(e) => setEmp(e.target.value)} className={inputCls}>
+      <div className="settings-inline-form">
+        <input aria-label="Orario" type="time" value={time} onChange={(e) => setTime(e.target.value)} className={cn(inputCls, "settings-time-field text-center")} />
+        <select aria-label="Operatore" value={emp} onChange={(e) => setEmp(e.target.value)} className={inputCls}>
           <option value="">Qualsiasi operatore</option>
           {employees.map((e) => (
             <option key={e.id} value={e.id}>{e.name}</option>
@@ -1469,13 +1388,13 @@ function DraftSlotsEditor({
               return next.sort((a, b) => a.weekday - b.weekday || a.startTime.localeCompare(b.startTime));
             });
           }}
-          className="h-10 px-4 rounded-full bg-[var(--ink)] !text-[var(--bg)] text-[11px] font-bold uppercase tracking-wider cursor-pointer border-none active:scale-95 transition-all disabled:opacity-50"
+          className="h-14 px-4 rounded-full bg-[var(--ink)] !text-[var(--bg)] text-[18px] font-bold cursor-pointer border-none active:scale-95 transition-all disabled:opacity-50"
         >
           + Aggiungi orario
         </button>
       </div>
-      <p className="text-[10px] text-[var(--ink-2)]">
-        L'orario viene aggiunto a tutti i giorni selezionati in un colpo solo.
+      <p className="text-[18px] text-[var(--ink-2)]">
+        L'orario vale per tutti i giorni selezionati.
       </p>
     </div>
   );
@@ -1493,32 +1412,32 @@ function DraftAddonsEditor({
   const [price, setPrice] = useState("");
 
   const inputCls =
-    "h-10 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-3 outline-none focus:border-[var(--ink)] text-xs font-semibold text-[var(--ink)] transition-all";
+    "h-14 rounded-2xl bg-[var(--bg)] border border-[var(--line)] px-3 outline-none focus:border-[var(--ink)] text-[18px] font-semibold text-[var(--ink)] transition-all";
 
   return (
-    <div className="rounded-xl border border-[var(--line)] bg-[var(--bg)]/60 p-4 space-y-3">
-      <p className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider">
+    <div className="settings-subpanel space-y-4">
+      <p className="text-[18px] font-bold text-[var(--ink-2)]">
         Supplementi opzionali
       </p>
-      <p className="text-[10px] text-[var(--ink-2)] leading-relaxed -mt-2">
-        Extra che la cliente può aggiungere al servizio: allungano la durata e aumentano il prezzo.
+      <p className="text-[18px] text-[var(--ink-2)] leading-relaxed -mt-2">
+        Aggiungi durata e prezzo per ogni extra.
       </p>
       {addons.length > 0 && (
         <div className="space-y-1.5">
           {addons.map((a, i) => (
             <div
               key={`${a.name}-${i}`}
-              className="flex items-center justify-between gap-2 bg-[var(--surface)] border border-[var(--line)] rounded-xl px-3 py-2"
+              className="settings-record"
             >
-              <span className="text-xs font-bold text-[var(--ink)] truncate">{a.name}</span>
-              <span className="text-[10px] font-semibold text-[var(--ink-2)] flex-1 text-right">
+              <span className="text-[18px] font-bold text-[var(--ink)] truncate">{a.name}</span>
+              <span className="text-[18px] font-semibold text-[var(--ink-2)] flex-1 text-right">
                 +{a.extraMin} min · +{formatPrice(a.extraPriceCents)}
               </span>
               <button
                 type="button"
                 onClick={() => setAddons((prev) => prev.filter((_, j) => j !== i))}
                 aria-label="Rimuovi supplemento"
-                className="material-symbols-outlined text-[18px] text-[#ba1a1a] cursor-pointer border-none bg-transparent hover:opacity-80"
+                className="material-symbols-outlined text-[18px] text-[var(--danger)] cursor-pointer border-none bg-transparent hover:opacity-80"
               >
                 delete
               </button>
@@ -1526,31 +1445,31 @@ function DraftAddonsEditor({
           ))}
         </div>
       )}
-      <div className="flex flex-wrap gap-2 items-center">
-        <input
+      <div className="settings-inline-form">
+        <input aria-label="Nome"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nome supplemento"
           className={cn(inputCls, "flex-grow min-w-[140px]")}
         />
-        <div className={cn(inputCls, "flex items-center gap-1 w-24")}>
-          <input
+        <div className={cn(inputCls, "settings-number-field flex items-center gap-2")}>
+          <input aria-label="Durata aggiuntiva in minuti"
             type="number"
             min={0}
             value={min}
             onChange={(e) => setMin(e.target.value)}
-            className="w-10 bg-transparent outline-none font-bold text-xs text-[var(--ink)]"
+            className="w-12 min-w-0 bg-transparent outline-none font-bold text-[18px] text-[var(--ink)]"
           />
-          <span className="text-[10px] text-[var(--ink-2)] font-semibold">min</span>
+          <span className="text-[18px] text-[var(--ink-2)] font-semibold">min</span>
         </div>
-        <div className={cn(inputCls, "flex items-center gap-1 w-24")}>
-          <span className="text-xs font-bold text-[var(--ink)]">€</span>
-          <input
+        <div className={cn(inputCls, "settings-number-field flex items-center gap-2")}>
+          <span className="text-[18px] font-bold text-[var(--ink)]">€</span>
+          <input aria-label="Prezzo in euro"
             inputMode="decimal"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
             placeholder="0,00"
-            className="w-full bg-transparent outline-none font-bold text-xs text-[var(--ink)]"
+            className="w-full bg-transparent outline-none font-bold text-[18px] text-[var(--ink)]"
           />
         </div>
         <button
@@ -1562,7 +1481,7 @@ function DraftAddonsEditor({
             setMin(15);
             setPrice("");
           }}
-          className="h-10 px-4 rounded-full bg-[var(--ink)] !text-[var(--bg)] text-[11px] font-bold uppercase tracking-wider cursor-pointer border-none active:scale-95 transition-all"
+          className="h-14 px-4 rounded-full bg-[var(--ink)] !text-[var(--bg)] text-[18px] font-bold cursor-pointer border-none active:scale-95 transition-all"
         >
           + Supplemento
         </button>
@@ -1618,19 +1537,19 @@ function AddonsManager({ service }: { service: Service }) {
   }
 
   const inputCls =
-    "h-10 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-3 outline-none focus:border-[var(--ink)] text-xs font-semibold text-[var(--ink)] transition-all";
+    "h-14 rounded-2xl bg-[var(--bg)] border border-[var(--line)] px-3 outline-none focus:border-[var(--ink)] text-[18px] font-semibold text-[var(--ink)] transition-all";
 
   return (
-    <div className="rounded-xl border border-[var(--line)] bg-[var(--bg)]/60 p-4 space-y-3">
-      <p className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider">
+    <div className="settings-subpanel space-y-4">
+      <p className="text-[18px] font-bold text-[var(--ink-2)]">
         Supplementi opzionali
       </p>
-      <p className="text-[10px] text-[var(--ink-2)] leading-relaxed -mt-2">
-        Extra che la cliente può aggiungere al servizio: allungano la durata e aumentano il prezzo.
+      <p className="text-[18px] text-[var(--ink-2)] leading-relaxed -mt-2">
+        Aggiungi durata e prezzo per ogni extra.
       </p>
 
       {loading ? (
-        <div className="h-10 animate-pulse rounded-xl bg-[var(--surface-2)]" />
+        <div className="h-14 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
       ) : (
         addons.length > 0 && (
           <div className="space-y-1.5">
@@ -1641,44 +1560,44 @@ function AddonsManager({ service }: { service: Service }) {
         )
       )}
 
-      <div className="flex flex-wrap gap-2 items-center">
-        <input
+      <div className="settings-inline-form">
+        <input aria-label="Nome"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="Nome supplemento"
           className={cn(inputCls, "flex-grow min-w-[140px]")}
         />
-        <div className={cn(inputCls, "flex items-center gap-1 w-24")}>
-          <input
+        <div className={cn(inputCls, "settings-number-field flex items-center gap-2")}>
+          <input aria-label="Durata aggiuntiva in minuti"
             type="number"
             min={0}
             value={newMin}
             onChange={(e) => setNewMin(e.target.value)}
-            className="w-10 bg-transparent outline-none font-bold text-xs text-[var(--ink)]"
+            className="w-12 min-w-0 bg-transparent outline-none font-bold text-[18px] text-[var(--ink)]"
           />
-          <span className="text-[10px] text-[var(--ink-2)] font-semibold">min</span>
+          <span className="text-[18px] text-[var(--ink-2)] font-semibold">min</span>
         </div>
-        <div className={cn(inputCls, "flex items-center gap-1 w-24")}>
-          <span className="text-xs font-bold text-[var(--ink)]">€</span>
-          <input
+        <div className={cn(inputCls, "settings-number-field flex items-center gap-2")}>
+          <span className="text-[18px] font-bold text-[var(--ink)]">€</span>
+          <input aria-label="Prezzo aggiuntivo in euro"
             inputMode="decimal"
             value={newPrice}
             onChange={(e) => setNewPrice(e.target.value)}
             placeholder="0,00"
-            className="w-full bg-transparent outline-none font-bold text-xs text-[var(--ink)]"
+            className="w-full bg-transparent outline-none font-bold text-[18px] text-[var(--ink)]"
           />
         </div>
         <button
           type="button"
           onClick={handleAdd}
           disabled={pending}
-          className="h-10 px-4 rounded-full bg-[var(--ink)] !text-[var(--bg)] text-[11px] font-bold uppercase tracking-wider cursor-pointer border-none active:scale-95 transition-all disabled:opacity-50"
+          className="h-14 px-4 rounded-full bg-[var(--ink)] !text-[var(--bg)] text-[18px] font-bold cursor-pointer border-none active:scale-95 transition-all disabled:opacity-50"
         >
           + Supplemento
         </button>
       </div>
 
-      {error && <p className="text-xs font-bold text-[#ba1a1a]">{error}</p>}
+      {error && <p role="alert" className="text-[18px] font-bold text-[var(--danger)]">{error}</p>}
     </div>
   );
 }
@@ -1715,28 +1634,28 @@ function AddonRow({ addon, onChanged }: { addon: ServiceAddon; onChanged: () => 
   }
 
   const inputCls =
-    "h-9 rounded-lg bg-[var(--bg)] border border-[var(--line)] px-2 outline-none focus:border-[var(--ink)] text-xs font-semibold text-[var(--ink)] transition-all";
+    "h-14 rounded-2xl bg-[var(--bg)] border border-[var(--line)] px-2 outline-none focus:border-[var(--ink)] text-[18px] font-semibold text-[var(--ink)] transition-all";
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 bg-[var(--surface)] border border-[var(--line)] rounded-xl px-2.5 py-2">
-      <input value={name} onChange={(e) => setName(e.target.value)} className={cn(inputCls, "flex-grow min-w-[120px]")} />
-      <div className={cn(inputCls, "flex items-center gap-1 w-20")}>
-        <input
+    <div className="settings-addon-row">
+      <input aria-label="Nome" value={name} onChange={(e) => setName(e.target.value)} className={cn(inputCls, "flex-grow min-w-[120px]")} />
+      <div className={cn(inputCls, "settings-number-field flex items-center gap-2")}>
+        <input aria-label="Durata aggiuntiva in minuti"
           type="number"
           min={0}
           value={min}
           onChange={(e) => setMin(e.target.value)}
-          className="w-8 bg-transparent outline-none font-bold text-xs text-[var(--ink)]"
+          className="w-12 min-w-0 bg-transparent outline-none font-bold text-[18px] text-[var(--ink)]"
         />
-        <span className="text-[10px] text-[var(--ink-2)] font-semibold">min</span>
+        <span className="text-[18px] text-[var(--ink-2)] font-semibold">min</span>
       </div>
-      <div className={cn(inputCls, "flex items-center gap-1 w-20")}>
-        <span className="text-xs font-bold text-[var(--ink)]">€</span>
-        <input
+      <div className={cn(inputCls, "settings-number-field flex items-center gap-2")}>
+        <span className="text-[18px] font-bold text-[var(--ink)]">€</span>
+        <input aria-label="Prezzo in euro"
           inputMode="decimal"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
-          className="w-full bg-transparent outline-none font-bold text-xs text-[var(--ink)]"
+          className="w-full bg-transparent outline-none font-bold text-[18px] text-[var(--ink)]"
         />
       </div>
       {dirty && (
@@ -1755,7 +1674,7 @@ function AddonRow({ addon, onChanged }: { addon: ServiceAddon; onChanged: () => 
         onClick={remove}
         disabled={pending}
         aria-label="Elimina supplemento"
-        className="material-symbols-outlined text-[18px] text-[#ba1a1a] cursor-pointer border-none bg-transparent hover:opacity-80 disabled:opacity-50"
+        className="material-symbols-outlined text-[18px] text-[var(--danger)] cursor-pointer border-none bg-transparent hover:opacity-80 disabled:opacity-50"
       >
         delete
       </button>
@@ -1866,19 +1785,19 @@ function FixedSlotsManager({
   }
 
   const inputCls =
-    "h-10 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-3 outline-none focus:border-[var(--ink)] text-xs font-semibold text-[var(--ink)] transition-all";
+    "h-14 rounded-2xl bg-[var(--bg)] border border-[var(--line)] px-3 outline-none focus:border-[var(--ink)] text-[18px] font-semibold text-[var(--ink)] transition-all";
 
   return (
-    <div className="rounded-xl border border-[var(--line)] bg-[var(--bg)]/60 p-4 space-y-4">
+    <div className="settings-subpanel space-y-5">
       {/* Recurring slots */}
       <div>
-        <p className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-2">
-          Slot ricorrenti settimanali
+        <p className="text-[18px] font-bold text-[var(--ink-2)] mb-2">
+          Orari settimanali
         </p>
         {loading ? (
-          <div className="h-10 animate-pulse rounded-xl bg-[var(--surface-2)]" />
+          <div className="h-14 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
         ) : slots.length === 0 ? (
-          <p className="text-[11px] text-[var(--ink-2)] italic mb-2">
+          <p className="text-[18px] text-[var(--ink-2)] mb-2">
             Nessuno slot definito: il servizio non sarà prenotabile finché non ne aggiungi almeno uno.
           </p>
         ) : (
@@ -1886,12 +1805,12 @@ function FixedSlotsManager({
             {slots.map((s) => (
               <div
                 key={s.id}
-                className="flex items-center justify-between gap-2 bg-[var(--surface)] border border-[var(--line)] rounded-xl px-3 py-2"
+                className="settings-record"
               >
-                <span className="text-xs font-bold text-[var(--ink)]">
+                <span className="text-[18px] font-bold text-[var(--ink)]">
                   {WEEKDAYS_LONG[s.weekday]} · {s.start_time.slice(0, 5)}
                 </span>
-                <span className="text-[10px] font-semibold text-[var(--ink-2)] flex-1 text-right">
+                <span className="text-[18px] font-semibold text-[var(--ink-2)] flex-1 text-right">
                   {empName(s.employee_id)}
                 </span>
                 <button
@@ -1899,7 +1818,7 @@ function FixedSlotsManager({
                   onClick={() => handleDeleteSlot(s.id)}
                   disabled={pending}
                   aria-label="Elimina slot"
-                  className="material-symbols-outlined text-[18px] text-[#ba1a1a] cursor-pointer border-none bg-transparent hover:opacity-80"
+                  className="material-symbols-outlined text-[18px] text-[var(--danger)] cursor-pointer border-none bg-transparent hover:opacity-80"
                 >
                   delete
                 </button>
@@ -1909,14 +1828,14 @@ function FixedSlotsManager({
         )}
 
         <DayMultiPicker selDays={selDays} setSelDays={setSelDays} openWeekdays={openWeekdays} />
-        <div className="flex flex-wrap gap-2 items-center mt-2">
-          <input
+        <div className="settings-inline-form mt-4">
+          <input aria-label="Orario ricorrente"
             type="time"
             value={newTime}
             onChange={(e) => setNewTime(e.target.value)}
-            className={cn(inputCls, "w-24 text-center")}
+            className={cn(inputCls, "settings-time-field text-center")}
           />
-          <select value={newEmp} onChange={(e) => setNewEmp(e.target.value)} className={inputCls}>
+          <select aria-label="Operatore" value={newEmp} onChange={(e) => setNewEmp(e.target.value)} className={inputCls}>
             <option value="">Qualsiasi operatore</option>
             {employees.map((e) => (
               <option key={e.id} value={e.id}>{e.name}</option>
@@ -1926,19 +1845,19 @@ function FixedSlotsManager({
             type="button"
             onClick={handleAddSlot}
             disabled={pending || selDays.length === 0}
-            className="h-10 px-4 rounded-full bg-[var(--ink)] !text-[var(--bg)] text-[11px] font-bold uppercase tracking-wider cursor-pointer border-none active:scale-95 transition-all disabled:opacity-50"
+            className="h-14 px-4 rounded-full bg-[var(--ink)] !text-[var(--bg)] text-[18px] font-bold cursor-pointer border-none active:scale-95 transition-all disabled:opacity-50"
           >
             + Aggiungi orario
           </button>
         </div>
-        <p className="text-[10px] text-[var(--ink-2)] mt-1.5">
-          L'orario viene aggiunto a tutti i giorni selezionati in un colpo solo.
+        <p className="text-[18px] text-[var(--ink-2)] mt-1.5">
+          L'orario vale per tutti i giorni selezionati.
         </p>
       </div>
 
       {/* Exceptions */}
       <div className="border-t border-[var(--line)] pt-3">
-        <p className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-2">
+        <p className="text-[18px] font-bold text-[var(--ink-2)] mb-2">
           Eccezioni su date singole
         </p>
         {exceptions.length > 0 && (
@@ -1948,12 +1867,12 @@ function FixedSlotsManager({
               return (
                 <div
                   key={ex.id}
-                  className="flex items-center justify-between gap-2 bg-[var(--surface)] border border-[var(--line)] rounded-xl px-3 py-2"
+                  className="settings-record"
                 >
-                  <span className="text-xs font-bold text-[var(--ink)]">{ex.date}</span>
-                  <span className="text-[10px] font-semibold flex-1 text-right">
+                  <span className="text-[18px] font-bold text-[var(--ink)]">{ex.date}</span>
+                  <span className="text-[18px] font-semibold flex-1 text-right">
                     {ex.kind === "removed" ? (
-                      <span className="text-[#ba1a1a]">
+                      <span className="text-[var(--danger)]">
                         Rimosso: {ref ? slotLabel(ref) : "slot eliminato"}
                       </span>
                     ) : (
@@ -1967,7 +1886,7 @@ function FixedSlotsManager({
                     onClick={() => handleDeleteException(ex.id)}
                     disabled={pending}
                     aria-label="Elimina eccezione"
-                    className="material-symbols-outlined text-[18px] text-[#ba1a1a] cursor-pointer border-none bg-transparent hover:opacity-80"
+                    className="material-symbols-outlined text-[18px] text-[var(--danger)] cursor-pointer border-none bg-transparent hover:opacity-80"
                   >
                     delete
                   </button>
@@ -1977,14 +1896,14 @@ function FixedSlotsManager({
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2 items-center">
-          <input
+        <div className="settings-inline-form">
+          <input aria-label="Data dell’eccezione"
             type="date"
             value={excDate}
             onChange={(e) => setExcDate(e.target.value)}
             className={inputCls}
           />
-          <select
+          <select aria-label="Tipo di eccezione"
             value={excKind}
             onChange={(e) => setExcKind(e.target.value as "removed" | "extra")}
             className={inputCls}
@@ -1993,7 +1912,7 @@ function FixedSlotsManager({
             <option value="extra">Slot extra</option>
           </select>
           {excKind === "removed" ? (
-            <select
+            <select aria-label="Orario da rimuovere"
               value={excSlotId || slots[0]?.id || ""}
               onChange={(e) => setExcSlotId(e.target.value)}
               className={inputCls}
@@ -2004,13 +1923,13 @@ function FixedSlotsManager({
             </select>
           ) : (
             <>
-              <input
+              <input aria-label="Orario aggiuntivo"
                 type="time"
                 value={excTime}
                 onChange={(e) => setExcTime(e.target.value)}
-                className={cn(inputCls, "w-24 text-center")}
+                className={cn(inputCls, "settings-time-field text-center")}
               />
-              <select value={excEmp} onChange={(e) => setExcEmp(e.target.value)} className={inputCls}>
+              <select aria-label="Operatore" value={excEmp} onChange={(e) => setExcEmp(e.target.value)} className={inputCls}>
                 <option value="">Qualsiasi operatore</option>
                 {employees.map((e) => (
                   <option key={e.id} value={e.id}>{e.name}</option>
@@ -2022,60 +1941,15 @@ function FixedSlotsManager({
             type="button"
             onClick={handleAddException}
             disabled={pending || (excKind === "removed" && slots.length === 0)}
-            className="h-10 px-4 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] text-[11px] font-bold uppercase tracking-wider cursor-pointer active:scale-95 transition-all disabled:opacity-50"
+            className="h-14 px-4 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] text-[18px] font-bold cursor-pointer active:scale-95 transition-all disabled:opacity-50"
           >
             + Eccezione
           </button>
         </div>
       </div>
 
-      {error && <p className="text-xs font-bold text-[#ba1a1a]">{error}</p>}
+      {error && <p role="alert" className="text-[18px] font-bold text-[var(--danger)]">{error}</p>}
     </div>
-  );
-}
-
-/* ---- Theme (Aspetto) ---- */
-
-function ThemeSection() {
-  const [mode, setMode] = useState<ThemeMode>("system");
-
-  useEffect(() => {
-    setMode(getThemeMode());
-  }, []);
-
-  function choose(m: ThemeMode) {
-    setMode(m);
-    applyThemeMode(m);
-  }
-
-  return (
-    <Card title="Aspetto">
-      <p className="text-xs text-[var(--ink-2)] mb-3">
-        Scegli il tema dell'app su questo dispositivo.
-      </p>
-      <div className="bg-[var(--surface-2)] p-1 rounded-full flex gap-1 border border-[var(--line)]">
-        {([
-          { value: "light" as const, label: "Chiaro", icon: "light_mode" },
-          { value: "system" as const, label: "Sistema", icon: "contrast" },
-          { value: "dark" as const, label: "Scuro", icon: "dark_mode" },
-        ]).map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => choose(opt.value)}
-            aria-pressed={mode === opt.value}
-            className={cn(
-              "flex-1 h-10 rounded-full text-xs font-bold transition-all border-none cursor-pointer flex items-center justify-center gap-1.5",
-              mode === opt.value
-                ? "bg-[var(--accent)] !text-[var(--on-accent)] shadow-sm"
-                : "bg-transparent text-[var(--ink-2)]"
-            )}
-          >
-            <span className="material-symbols-outlined text-[16px]">{opt.icon}</span>
-            {opt.label}
-          </button>
-        ))}
-      </div>
-    </Card>
   );
 }
 
@@ -2096,15 +1970,16 @@ function EmployeesSection({ initial }: { initial: Employee[] }) {
   }
 
   return (
-    <Card title="Operatori dello staff">
+    <Card id="team" className="settings-team" title="Il team" description="Le persone che fanno la differenza.">
       <div className="space-y-3">
+        {initial.length === 0 && <p className="text-[18px] text-[var(--ink-2)]">Aggiungi il primo operatore del team.</p>}
         {initial.map((e) => (
           <EmployeeRow key={e.id} employee={e} onDone={() => router.refresh()} />
         ))}
       </div>
-      <div className="mt-4 flex gap-2 w-full">
-        <input
-          className="flex-1 min-w-0 h-11 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[var(--ink)]"
+      <div className="settings-team-add">
+        <input aria-label="Nome"
+          className="flex-1 min-w-0 h-14 rounded-2xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-[18px] font-medium text-[var(--ink)]"
           placeholder="Nuovo operatore"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
@@ -2112,7 +1987,7 @@ function EmployeesSection({ initial }: { initial: Employee[] }) {
         <button
           disabled={pending}
           onClick={add}
-          className="h-11 px-5 rounded-full ios-btn-primary !h-11 !px-5 shrink-0 text-white font-bold text-xs uppercase tracking-wider"
+          className="h-14 px-5 rounded-full ios-btn-primary !h-14 !px-5 shrink-0 text-white font-bold text-[18px]"
         >
           Aggiungi
         </button>
@@ -2169,7 +2044,7 @@ function EmployeeRow({
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="settings-employee-row">
       <input
         type="file"
         ref={fileInputRef}
@@ -2177,27 +2052,29 @@ function EmployeeRow({
         accept="image/*"
         className="hidden"
       />
-      <div 
+      <button
+        type="button"
+        aria-label={`Cambia foto di ${name}`}
         onClick={() => fileInputRef.current?.click()}
-        className="h-10 w-10 shrink-0 rounded-full shadow-sm overflow-hidden relative cursor-pointer group flex items-center justify-center border border-[var(--line)] bg-[var(--bg)]"
+        className="settings-avatar h-14 w-14 shrink-0 rounded-full shadow-sm overflow-hidden relative cursor-pointer group flex items-center justify-center border border-[var(--line)] bg-[var(--bg)]"
         title="Clicca per cambiare foto"
       >
         {avatarUrl ? (
           <img src={avatarUrl} alt={name} className="h-full w-full object-cover group-hover:opacity-75 transition-opacity" />
         ) : (
           <span 
-            className="h-full w-full flex items-center justify-center text-xs font-bold text-white uppercase"
+            className="h-full w-full flex items-center justify-center text-[18px] font-bold text-white"
             style={{ background: employee.color }}
           >
             {name.charAt(0).toUpperCase()}
           </span>
         )}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] text-white font-bold">
-          Carica
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[18px] text-white font-bold">
+          <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>
         </div>
-      </div>
-      <input
-        className="flex-1 min-w-0 h-11 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-sm font-medium text-[var(--ink)]"
+      </button>
+      <input aria-label="Nome"
+        className="flex-1 min-w-0 h-14 rounded-2xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-[18px] font-medium text-[var(--ink)]"
         value={name}
         onChange={(e) => setName(e.target.value)}
         onBlur={() => {
@@ -2216,7 +2093,7 @@ function EmployeeRow({
         }}
         disabled={pending}
         aria-label="Elimina operatore"
-        className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#ba1a1a]/30 text-[#ba1a1a] transition-colors active:bg-[#ba1a1a]/5 hover:bg-[#ba1a1a]/5 cursor-pointer bg-transparent"
+        className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-[var(--danger)]/30 text-[var(--danger)] transition-colors active:bg-[#ba1a1a]/5 hover:bg-[#ba1a1a]/5 cursor-pointer bg-transparent"
       >
         ✕
       </button>
@@ -2229,11 +2106,11 @@ function EmployeeRow({
 function AccountSection() {
   const [pending, start] = useTransition();
   return (
-    <section className="mt-8 mb-4">
+    <section className="settings-account">
       <button
         disabled={pending}
         onClick={() => start(async () => { await logout(); })}
-        className="w-full h-12 rounded-full border border-[#ba1a1a] text-[#ba1a1a] font-bold text-xs uppercase tracking-widest active:scale-[0.98] transition-all cursor-pointer hover:bg-[#ba1a1a]/5 bg-transparent"
+        className="w-full h-14 rounded-full border border-[var(--danger)] text-[var(--danger)] font-bold text-[18px] active:scale-[0.98] transition-all cursor-pointer hover:bg-[#ba1a1a]/5 bg-transparent"
       >
         Esci dall'account
       </button>
@@ -2330,32 +2207,29 @@ function HolidaysSection({ initial }: { initial: any[] }) {
   }
 
   return (
-    <Card title="Giorni di chiusura straordinari">
-      <p className="text-[10px] text-[var(--ink-2)] font-bold uppercase tracking-wider mb-3">
-        Imposta giorni di chiusura festivi o ponti straordinari per l'attività.
-      </p>
+    <Card id="chiusure" className="settings-closures" title="Chiusure" description="Ferie, festività e giorni tutti per te.">
 
       {holidays.length === 0 ? (
-        <p className="text-xs text-[var(--ink-2)] italic mb-2">Nessuna chiusura straordinaria configurata.</p>
+        <p className="text-[18px] text-[var(--ink-2)] mb-2">Nessuna chiusura straordinaria configurata.</p>
       ) : (
-        <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1 no-scrollbar mb-4">
+        <div className="settings-closure-list">
           {holidays.map((h) => (
-            <div key={h.id} className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg)] border border-[var(--line)] gap-2">
+            <div key={h.id} className="settings-closure-row">
               <div className="min-w-0">
-                <span className="font-bold text-xs text-[var(--ink)] block md:inline-block">
+                <span className="font-bold text-[18px] text-[var(--ink)] block md:inline-block">
                   {renderHolidayRange(h.start_date, h.end_date)}
                 </span>
                 {h.description && (
-                  <span className="text-[var(--ink-2)] text-[10px] font-semibold block mt-0.5 truncate">{h.description}</span>
+                  <span className="text-[var(--ink-2)] text-[18px] font-semibold block mt-0.5 truncate">{h.description}</span>
                 )}
               </div>
               <button
                 disabled={pending}
                 onClick={() => handleDelete(h.id)}
                 aria-label="Rimuovi periodo festivo"
-                className="text-[#ba1a1a] hover:opacity-80 p-1.5 border-none bg-transparent cursor-pointer flex items-center justify-center transition-opacity"
+                className="text-[var(--danger)] hover:opacity-80 p-1.5 border-none bg-transparent cursor-pointer flex items-center justify-center transition-opacity"
               >
-                <span className="material-symbols-outlined text-base">delete</span>
+                <span className="material-symbols-outlined text-[18px]">delete</span>
               </button>
             </div>
           ))}
@@ -2363,47 +2237,47 @@ function HolidaysSection({ initial }: { initial: any[] }) {
       )}
 
       <form onSubmit={handleAdd} className="mt-4 border-t border-[var(--line)] pt-4 space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 [&>div]:min-w-0">
+        <div className="settings-closure-fields">
           <div>
-            <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Data Inizio</label>
-            <input
+            <label className="text-[18px] font-bold text-[var(--ink-2)] mb-1 block">Inizio</label>
+            <input aria-label="Inizio chiusura"
               type="date"
               required
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full max-w-full min-w-0 h-11 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-3 outline-none focus:border-[var(--ink)] text-xs font-bold text-[var(--ink)] uppercase"
+              className="w-full max-w-full min-w-0 h-14 rounded-2xl bg-[var(--bg)] border border-[var(--line)] px-3 outline-none focus:border-[var(--ink)] text-[18px] font-bold text-[var(--ink)]"
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Data Fine (opzionale)</label>
-            <input
+            <label className="text-[18px] font-bold text-[var(--ink-2)] mb-1 block">Fine (facoltativa)</label>
+            <input aria-label="Fine chiusura"
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               placeholder="Lascia vuoto per giorno singolo"
-              className="w-full max-w-full min-w-0 h-11 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-3 outline-none focus:border-[var(--ink)] text-xs font-bold text-[var(--ink)] uppercase"
+              className="w-full max-w-full min-w-0 h-14 rounded-2xl bg-[var(--bg)] border border-[var(--line)] px-3 outline-none focus:border-[var(--ink)] text-[18px] font-bold text-[var(--ink)]"
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-[var(--ink-2)] uppercase tracking-wider mb-1 block">Motivo (es. Chiusura Estiva)</label>
-            <input
+            <label className="text-[18px] font-bold text-[var(--ink-2)] mb-1 block">Motivo (facoltativo)</label>
+            <input aria-label="Motivo della chiusura"
               type="text"
               placeholder="es. Natale, Ferie"
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
-              className="w-full h-11 rounded-xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-xs font-medium text-[var(--ink)]"
+              className="w-full h-14 rounded-2xl bg-[var(--bg)] border border-[var(--line)] px-4 outline-none focus:border-[var(--ink)] text-[18px] font-medium text-[var(--ink)]"
             />
           </div>
         </div>
 
-        {error && <p className="text-[10px] font-bold text-[#ba1a1a]">{error}</p>}
+        {error && <p role="alert" className="text-[18px] font-bold text-[var(--danger)]">{error}</p>}
 
         <button
           type="submit"
           disabled={pending}
-          className="w-full h-11 rounded-full ios-btn-primary text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5"
+          className="w-full h-14 rounded-full ios-btn-primary text-white font-bold text-[18px] flex items-center justify-center gap-1.5"
         >
-          <span className="material-symbols-outlined text-sm">add</span> Aggiungi Chiusura
+          <span className="material-symbols-outlined text-[18px]">add</span> Aggiungi chiusura
         </button>
       </form>
     </Card>

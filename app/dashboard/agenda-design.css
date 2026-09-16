@@ -1,0 +1,91 @@
+.agenda-experience { min-height: 100svh; padding-bottom: 140px; }
+.agenda-main { width: calc(100% - 96px); max-width: 1504px; margin: 0 auto; }
+.agenda-overview { display: grid; grid-template-columns: minmax(0,1.65fr) minmax(280px,.75fr); gap: 0 48px; align-items: start; }
+.agenda-overview > .app-page-heading, .agenda-quick-actions { grid-column: 1 / -1; }
+.agenda-quick-actions { margin-bottom: 44px; }
+.agenda-quick-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+.agenda-day-list { padding: 32px; border: 1px solid var(--line); border-radius: 36px; background: var(--surface); }
+.agenda-day-list > div:first-child { gap: 12px; flex-wrap: wrap; }
+.agenda-day-list h3 { font-size: 30px; }
+.agenda-day-list .ios-card { padding: 20px; border-radius: 24px; background: var(--bg); box-shadow: none; }
+.agenda-day-list .ios-card p:first-child { font-size: 22px; font-weight: 600; }
+.agenda-day-list .ios-card > div:last-child { flex-shrink: 0; margin-left: 16px; }
+.agenda-day-list .ios-card .w-12 { width: 54px; height: 54px; border-radius: 50%; }
+.agenda-metrics { display: grid; gap: 16px; }
+.app-ui .agenda-metrics > div { height: auto; min-height: 178px; padding: 28px; border: 1px solid var(--line); border-radius: 32px; }
+.app-ui .agenda-metrics > div:first-child { background: #e9d6e3; color: #392534; }
+.agenda-metrics > div > span { font-size: 18px; letter-spacing: .015em; text-transform: none; }
+.agenda-metrics > div > div > span:first-child { font-size: clamp(44px,4vw,64px); font-weight: 500; line-height: 1; letter-spacing: -.055em; }
+.agenda-metrics > div > div { margin-top: 26px; }
+.agenda-calendar > .app-page-heading { margin-bottom: 32px; }
+.agenda-calendar-controls { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
+.agenda-calendar-controls h3 { font-size: 30px; font-weight: 500; white-space: normal; overflow: visible; line-height: 1.2; }
+.agenda-calendar-controls > div { gap: 8px; }
+.agenda-calendar-controls button { min-width: 44px; min-height: 48px; font-size: 18px; }
+.agenda-calendar-controls button.material-symbols-outlined { font-size: 26px; }
+.agenda-calendar-scroll { overflow-x: auto; overscroll-behavior-x: contain; border-radius: 28px; margin-bottom: 24px; border: 1px solid var(--line); background: var(--surface); }
+.agenda-calendar-scroll > div { margin-bottom: 0; border: 0; border-radius: 0; }
+.agenda-calendar-scroll[data-view=week] > div { min-width: 1100px; }
+.agenda-calendar-scroll[data-view=month] > div { min-width: 980px; }
+.agenda-calendar-scroll[data-view=month] .grid-cols-7 > div { min-height: 160px; padding: 10px; }
+.agenda-calendar-scroll[data-view=month] .grid-cols-7:first-child > div { min-height: 0; padding: 18px; }
+.agenda-calendar-scroll[data-view=month] .grid-cols-7 > div > span:first-child { min-width: 40px; min-height: 40px; }
+.agenda-calendar-scroll .agenda-month-event { font-size: 18px; font-weight: 500; min-height: 32px; padding: 5px 8px; border-radius: 10px; }
+.agenda-calendar-scroll .agenda-event-block { border-radius: 14px; padding: 5px 10px; }
+.agenda-calendar-scroll .agenda-event-block p { font-size: 18px; line-height: 1.18; }
+.agenda-calendar-scroll .agenda-event-block p + p { margin-top: 4px; }
+.agenda-calendar-scroll .agenda-event-block:focus-visible { outline-offset: -3px; }
+.agenda-add-button { bottom: 118px; right: 32px; width: 64px; height: 64px; border-radius: 50%; background: var(--accent); color: var(--on-accent) !important; }
+.agenda-main input[aria-label="Cerca cliente"] { height: 60px; border-radius: 999px; padding-left: 48px; font-size: 18px; }
+.agenda-main input[aria-label="Cerca cliente"] + span { top: 18px; left: 16px; }
+.agenda-experience .notification-toast { top: 110px; border-radius: 28px; padding: 24px; }
+.agenda-experience .notification-toast .animate-bounce { animation: none; }
+.agenda-experience .app-sheet-body :is(input:not([type=checkbox]),select,textarea) { min-height: 56px; border-radius: 18px; font-size: 18px; }
+.agenda-experience .app-sheet-body :is(.grid-cols-2,.grid-cols-3) { gap: 16px; }
+.agenda-experience .app-sheet-body h3 { font-size: 24px; }
+.agenda-experience .app-sheet-body .uppercase { text-transform: none; letter-spacing: .01em; }
+@media (max-width: 1050px) {
+  .agenda-main { width: calc(100% - 48px); }
+  .agenda-overview { grid-template-columns: 1fr; }
+  .agenda-metrics { grid-template-columns: repeat(3,minmax(0,1fr)); margin-top: 24px; }
+  .app-ui .agenda-metrics > div { padding: 24px; }
+}
+@media (max-width: 680px) {
+  .agenda-main { width: calc(100% - 32px); }
+  .agenda-quick-actions { margin-bottom: 28px; }
+  .agenda-quick-buttons { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .agenda-quick-buttons button { width: 100%; justify-content: center; }
+  .agenda-day-list { padding: 24px 16px; border-radius: 28px; }
+  .agenda-day-list h3 { font-size: 26px; }
+  .agenda-day-list .space-y-4.relative { padding-left: 0; }
+  .agenda-day-list .space-y-4.relative > .absolute { display: none; }
+  .agenda-day-list .space-y-4.relative > .relative > .absolute { display: none; }
+  .agenda-day-list .ios-card { padding: 20px 16px; flex-wrap: wrap; gap: 16px; }
+  .agenda-day-list .ios-card > div:first-child { min-width: 0; gap: 12px; flex: 1; }
+  .agenda-day-list .ios-card > div:first-child > .w-12 { display: none; }
+  .agenda-day-list .ios-card > div:first-child > div:last-child { min-width: 0; }
+  .agenda-day-list .ios-card p { overflow-wrap: anywhere; }
+  .agenda-day-list .ios-card > div:last-child { margin-left: 0; }
+  .agenda-metrics { grid-template-columns: 1fr; }
+  .app-ui .agenda-metrics > div { min-height: 156px; }
+  .agenda-metrics > div > div > span:first-child { font-size: 56px; }
+  .agenda-calendar-controls { gap: 20px; }
+  .agenda-calendar-controls > div:first-child { width: 100%; }
+  .agenda-calendar-controls > div:last-child { width: 100%; flex-wrap: wrap; }
+  .agenda-calendar-controls > div:last-child > div { flex: 1; justify-content: stretch; padding: 6px; }
+  .agenda-calendar-controls > div:last-child > div button { flex: 1; padding: 12px 10px; }
+  .agenda-calendar-controls h3 { font-size: 26px; }
+  .agenda-calendar-scroll { border-radius: 24px; }
+  .agenda-add-button { bottom: 110px; right: 20px; width: 58px; height: 58px; }
+}
+@media (max-width: 380px) {
+  .agenda-experience .app-sheet-body .grid-cols-2 { grid-template-columns: 1fr; }
+  .agenda-calendar-controls > div:last-child > div button { padding-inline: 6px; }
+}
+/* Short bookings retain one full-size name; their complete details open on activation. */
+.agenda-calendar-scroll .agenda-event-block[data-compact=true] { padding-block: 1px; justify-content: center; }
+.agenda-calendar-scroll .agenda-event-block[data-compact=true] p { line-height: 20px; }
+.agenda-detail-row { display: grid; grid-template-columns: 120px minmax(0,1fr); gap: 12px; padding: 16px 20px; font-size: 18px; }
+.agenda-detail-row > span:first-child { color: var(--ink-2); }
+.agenda-detail-row > span:last-child { font-weight: 500; }
+@media (max-width: 480px) { .agenda-detail-row { grid-template-columns: 1fr; gap: 6px; } }

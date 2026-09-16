@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { AppHeader, AppPageHeading } from "@/components/app/AppChrome";
+import "@/app/access-design.css";
 
 export const metadata: Metadata = { title: "Informativa Privacy" };
 
@@ -9,16 +11,16 @@ export const metadata: Metadata = { title: "Informativa Privacy" };
  */
 export default function PrivacyPage() {
   return (
-    <main className="max-w-2xl mx-auto px-6 py-12 text-[var(--ink)]">
-      <h1 className="text-2xl font-extrabold tracking-tight mb-2">Informativa sulla privacy</h1>
+    <div className="access-page"><AppHeader backHref="/" /><main className="privacy-page">
+      <AppPageHeading eyebrow="I tuoi dati" title="Informativa sulla privacy" />
       <p className="text-sm text-[var(--ink-2)] mb-8">
         Informativa resa ai sensi degli artt. 13-14 del Regolamento (UE) 2016/679 (&quot;GDPR&quot;)
         per le persone che prenotano tramite PrenotaEasy.
       </p>
 
-      <div className="space-y-6 text-[15px] leading-relaxed">
+      <div className="privacy-sections">
         <section>
-          <h2 className="text-base font-bold mb-1.5">Titolare del trattamento</h2>
+          <h2 className="text-lg font-bold mb-1.5">Titolare del trattamento</h2>
           <p>
             Il titolare del trattamento è l&apos;attività (salone, centro estetico o professionista)
             presso cui effettui la prenotazione, indicata nella pagina di prenotazione.
@@ -28,7 +30,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-bold mb-1.5">Dati raccolti e finalità</h2>
+          <h2 className="text-lg font-bold mb-1.5">Dati raccolti e finalità</h2>
           <p>
             Raccogliamo nome, numero di telefono ed eventuali note che scegli di inserire,
             esclusivamente per gestire la tua prenotazione: conferma, promemoria, spostamenti
@@ -42,7 +44,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-bold mb-1.5">Conservazione</h2>
+          <h2 className="text-lg font-bold mb-1.5">Conservazione</h2>
           <p>
             I dati sono conservati per il tempo necessario alla gestione degli appuntamenti e
             dello storico cliente dell&apos;attività, e comunque non oltre i termini previsti
@@ -51,7 +53,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-bold mb-1.5">I tuoi diritti</h2>
+          <h2 className="text-lg font-bold mb-1.5">I tuoi diritti</h2>
           <p>
             Puoi chiedere in qualsiasi momento l&apos;accesso, la rettifica o la cancellazione
             dei tuoi dati, la limitazione o l&apos;opposizione al trattamento, contattando
@@ -62,7 +64,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-bold mb-1.5">Dove sono trattati i dati</h2>
+          <h2 className="text-lg font-bold mb-1.5">Dove sono trattati i dati</h2>
           <p>
             I dati sono ospitati su infrastrutture cloud (Supabase e Vercel) con misure di
             sicurezza tecniche e organizzative adeguate, inclusi isolamento per attività e
@@ -70,6 +72,6 @@ export default function PrivacyPage() {
           </p>
         </section>
       </div>
-    </main>
+    </main></div>
   );
 }

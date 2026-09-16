@@ -71,13 +71,13 @@ export function DatePicker({
   }, [view]);
 
   return (
-    <div className="select-none">
+    <div className="app-date-picker select-none">
       <div className="mb-2 flex items-center justify-between px-1">
         <button
           onClick={() => shift(-1)}
           disabled={!canPrev}
           aria-label="Mese precedente"
-          className="grid h-9 w-9 place-items-center rounded-full transition-colors active:bg-[var(--surface-2)] disabled:opacity-30"
+          className="grid h-11 w-11 place-items-center rounded-full transition-colors active:bg-[var(--surface-2)] disabled:opacity-30"
         >
           <Chevron dir="left" />
         </button>
@@ -88,13 +88,13 @@ export function DatePicker({
           onClick={() => shift(1)}
           disabled={!canNext}
           aria-label="Mese successivo"
-          className="grid h-9 w-9 place-items-center rounded-full transition-colors active:bg-[var(--surface-2)] disabled:opacity-30"
+          className="grid h-11 w-11 place-items-center rounded-full transition-colors active:bg-[var(--surface-2)] disabled:opacity-30"
         >
           <Chevron dir="right" />
         </button>
       </div>
 
-      <div className="mb-1 grid grid-cols-7 text-center text-[0.72rem] font-[560] text-[var(--ink-3)]">
+      <div className="mb-1 grid grid-cols-7 text-center text-[18px] font-[560] text-[var(--ink-3)]">
         {WEEKDAYS_SHORT.map((w) => (
           <div key={w} className="py-1">
             {w}
@@ -123,10 +123,12 @@ export function DatePicker({
               return (
                 <button
                   key={cell}
+                  aria-label={`${Number(cell.slice(8))} ${MONTHS_LONG[view.m]} ${view.y}`}
+                  aria-pressed={selected}
                   disabled={disabled}
                   onClick={() => onChange(cell)}
                   className={cn(
-                    "relative mx-auto grid h-10 w-10 place-items-center rounded-full text-[0.95rem] transition-[transform,background-color] duration-100 active:scale-90",
+                    "relative mx-auto grid h-11 w-full max-w-11 place-items-center rounded-full text-[18px] transition-[transform,background-color] duration-100 active:scale-90",
                     selected && "bg-[var(--accent)] font-[600] text-[var(--on-accent)]",
                     !selected && !disabled && "hover:bg-[var(--surface-2)]",
                     disabled && "text-[var(--ink-3)] opacity-40",

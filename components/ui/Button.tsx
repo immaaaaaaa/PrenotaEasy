@@ -17,7 +17,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 const base =
   // Instant press feedback (fires on pointer-down via :active), per the design skill.
   "relative inline-flex select-none items-center justify-center gap-2 font-[590] " +
-  "rounded-[var(--r-md)] transition-[transform,background-color,opacity] duration-100 " +
+  "ui-button rounded-full transition-[transform,background-color,opacity] duration-100 " +
   "ease-out active:scale-[0.97] disabled:pointer-events-none disabled:opacity-45 " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] " +
   "touch-manipulation";
@@ -32,8 +32,8 @@ const variants: Record<Variant, string> = {
 };
 
 const sizes: Record<Size, string> = {
-  md: "h-11 px-4 text-[0.95rem]",
-  lg: "h-[54px] px-5 text-[1.05rem]",
+  md: "min-h-[52px] px-6 py-3 text-[18px]",
+  lg: "min-h-[60px] px-7 py-4 text-[20px]",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -53,6 +53,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
+        data-variant={variant}
+        aria-busy={loading || undefined}
         disabled={disabled || loading}
         className={cn(
           base,

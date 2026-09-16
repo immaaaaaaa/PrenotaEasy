@@ -1,0 +1,146 @@
+/* The interior shares the landing's material, scale and type, with a quieter rhythm. */
+.app-ui {
+  --bg: #faf8f4;
+  --surface: #fffdf9;
+  --surface-2: #f0e8ee;
+  --surface-3: #e7d9e3;
+  --ink: #392534;
+  --ink-2: #705d6a;
+  --ink-3: #887581;
+  --line: #39253417;
+  --line-strong: #39253430;
+  --accent: #754961;
+  --accent-press: #543047;
+  --accent-soft: #75496112;
+  --accent-2: #dec0d1;
+  --on-accent: #fffafc;
+  --success: #40664e;
+  --danger: #a52b39;
+  --on-danger: #fff;
+  --r-xs: 12px;
+  --r-sm: 18px;
+  --r-md: 24px;
+  --r-lg: 32px;
+  --r-xl: 40px;
+  --material: #fffdf9d6;
+  --material-strong: #fffdf9;
+  --material-border: #ffffffc9;
+  --scrim: #25182366;
+  --font-sans: var(--font-product-sans), Arial, sans-serif;
+  --font-serif: var(--font-sans);
+  min-height: 100svh;
+  background: radial-gradient(ellipse at 100% 0, #ecdde94f, transparent 50%), var(--bg);
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.5;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  overflow-x: clip;
+}
+.app-ui :is(button, input, select, textarea) { font-family: inherit; }
+.app-ui :is(em, i) { font-style: normal; }
+.app-ui :is(h1,h2,h3) { font-family: inherit; font-weight: 500; letter-spacing: -0.055em; text-wrap: balance; }
+.app-ui h1 { font-size: clamp(44px, 5.4vw, 80px); line-height: 1.04; }
+.app-ui .text-title { font-size: clamp(36px, 4vw, 58px); line-height: 1.1; }
+.app-ui :is(.text-headline, h3) { font-size: 24px; line-height: 1.25; }
+.app-ui :is(.text-caption, .text-xs, .text-sm) { font-size: 18px; line-height: 1.45; }
+.app-ui :is(.font-serif, .font-sans) { font-family: var(--font-sans); }
+.app-ui .material-symbols-outlined { font-family: 'Material Symbols Outlined', sans-serif; font-size: 24px; line-height: 1; letter-spacing: 0; }
+.app-ui :is(button,a) { -webkit-tap-highlight-color: transparent; }
+.app-ui button { touch-action: manipulation; }
+.app-ui :focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+.app-ui :is(.card,.ios-card,.glass-card) { background: var(--surface); border: 1px solid var(--line); border-radius: 32px; box-shadow: 0 12px 40px #39253405; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.app-ui .material { background: var(--material-strong); backdrop-filter: none; -webkit-backdrop-filter: none; }
+.app-ui .input { min-height: 58px; height: auto; padding: 16px 20px; font-size: 18px; border-radius: 22px; border: 1px solid var(--line); background: var(--surface); }
+.app-ui .input::placeholder { color: var(--ink-3); }
+.app-ui :is(input,select,textarea) { min-width: 0; font-size: 18px; }
+.app-ui textarea { resize: vertical; }
+.app-ui .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.app-ui :is(.ios-btn-primary,.ios-btn-secondary) { min-height: 56px; height: auto; padding: 14px 24px; font-size: 18px; line-height: 1.35; font-weight: 500; letter-spacing: -0.02em; text-transform: none; transition: transform 150ms ease, background-color 150ms ease; }
+.app-ui .ios-btn-primary { background: var(--ink); color: var(--bg) !important; box-shadow: none; }
+.app-ui .ios-btn-secondary { background: var(--surface-2); }
+.app-ui .ios-segmented { border-radius: 999px; padding: 6px; }
+.app-ui .ios-segmented-item { border-radius: 999px; padding: 12px 18px; font-size: 18px; }
+.app-ui .ios-switch { outline-offset: 6px; }
+.app-ui .ios-switch-active { background: var(--accent); }
+.app-ui .service-card-active { background: var(--surface-2); }
+.app-ui .landing-glass { position: relative; min-width: 0; box-shadow: 0 10px 32px #39253412; }
+.app-ui .landing-glass-optics { z-index: 0; }
+.app-ui .landing-glass-content { position: relative; z-index: 1; border-radius: inherit; }
+.app-topbar { position: sticky; top: 20px; z-index: 40; width: calc(100% - 64px); max-width: 1600px; margin: 0 auto 54px; padding-top: 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; pointer-events: none; }
+.app-topbar > * { pointer-events: auto; }
+.app-brand-link { display: flex; align-items: center; height: 72px; padding: 0 28px; border-radius: inherit; transition: height 220ms cubic-bezier(.23,1,.32,1), padding 220ms ease; }
+.app-brand-link > span > span { font-size: 28px; }
+.app-topbar[data-compact=true] .app-brand-link { height: 60px; padding-inline: 24px; }
+.app-header-actions { display: flex; align-items: center; min-height: 72px; padding: 8px; gap: 8px; transition: min-height 220ms ease; }
+.app-topbar[data-compact=true] .app-header-actions { min-height: 60px; }
+.app-header-actions > :is(button,a), .app-icon-button { display: inline-flex; justify-content: center; align-items: center; min-width: 48px; min-height: 48px; border: none; border-radius: 999px; background: transparent; cursor: pointer; }
+.app-header-actions > :is(button,a):active, .app-icon-button:active { transform: scale(.95); }
+.app-dock { position: fixed; z-index: 50; bottom: max(20px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); }
+.app-dock-items { display: flex; align-items: stretch; gap: 4px; padding: 8px; }
+.app-dock-item { display: flex; justify-content: center; align-items: center; gap: 10px; min-height: 58px; padding: 12px 24px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-2); font-size: 18px; line-height: 1.2; font-weight: 500; cursor: pointer; transition: background-color 150ms ease, color 150ms ease, transform 150ms ease; }
+.app-dock-item[data-active=true] { background: var(--ink); color: var(--bg); }
+.app-dock-item:active { transform: scale(.97); }
+.app-page-heading { display: flex; align-items: end; justify-content: space-between; gap: 32px; margin-bottom: 44px; }
+.app-eyebrow { font-size: 18px; color: var(--ink-2); letter-spacing: .025em; margin: 0 0 18px; }
+.app-page-description { max-width: 680px; margin-top: 20px; color: var(--ink-2); font-size: 22px; line-height: 1.45; }
+.app-page-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dashboard-shell { min-height: 100svh; }
+.app-sheet-overlay { padding: 24px; align-items: center; }
+.app-ui .app-sheet-panel { width: min(720px, 100%); max-width: 720px; max-height: min(90svh, 1000px); overflow-y: auto; overscroll-behavior: contain; border-radius: 36px; padding-bottom: 0; background: var(--surface); }
+.app-sheet-header { display: flex; align-items: start; justify-content: space-between; gap: 20px; padding: 24px 28px 12px; }
+.app-ui .app-sheet-header h2 { font-size: 32px; line-height: 1.12; margin: 0; }
+.app-sheet-close { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-2); cursor: pointer; }
+.app-sheet-body { padding: 12px 28px 28px; }
+.app-ui .app-sheet-body :is(label,button,p,span,small) { overflow-wrap: anywhere; }
+.app-ui .app-sheet-body .material-symbols-outlined { overflow-wrap: normal; }
+.app-loading { min-height: 100svh; display: grid; place-content: center; justify-items: center; gap: 24px; }
+.app-loading p { font-size: 22px; color: var(--ink-2); }
+@media (hover:hover) and (pointer:fine) {
+  .app-dock-item:not([data-active=true]):hover, .app-header-actions > :is(button,a):hover { background: var(--accent-soft); color: var(--ink); }
+}
+@media (max-width: 760px) {
+  .app-topbar { top: 12px; width: calc(100% - 32px); padding-top: 12px; margin-bottom: 38px; gap: 12px; }
+  .app-brand-link { height: 62px; padding-inline: 20px; }
+  .app-brand-link > span > span { font-size: 24px; }
+  .app-topbar[data-compact=true] .app-brand-link { height: 56px; padding-inline: 18px; }
+  .app-header-actions { min-height: 62px; padding: 6px; gap: 0; }
+  .app-topbar[data-compact=true] .app-header-actions { min-height: 56px; }
+  .app-header-actions > :is(button,a) { min-width: 44px; min-height: 44px; }
+  .app-page-heading { display: block; margin-bottom: 32px; }
+  .app-page-heading h1 { font-size: clamp(42px, 11vw, 64px); }
+  .app-page-description { font-size: 20px; margin-top: 16px; }
+  .app-page-actions { margin-top: 24px; }
+  .app-dock { bottom: max(12px,env(safe-area-inset-bottom)); width: calc(100% - 24px); max-width: 460px; }
+  .app-dock-items { padding: 6px; gap: 0; }
+  .app-dock-item { min-width: 0; flex: 1; flex-direction: column; gap: 6px; padding: 9px 5px; min-height: 68px; font-size: 18px; }
+  .app-dock-item .material-symbols-outlined { font-size: 24px; }
+  .app-sheet-overlay { padding: 0; align-items: end; }
+  .app-ui .app-sheet-panel { max-height: 92svh; width: 100%; max-width: 100%; border-radius: 32px 32px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+  .app-sheet-header { padding: 20px 22px 10px; }
+  .app-sheet-body { padding: 12px 22px 28px; }
+  .app-ui .app-sheet-header h2 { font-size: 30px; }
+}
+@media (max-width: 360px) {
+  .app-topbar { width: calc(100% - 24px); gap: 8px; }
+  .app-brand-link { padding-inline: 16px; }
+  .app-brand-link > span > span { font-size: 22px; }
+  .app-header-actions > :is(button,a) { min-width: 40px; }
+  .app-dock-item { padding-inline: 2px; }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .app-ui .landing-glass-optics { display: none; }
+  .app-ui .landing-glass { background: var(--surface); border: 1px solid var(--line-strong); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-ui *, .app-ui *::before, .app-ui *::after { scroll-behavior: auto !important; transition-duration: 0s !important; animation-duration: 0s !important; }
+}
+.app-status-page { width: calc(100% - 48px); max-width: 1000px; margin: 100px auto; padding-bottom: 80px; }
+.app-ui .app-date-picker .text-headline { font-size: 22px; }
+@media (max-width:600px) { .app-status-page { margin-block: 64px; } }
+.app-ui :is(.text-base,[class~="sm:text-base"],[class~="md:text-base"]) { font-size: 18px; }
+.app-ui .ui-button[data-variant=primary] { color: var(--on-accent); }
+.app-ui .ui-button[data-variant=secondary] { color: var(--ink); }
+.app-ui .ui-button[data-variant=ghost] { color: var(--accent); }
+.app-ui .ui-button[data-variant=danger] { color: var(--on-danger); }
+.app-ui [class~="text-[var(--danger)]"] { color: var(--danger); }

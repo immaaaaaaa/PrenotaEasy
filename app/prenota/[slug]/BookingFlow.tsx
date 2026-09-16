@@ -6,9 +6,8 @@ import { buildDays } from "@/lib/days";
 import type { Business, Employee, Service, ServiceAddon } from "@/lib/types";
 import { cn } from "@/lib/cn";
 import { Sheet } from "@/components/ui/Sheet";
-import { CalendarLogo } from "@/components/CalendarLogo";
-import { Wordmark } from "@/components/Wordmark";
-import { Toggle } from "@/components/ui/Toggle";
+import { AppHeader, AppNav, AppPageHeading } from "@/components/app/AppChrome";
+import "@/app/access-design.css";
 
 type Slot = {
   time: string;
@@ -534,47 +533,38 @@ export function BookingFlow({
   }
 
   return (
-    <div className="bg-[var(--bg)] text-[var(--ink)] font-sans min-h-screen pb-40">
+    <div className="customer-booking">
       {/* Header */}
-      <header className="w-full top-0 sticky z-50 bg-[var(--bg)]/90 backdrop-blur-md flex justify-between items-center px-6 py-6 border-b border-[var(--line)]/30">
-        <div className="flex items-center gap-3 cursor-pointer active:scale-95 duration-200 transition-opacity hover:opacity-80">
-          <CalendarLogo size={48} />
-          <Wordmark tagline={business.name} />
-        </div>
-      </header>
+      <AppHeader><span className="booking-header-business">{business.name}</span></AppHeader>
 
-      <main className="px-6 max-w-screen-md mx-auto">
+      <main className="booking-main">
         {/* Tab 1: BOOK (Booking Flow) */}
         {currentTab === "book" && (
           <div>
-            {/* Hero Section */}
-            <section className="mt-8 mb-10">
-              <h2 className="text-3xl md:text-4xl font-extrabold text-primary mb-2 tracking-tight">
-                Prenota il tuo Rituale
-              </h2>
-              <p className="text-[var(--ink-2)] font-medium max-w-[85%] text-sm">
-                Seleziona i servizi e l'orario che preferisci per un'esperienza di bellezza personalizzata.
-              </p>
-            </section>
-
+            <AppPageHeading eyebrow={business.name} title="Un momento tutto tuo." description="Scegli il tuo servizio e trova il momento perfetto. Al resto pensiamo noi." />
+            <div className="booking-workspace">
+            <div className="booking-selection">
             {/* Select Service Section */}
-            <section id="services-section" className="mb-10">
+            <section id="services-section" className="booking-panel">
               <div className="flex justify-between items-baseline mb-6">
                 <h3 className="text-lg font-bold text-primary">Seleziona Servizio</h3>
                 <span className="text-xs font-bold text-primary uppercase border-b border-primary/30 pb-0.5">
                   Menu completo
                 </span>
               </div>
-              <div className="space-y-4">
+              <div className="booking-service-list">
+                {services.length === 0 && <p className="booking-empty">Nessun servizio disponibile al momento.</p>}
                 {services.map((s) => {
                   const isSelected = service?.id === s.id;
                   const iconName = getServiceIcon(s.name);
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={s.id}
+                      aria-pressed={isSelected}
                       onClick={() => selectService(s)}
                       className={cn(
-                        "group flex items-start p-5 rounded-2xl border cursor-pointer transition-all duration-200 active:scale-[0.99] ios-card",
+                        "booking-service group flex items-start p-5 rounded-2xl border cursor-pointer transition-all duration-200 active:scale-[0.99] ios-card",
                         isSelected
                           ? "bg-[var(--surface)] border-[var(--ink)] shadow-md"
                           : "bg-[var(--surface-2)]/60 border-transparent hover:bg-[var(--surface)] hover:border-[var(--line-strong)]"
@@ -584,19 +574,20 @@ export function BookingFlow({
                         <span className="material-symbols-outlined text-[28px]">{iconName}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-base text-[var(--ink)] font-bold tracking-wide leading-snug">{s.name}</p>
+                        <p className="text-lg text-[var(--ink)] font-bold tracking-wide leading-snug">{s.name}</p>
                         {s.description && (
-                          <p className="text-[12px] text-[var(--ink-2)] mt-1 mb-2 leading-relaxed font-medium line-clamp-2 pr-2">
+                          <p className="text-[18px] text-[var(--ink-2)] mt-1 mb-2 leading-relaxed font-medium line-clamp-2 pr-2">
                             {s.description}
                           </p>
                         )}
                         <p className="text-xs text-[var(--ink-2)] font-semibold mt-1.5 flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-[14px]">schedule</span> {formatDuration(s.duration_min)}
+                          <span className="material-symbols-outlined text-[18px]">schedule</span> {formatDuration(s.duration_min)}
                           <span className="w-1.5 h-1.5 rounded-full bg-[#A18A97]/40"></span>
                           <span className="text-[var(--ink)] font-bold text-sm">{formatPrice(s.price_cents)}</span>
                         </p>
                       </div>
-                    </div>
+                      <span className="booking-selection-mark material-symbols-outlined" aria-hidden="true">{isSelected ? "check_circle" : "add_circle"}</span>
+                    </button>
                   );
                 })}
               </div>
@@ -604,7 +595,7 @@ export function BookingFlow({
 
             {/* Optional add-ons */}
             {service && serviceAddons.length > 0 && (
-              <section className="mb-10">
+              <section className="booking-panel booking-addons">
                 <h3 className="text-lg font-bold text-primary mb-2">Supplementi opzionali</h3>
                 <p className="text-[var(--ink-2)] text-sm mb-5">
                   Aggiungi un extra a <strong>{service.name}</strong>: durata e prezzo si aggiornano automaticamente.
@@ -613,11 +604,13 @@ export function BookingFlow({
                   {serviceAddons.map((a) => {
                     const checked = selectedAddonIds.includes(a.id);
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={a.id}
+                        aria-pressed={checked}
                         onClick={() => toggleAddon(a.id)}
                         className={cn(
-                          "ios-card rounded-2xl p-4 border flex items-center justify-between gap-3 cursor-pointer transition-all",
+                          "booking-addon ios-card rounded-2xl p-4 border flex items-center justify-between gap-3 cursor-pointer transition-all",
                           checked
                             ? "border-[var(--ink)] bg-[var(--surface)] shadow-sm"
                             : "border-[var(--line)]/60 bg-[var(--surface-2)]/50 hover:border-[var(--ink)]/40"
@@ -631,10 +624,8 @@ export function BookingFlow({
                             {a.extra_price_cents > 0 && `+${formatPrice(a.extra_price_cents)}`}
                           </p>
                         </div>
-                        <span className="pointer-events-none shrink-0">
-                          <Toggle checked={checked} onChange={() => {}} label={a.name} />
-                        </span>
-                      </div>
+                        <span className="booking-addon-check material-symbols-outlined" aria-hidden="true">{checked ? "check_circle" : "add_circle"}</span>
+                      </button>
                     );
                   })}
                 </div>
@@ -646,8 +637,10 @@ export function BookingFlow({
               </section>
             )}
 
+            </div>
+            <div className="booking-schedule">
             {/* Choose Professional Section */}
-            <section id="professional-section" className={cn("mb-10 transition-opacity duration-300", !service && "opacity-40 pointer-events-none")}>
+            <section id="professional-section" className={cn("booking-panel transition-opacity duration-300", !service && "opacity-40 pointer-events-none")}>
               {!showOperatorPicker ? (
                 <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)]/60 p-4 flex items-center gap-3">
                   {fixedSingleOperator ? (
@@ -681,9 +674,9 @@ export function BookingFlow({
               {!service && (
                 <p className="text-sm text-[var(--ink-2)] italic mb-4">Seleziona prima un servizio per scegliere l'operatore.</p>
               )}
-              <div className="flex gap-8 overflow-x-auto no-scrollbar py-2">
+              <div className="booking-operator-list">
                 {employees.length > 1 && (
-                  <div className="flex flex-col items-center gap-3 cursor-pointer group shrink-0" onClick={() => selectOperator("any")}>
+                  <button type="button" disabled={!service} aria-pressed={operator === "any"} className="booking-operator group" onClick={() => selectOperator("any")}>
                     <div
                       className={cn(
                         "w-16 h-16 rounded-full flex items-center justify-center bg-[var(--surface-2)] text-primary transition-all duration-200 border border-transparent",
@@ -693,13 +686,13 @@ export function BookingFlow({
                       <span className="material-symbols-outlined text-[28px]">shuffle</span>
                     </div>
                     <span className="text-xs font-semibold text-on-surface">Qualsiasi</span>
-                  </div>
+                  </button>
                 )}
 
                 {employees.map((e) => {
                   const isSelected = operator === e.id;
                   return (
-                    <div key={e.id} className="flex flex-col items-center gap-3 cursor-pointer group shrink-0" onClick={() => selectOperator(e.id)}>
+                    <button type="button" disabled={!service} aria-pressed={isSelected} key={e.id} className="booking-operator group" onClick={() => selectOperator(e.id)}>
                       <div
                         style={{ backgroundColor: e.color }}
                         className={cn(
@@ -714,7 +707,7 @@ export function BookingFlow({
                         )}
                       </div>
                       <span className="text-xs font-semibold text-on-surface">{e.name}</span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -723,10 +716,11 @@ export function BookingFlow({
             </section>
 
             {/* Date Selector Section */}
-            <section id="date-section" className={cn("mb-10 transition-opacity duration-300", !service && "opacity-40 pointer-events-none")}>
+            <section id="date-section" className={cn("booking-panel transition-opacity duration-300", !service && "opacity-40 pointer-events-none")}>
               <div className="flex justify-between items-baseline mb-6">
                 <h3 className="text-lg font-bold text-primary">Scegli la Data</h3>
                 <button
+                  disabled={!service}
                   onClick={() => setClientCalendarOpen(true)}
                   className="flex items-center gap-1.5 text-xs font-bold text-primary uppercase border-b border-primary/30 pb-0.5 cursor-pointer hover:opacity-85 active:scale-95 transition-all"
                 >
@@ -737,17 +731,21 @@ export function BookingFlow({
               {!service && (
                 <p className="text-sm text-[var(--ink-2)] italic mb-4">Seleziona prima un servizio e operatore per vedere le date.</p>
               )}
-              <div className="flex overflow-x-auto no-scrollbar gap-4 pb-4 -mx-1 px-1 snap-x">
+              <div className="booking-date-list">
                 {days.map((day) => {
                   const isClosed = !isDaySelectable(day.dateStr, day.weekday0);
                   const isSelected = dateStr === day.dateStr;
 
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={day.dateStr}
+                      disabled={isClosed || !service}
+                      aria-pressed={isSelected}
+                      aria-label={`${day.weekdayLabel} ${day.dayNum} ${day.monthLabel}`}
                       onClick={() => !isClosed && selectDate(day.dateStr)}
                       className={cn(
-                        "flex-shrink-0 flex flex-col items-center justify-center w-[72px] h-[96px] rounded-2xl cursor-pointer transition-all duration-200 snap-center select-none",
+                        "booking-date flex-shrink-0 flex flex-col items-center justify-center w-[72px] h-[96px] rounded-2xl cursor-pointer transition-all duration-200 snap-center select-none",
                         isSelected
                           ? "active-date"
                           : isClosed
@@ -755,26 +753,26 @@ export function BookingFlow({
                           : "border border-[var(--line)]/50 bg-[var(--surface-2)] hover:bg-[var(--surface)] hover:border-[var(--ink)]/30"
                       )}
                     >
-                      <span className={cn("text-[10px] font-bold uppercase tracking-widest", isSelected ? "text-[var(--bg)]/80" : "text-[var(--ink-2)]")}>
+                      <span className={cn("text-[18px] font-bold uppercase tracking-widest", isSelected ? "text-[var(--bg)]/80" : "text-[var(--ink-2)]")}>
                         {day.monthLabel}
                       </span>
                       <span className="text-2xl font-extrabold leading-none my-1 tracking-tight">
                         {day.dayNum}
                       </span>
-                      <span className={cn("text-[10px] font-bold uppercase tracking-wider", isSelected ? "text-[var(--bg)]/80" : "text-[var(--ink-2)]")}>
+                      <span className={cn("text-[18px] font-bold uppercase tracking-wider", isSelected ? "text-[var(--bg)]/80" : "text-[var(--ink-2)]")}>
                         {day.weekdayLabel}
                       </span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
             </section>
 
             {/* Time Grid Section */}
-            <section id="time-section" className={cn("mb-10 transition-opacity duration-300", (!service || !dateStr) && "opacity-40 pointer-events-none")}>
+            <section id="time-section" className={cn("booking-panel transition-opacity duration-300", (!service || !dateStr) && "opacity-40 pointer-events-none")}>
               <h3 className="text-lg font-bold text-primary mb-6">Scegli l'Orario</h3>
               {addonNotice && (
-                <p className="mb-4 text-xs font-bold text-[#ba1a1a] bg-[#ba1a1a]/5 border border-[#ba1a1a]/20 rounded-xl px-4 py-3">
+                <p className="mb-4 text-xs font-bold text-[var(--danger)] bg-[#ba1a1a]/5 border border-[var(--danger)]/20 rounded-xl px-4 py-3">
                   Con i supplementi scelti l'orario selezionato non è più disponibile. Scegli un altro orario o togli un supplemento.
                 </p>
               )}
@@ -794,7 +792,7 @@ export function BookingFlow({
                   {morningSlots.length > 0 && (
                     <div>
                       <p className="text-xs font-bold text-[var(--ink-2)] uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[16px]">light_mode</span> Mattino
+                        <span className="material-symbols-outlined text-[18px]">light_mode</span> Mattino
                       </p>
                       <div className="flex flex-wrap gap-3">
                         {morningSlots.map((sl) => {
@@ -813,7 +811,7 @@ export function BookingFlow({
                             >
                               {sl.time}
                               {sl.employeeName && !fixedSingleOperator && (
-                                <span className={cn("block text-[10px] font-bold leading-tight", isSelected ? "text-[var(--bg)]/80" : "text-[var(--ink-2)]")}>
+                                <span className={cn("block text-[18px] font-bold leading-tight", isSelected ? "text-[var(--bg)]/80" : "text-[var(--ink-2)]")}>
                                   {sl.employeeName}
                                 </span>
                               )}
@@ -828,7 +826,7 @@ export function BookingFlow({
                   {afternoonSlots.length > 0 && (
                     <div>
                       <p className="text-xs font-bold text-[var(--ink-2)] uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[16px]">dark_mode</span> Pomeriggio
+                        <span className="material-symbols-outlined text-[18px]">dark_mode</span> Pomeriggio
                       </p>
                       <div className="flex flex-wrap gap-3">
                         {afternoonSlots.map((sl) => {
@@ -847,7 +845,7 @@ export function BookingFlow({
                             >
                               {sl.time}
                               {sl.employeeName && !fixedSingleOperator && (
-                                <span className={cn("block text-[10px] font-bold leading-tight", isSelected ? "text-[var(--bg)]/80" : "text-[var(--ink-2)]")}>
+                                <span className={cn("block text-[18px] font-bold leading-tight", isSelected ? "text-[var(--bg)]/80" : "text-[var(--ink-2)]")}>
                                   {sl.employeeName}
                                 </span>
                               )}
@@ -861,14 +859,16 @@ export function BookingFlow({
               )}
             </section>
 
+            </div>
+            </div>
             {/* Sticky Bottom button */}
             {service && slot && (
-              <div className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-[var(--bg)] via-[var(--bg)]/95 to-transparent pt-16 pb-24 z-40 flex justify-center">
+              <div className="booking-continue"><div className="booking-continue-summary"><span>{service.name}</span><strong>{slot.time} · {formatPrice(totalPriceCents)}</strong></div>
                 <button
                   onClick={() => setDetailsOpen(true)}
-                  className="w-full max-w-screen-sm ios-btn-primary font-sans text-xs font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3"
+                  className="booking-continue-button ios-btn-primary"
                 >
-                  Prenota Ora
+                  Continua
                   <span className="material-symbols-outlined text-[20px]">check_circle</span>
                 </button>
               </div>
@@ -878,9 +878,8 @@ export function BookingFlow({
 
         {/* Tab 2: HISTORY (Cronologia & Reschedule / Cancel) */}
         {currentTab === "history" && (
-          <div className="mt-8">
-            <h2 className="text-2xl font-extrabold text-primary mb-2 tracking-tight">I miei Appuntamenti</h2>
-            <p className="text-[var(--ink-2)] text-sm mb-6">Visualizza i dettagli delle tue prenotazioni e le formule del salone.</p>
+          <div className="booking-history">
+            <AppPageHeading eyebrow={business.name} title="I tuoi appuntamenti." description="I prossimi momenti per te, e quelli da ricordare." />
 
             {!phone ? (
               <div className="ios-card rounded-2xl p-6 text-center space-y-4">
@@ -900,7 +899,7 @@ export function BookingFlow({
                 ))}
               </div>
             ) : historyError ? (
-              <p className="text-sm text-[#ba1a1a] font-semibold">{historyError}</p>
+              <p className="text-sm text-[var(--danger)] font-semibold">{historyError}</p>
             ) : history.length === 0 ? (
               <div className="ios-card rounded-2xl p-8 text-center space-y-3 text-[var(--ink-2)]">
                 <span className="material-symbols-outlined text-4xl">calendar_today</span>
@@ -928,7 +927,7 @@ export function BookingFlow({
                 {/* Upcoming Bookings */}
                 {upcomingAppts.length > 0 && (
                   <div>
-                    <h3 className="text-base font-bold text-[var(--ink)] mb-4 border-b border-[var(--line)]/50 pb-1 flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-[var(--ink)] mb-4 border-b border-[var(--line)]/50 pb-1 flex items-center gap-2">
                       <span className="material-symbols-outlined text-md">event</span> Prossimi Appuntamenti
                     </h3>
                     <div className="space-y-4">
@@ -938,10 +937,10 @@ export function BookingFlow({
                           <div key={a.id} className="ios-card rounded-2xl p-5 shadow-sm space-y-4 relative border border-[var(--ink)]/10">
                             <div className="flex justify-between items-start">
                               <div>
-                                <h4 className="text-base font-bold text-[var(--ink)]">{a.service_name}</h4>
+                                <h4 className="text-lg font-bold text-[var(--ink)]">{a.service_name}</h4>
                                 <p className="text-xs text-[var(--ink-2)] mt-0.5">{formatHistoryDate(a.starts_at)} · Con {emp?.name ?? "Primo disponibile"}</p>
                               </div>
-                              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[var(--accent-2)]/30 text-[var(--ink)]">Confermato</span>
+                              <span className="text-[18px] uppercase font-bold px-2 py-0.5 rounded bg-[var(--accent-2)]/30 text-[var(--ink)]">Confermato</span>
                             </div>
 
                             {a.owner_notes && (
@@ -964,7 +963,7 @@ export function BookingFlow({
                               <button
                                 disabled={cancellingId === a.id}
                                 onClick={() => clientCancelAppointment(a.id)}
-                                className="h-9 px-4 rounded-full border border-[#ba1a1a] text-[#ba1a1a] hover:bg-[#ba1a1a]/5 text-xs font-bold cursor-pointer transition-colors active:scale-95 duration-200 bg-transparent"
+                                className="h-9 px-4 rounded-full border border-[var(--danger)] text-[var(--danger)] hover:bg-[#ba1a1a]/5 text-xs font-bold cursor-pointer transition-colors active:scale-95 duration-200 bg-transparent"
                               >
                                 {cancellingId === a.id ? "Annullamento..." : "Disdici"}
                               </button>
@@ -979,7 +978,7 @@ export function BookingFlow({
                 {/* Past & Cancelled Bookings */}
                 {pastAppts.length > 0 && (
                   <div>
-                    <h3 className="text-base font-bold text-[var(--ink)] mb-4 border-b border-[var(--line)]/50 pb-1 flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-[var(--ink)] mb-4 border-b border-[var(--line)]/50 pb-1 flex items-center gap-2">
                       <span className="material-symbols-outlined text-md">history</span> Storico Appuntamenti
                     </h3>
                     <div className="space-y-4">
@@ -990,12 +989,12 @@ export function BookingFlow({
                           <div key={a.id} className="ios-card rounded-2xl p-5 shadow-sm space-y-4 opacity-75">
                             <div className="flex justify-between items-start">
                               <div>
-                                <h4 className="text-base font-bold text-[var(--ink)]">{a.service_name}</h4>
+                                <h4 className="text-lg font-bold text-[var(--ink)]">{a.service_name}</h4>
                                 <p className="text-xs text-[var(--ink-2)] mt-0.5">{formatHistoryDate(a.starts_at)} · Con {emp?.name ?? "Primo disponibile"}</p>
                               </div>
                               <span className={cn(
-                                "text-[10px] uppercase font-bold px-2 py-0.5 rounded",
-                                isCancelled ? "bg-[#ba1a1a]/10 text-[#ba1a1a]" : "bg-[var(--surface-2)] text-[var(--ink-2)]"
+                                "text-[18px] uppercase font-bold px-2 py-0.5 rounded",
+                                isCancelled ? "bg-[#ba1a1a]/10 text-[var(--danger)]" : "bg-[var(--surface-2)] text-[var(--ink-2)]"
                               )}>
                                 {isCancelled ? "Annullato" : "Passato"}
                               </span>
@@ -1035,9 +1034,9 @@ export function BookingFlow({
 
         {/* Tab 3: PROFILE (Inserimento dati personali) */}
         {currentTab === "profile" && (
-          <div className="mt-8 max-w-sm mx-auto">
-            <h2 className="text-2xl font-extrabold text-primary mb-2 tracking-tight">Profilo Personale</h2>
-            <p className="text-[var(--ink-2)] text-sm mb-6">Salva i tuoi contatti per visualizzare la cronologia ed evitare di digitarli ogni volta.</p>
+          <div className="booking-profile">
+            <AppPageHeading eyebrow="Il tuo spazio" title="Piacere di ritrovarti." description="Salva i tuoi contatti per ritrovare gli appuntamenti e prenotare con più semplicità." />
+            <div className="booking-profile-content">
 
             {!profileEditing && profileName.trim() && profilePhone.trim() ? (
               /* Saved recap: the client sees their stored data, editing is explicit */
@@ -1067,11 +1066,12 @@ export function BookingFlow({
             ) : (
             <form onSubmit={saveProfile} className="space-y-4 ios-card rounded-2xl p-6 border border-[var(--line-strong)]/30 shadow-sm">
               <div>
-                <label className="block text-xs font-bold text-[var(--ink)] mb-1.5 px-1 uppercase tracking-wider">
+                <label htmlFor="profile-name" className="block text-xs font-bold text-[var(--ink)] mb-1.5 px-1 uppercase tracking-wider">
                   Nome e cognome
                 </label>
                 <input
                   required
+                  id="profile-name"
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
                   placeholder="Es. Anna Rossi"
@@ -1080,12 +1080,13 @@ export function BookingFlow({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[var(--ink)] mb-1.5 px-1 uppercase tracking-wider">
+                <label htmlFor="profile-phone" className="block text-xs font-bold text-[var(--ink)] mb-1.5 px-1 uppercase tracking-wider">
                   Numero WhatsApp
                 </label>
                 <input
                   required
                   type="tel"
+                  id="profile-phone"
                   value={profilePhone}
                   onChange={(e) => setProfilePhone(e.target.value)}
                   placeholder="Es. 340 123 4567"
@@ -1133,52 +1134,26 @@ export function BookingFlow({
                       setHistory([]);
                     }
                   }}
-                  className="text-xs font-bold text-[#ba1a1a] uppercase tracking-wider cursor-pointer hover:opacity-80 border-none bg-transparent"
+                  className="text-xs font-bold text-[var(--danger)] uppercase tracking-wider cursor-pointer hover:opacity-80 border-none bg-transparent"
                 >
                   Scollega account locale
                 </button>
               </div>
             )}
+            </div>
           </div>
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-screen-md z-50 bg-[var(--surface)] shadow-[0_-8px_30px_rgba(62,27,51,0.06)] flex justify-around items-center px-6 py-4 pb-safe border-t border-[var(--line)]/20">
-        <button
-          onClick={() => setCurrentTab("book")}
-          className={cn(
-            "flex flex-col items-center justify-center gap-1 p-2 active:scale-95 duration-200 cursor-pointer",
-            currentTab === "book" ? "text-[var(--ink)] font-bold" : "text-[var(--ink-2)] hover:opacity-80"
-          )}
-        >
-          <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: currentTab === "book" ? "'FILL' 1" : undefined }}>content_cut</span>
-          <span className="font-semibold text-[10px] uppercase tracking-wider">Prenota</span>
-        </button>
-        <button
-          onClick={() => setCurrentTab("history")}
-          className={cn(
-            "flex flex-col items-center justify-center gap-1 p-2 active:scale-95 duration-200 cursor-pointer",
-            currentTab === "history" ? "text-[var(--ink)] font-bold" : "text-[var(--ink-2)] hover:opacity-80"
-          )}
-        >
-          <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: currentTab === "history" ? "'FILL' 1" : undefined }}>event_upcoming</span>
-          <span className="font-semibold text-[10px] uppercase tracking-wider">Miei Appuntamenti</span>
-        </button>
-        <button
-          onClick={() => setCurrentTab("profile")}
-          className={cn(
-            "flex flex-col items-center justify-center gap-1 p-2 active:scale-95 duration-200 cursor-pointer",
-            currentTab === "profile" ? "text-[var(--ink)] font-bold" : "text-[var(--ink-2)] hover:opacity-80"
-          )}
-        >
-          <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: currentTab === "profile" ? "'FILL' 1" : undefined }}>person</span>
-          <span className="font-semibold text-[10px] uppercase tracking-wider">Profilo</span>
-        </button>
-      </nav>
+      <AppNav label="Il tuo spazio" items={[
+        { label: "Prenota", icon: "content_cut", active: currentTab === "book", onClick: () => setCurrentTab("book") },
+        { label: "I miei orari", icon: "calendar_month", active: currentTab === "history", onClick: () => setCurrentTab("history") },
+        { label: "Profilo", icon: "person", active: currentTab === "profile", onClick: () => setCurrentTab("profile") },
+      ]} />
 
       {/* Customer Details input Sheet (during Booking flow) */}
       <Sheet open={detailsOpen} onClose={() => setDetailsOpen(false)} title="I Tuoi Dati" dismissible={true}>
-        <div className="space-y-5 py-2">
+        <div className="booking-sheet-content space-y-5 py-2">
           {/* Booking Summary Box */}
           <div className="rounded-2xl bg-[var(--surface-2)] p-5 border border-[var(--line)] space-y-3 shadow-sm">
             <div className="flex justify-between items-center text-sm">
@@ -1218,11 +1193,12 @@ export function BookingFlow({
           {/* Form fields */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-[var(--ink)] mb-1.5 px-1">
+              <label htmlFor="booking-name" className="block text-sm font-bold text-[var(--ink)] mb-1.5 px-1">
                 Nome e cognome
               </label>
               <input
                 required
+                id="booking-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Es. Anna Rossi"
@@ -1231,12 +1207,13 @@ export function BookingFlow({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-[var(--ink)] mb-1.5 px-1">
+              <label htmlFor="booking-phone" className="block text-sm font-bold text-[var(--ink)] mb-1.5 px-1">
                 Numero WhatsApp
               </label>
               <input
                 required
                 type="tel"
+                id="booking-phone"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Es. 340 123 4567"
@@ -1248,13 +1225,14 @@ export function BookingFlow({
               </span>
             </div>
             <div>
-              <label className="block text-sm font-bold text-[var(--ink)] mb-1.5 px-1">
+              <label htmlFor="booking-notes" className="block text-sm font-bold text-[var(--ink)] mb-1.5 px-1">
                 Note (facoltativo)
               </label>
-              <p className="text-[11px] text-[var(--ink-2)] mb-1.5 px-1">
+              <p className="text-[18px] text-[var(--ink-2)] mb-1.5 px-1">
                 Non inserire informazioni sulla salute o altri dati sensibili.
               </p>
               <textarea
+                id="booking-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Es. Esigenze particolari..."
@@ -1281,7 +1259,7 @@ export function BookingFlow({
           </label>
 
           {error && (
-            <p className="rounded-xl bg-[#ba1a1a]/10 px-4 py-3 text-sm font-semibold text-[#ba1a1a] border border-[#ba1a1a]/20">
+            <p className="rounded-xl bg-[#ba1a1a]/10 px-4 py-3 text-sm font-semibold text-[var(--danger)] border border-[var(--danger)]/20">
               {error}
             </p>
           )}
@@ -1290,7 +1268,7 @@ export function BookingFlow({
             disabled={!canSubmit || submitting}
             onClick={submit}
             className={cn(
-              "flex w-full h-14 items-center justify-center gap-2.5 rounded-full font-sans text-base font-bold shadow-md transition-all duration-200 select-none cursor-pointer border-none",
+              "flex w-full h-14 items-center justify-center gap-2.5 rounded-full font-sans text-lg font-bold shadow-md transition-all duration-200 select-none cursor-pointer border-none",
               canSubmit && !submitting
                 ? "bg-[var(--accent)] text-[var(--on-accent)] hover:scale-[1.01] hover:brightness-[1.05] active:scale-[0.98]"
                 : "bg-[#A18A97]/40 cursor-not-allowed text-white/60"
@@ -1309,9 +1287,9 @@ export function BookingFlow({
           dismissible={true}
         >
         {rescheduleSheetData && (<>
-          <div className="space-y-5 py-2">
+          <div className="booking-sheet-content space-y-5 py-2">
             <div className="rounded-2xl bg-[var(--surface-2)] p-4 border border-[var(--line)] text-sm text-[var(--ink)] space-y-1">
-              <p className="font-bold text-base">{rescheduleSheetData.service_name}</p>
+              <p className="font-bold text-lg">{rescheduleSheetData.service_name}</p>
               <p className="text-xs text-[var(--ink-2)]">
                 Operatore: {employees.find(e => e.id === rescheduleSheetData.employee_id)?.name ?? "Qualsiasi"}
               </p>
@@ -1325,6 +1303,7 @@ export function BookingFlow({
               <input
                 type="date"
                 min={todayStr}
+                aria-label="Nuova data dell’appuntamento"
                 value={clientRescheduleDate}
                 onChange={(e) => setClientRescheduleDate(e.target.value)}
                 className="w-full h-12 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] px-4 outline-none border border-transparent focus:border-[var(--ink)] transition-all font-medium text-sm shadow-sm"
@@ -1394,13 +1373,14 @@ export function BookingFlow({
           title="Seleziona Data di Prenotazione"
           dismissible={true}
         >
-          <div className="space-y-4 py-2">
+          <div className="booking-calendar space-y-4 py-2">
             <div className="flex justify-between items-center mb-2">
-              <h3 className="text-base font-bold text-[var(--ink)]">
+              <h3 className="text-lg font-bold text-[var(--ink)]">
                 {MONTH_LABELS[clientCalendarMonth]} {clientCalendarYear}
               </h3>
               <div className="flex gap-1">
                 <button
+                  aria-label="Mese precedente"
                   onClick={() => {
                     if (clientCalendarMonth === 0) {
                       setClientCalendarMonth(11);
@@ -1414,6 +1394,7 @@ export function BookingFlow({
                   chevron_left
                 </button>
                 <button
+                  aria-label="Mese successivo"
                   onClick={() => {
                     if (clientCalendarMonth === 11) {
                       setClientCalendarMonth(0);
@@ -1430,7 +1411,7 @@ export function BookingFlow({
             </div>
 
             {/* Days Grid Header */}
-            <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-[var(--ink-2)] tracking-wider mb-2">
+            <div className="grid grid-cols-7 gap-1 text-center text-[18px] font-bold text-[var(--ink-2)] tracking-wider mb-2">
               {WEEKDAY_SHORT_LABELS.map((w, idx) => (
                 <div key={idx}>{w}</div>
               ))}
@@ -1521,24 +1502,22 @@ function DoneScreen({
   });
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] max-w-[520px] flex-col items-center justify-center bg-[var(--bg)] px-6 py-12 text-center border-x border-[#EADFCB]/40 shadow-xl">
-      <div className="grid h-16 w-16 place-items-center rounded-full bg-[#34c759] text-white shadow-md animate-bounce">
+    <div className="customer-booking"><AppHeader /><main className="booking-confirmation access-state">
+      <div className="access-state-icon access-success">
         <span className="material-symbols-outlined text-[32px] text-white">check</span>
       </div>
 
       <div className="mt-6 space-y-2">
-        <h2 className="text-2xl font-black text-[var(--ink)] tracking-tight">
-          Prenotazione Confermata
-        </h2>
+        <h1>Prenotazione confermata.</h1>
         <p className="text-[var(--ink-2)] font-medium text-sm">
           Ti abbiamo riservato il posto con successo!
         </p>
       </div>
 
-      <div className="mt-8 w-full rounded-2xl bg-[var(--surface-2)] p-6 border border-[var(--line)] space-y-4 text-left max-w-sm mx-auto shadow-sm">
+      <div className="booking-confirmation-summary">
         <div>
           <span className="text-xs text-[var(--ink-2)] font-semibold block tracking-wider">SERVIZIO</span>
-          <span className="text-base font-bold text-[var(--ink)]">{serviceName}</span>
+          <span className="text-lg font-bold text-[var(--ink)]">{serviceName}</span>
         </div>
         <div className="grid grid-cols-2 gap-4 border-t border-[var(--line)]/50 pt-3">
           <div>
@@ -1556,7 +1535,7 @@ function DoneScreen({
         </div>
       </div>
 
-      <div className="mt-8 w-full max-w-sm space-y-3 px-4">
+      <div className="booking-confirmation-actions">
         <a
           href={gcal}
           target="_blank"
@@ -1575,7 +1554,7 @@ function DoneScreen({
           Ti aspettiamo da {businessName}! 💇
         </p>
       </div>
-    </main>
+    </main></div>
   );
 }
 

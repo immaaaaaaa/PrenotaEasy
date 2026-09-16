@@ -1,94 +1,77 @@
 "use client";
 
-import { useEffect } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { spring } from "@/lib/motion";
+import { useEffect, useRef } from "react";
+import { AnimatePresence, motion, useDragControls, useReducedMotion } from "motion/react";
 
 interface SheetProps {
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
   title?: string;
-  /** Hide the drag handle (e.g. non-dismissible flows). */
+  /** Show the drag handle and allow swipe dismissal. Close/Escape remain available. */
   dismissible?: boolean;
 }
 
-/**
- * Bottom sheet, Apple-style:
- *  - translucent material with a scrim behind (dim to focus)
- *  - enters and exits along the same path (up from / down to the bottom)
- *  - drag down to dismiss with 1:1 tracking, velocity projection on release,
- *    and rubber-banding when dragged upward past the top
- *  - reduced-motion → plain cross-fade
- */
-export function Sheet({
-  open,
-  onClose,
-  children,
-  title,
-  dismissible = true,
-}: SheetProps) {
+/** A centered desktop dialog and mobile sheet with one scrollable, readable surface. */
+export function Sheet({ open, onClose, children, title, dismissible = true }: SheetProps) {
   const reduce = useReducedMotion();
+  const panel = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
+  const controls = useDragControls();
 
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const frame = requestAnimationFrame(() => panel.current?.focus());
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close.current();
+      }
+      if (event.key !== "Tab" || !panel.current) return;
+      const elements = [...panel.current.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]')].filter(element => element.getClientRects().length > 0);
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+      if (!first) { event.preventDefault(); return; }
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === panel.current)) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === panel.current)) {
+        event.preventDefault(); first.focus();
+      }
+    };
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prev;
+      cancelAnimationFrame(frame);
+      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKey);
+      previousFocus?.focus({ preventScroll: true });
     };
-  }, [open, onClose]);
+  }, [open]);
 
-  return (
-    <AnimatePresence>
-      {open && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center">
-          <motion.div
-            className="absolute inset-0"
-            style={{ background: "var(--scrim)" }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            onClick={onClose}
-          />
-
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-            className="material pb-safe relative w-full max-w-[520px] rounded-t-[var(--r-xl)]"
-            style={{ boxShadow: "var(--shadow-sheet)" }}
-            initial={reduce ? { opacity: 0 } : { y: "100%" }}
-            animate={reduce ? { opacity: 1 } : { y: 0 }}
-            exit={reduce ? { opacity: 0 } : { y: "100%" }}
-            transition={spring.sheet}
-            drag={reduce || !dismissible ? false : "y"}
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0.04, bottom: 0.7 }}
-            onDragEnd={(_, info) => {
-              // Project where the throw is heading, then decide (velocity sign + distance).
-              const projected = info.offset.y + info.velocity.y * 0.2;
-              if (projected > 130) onClose();
-            }}
-          >
-            {dismissible && (
-              <div className="flex justify-center pt-2.5 pb-1">
-                <div className="h-[5px] w-10 rounded-full bg-[var(--ink-3)] opacity-50" />
-              </div>
-            )}
-            {title && (
-              <h2 className="text-headline px-5 pt-1 pb-2 text-center">
-                {title}
-              </h2>
-            )}
-            <div className="px-5 pt-1 pb-5">{children}</div>
-          </motion.div>
+  return <AnimatePresence>
+    {open && <div className="app-sheet-overlay fixed inset-0 z-[60] flex justify-center">
+      <motion.div className="absolute inset-0" style={{ background: "var(--scrim)" }}
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        transition={{ duration: reduce ? 0 : 0.18 }} onClick={onClose} />
+      <motion.div ref={panel} role="dialog" aria-modal="true" aria-label={title ?? "Dettagli"} tabIndex={-1}
+        className="app-sheet-panel material relative w-full" style={{ boxShadow: "var(--shadow-sheet)" }}
+        initial={{ opacity: 0, y: reduce ? 0 : 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduce ? 0 : 24 }}
+        transition={{ duration: reduce ? 0 : 0.22, ease: [0.23, 1, 0.32, 1] }}
+        drag={reduce || !dismissible ? false : "y"} dragControls={controls} dragListener={false}
+        dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0.02, bottom: 0.5 }}
+        onDragEnd={(_, info) => { if (info.offset.y + info.velocity.y * 0.15 > 120) onClose(); }}>
+        {dismissible && <div aria-hidden="true" className="flex justify-center pt-3 pb-1 touch-none" onPointerDown={event => controls.start(event)}><div className="h-1 w-10 rounded-full bg-[var(--ink-3)] opacity-40" /></div>}
+        <div className="app-sheet-header">
+          {title && <h2>{title}</h2>}
+          <button className="app-sheet-close" type="button" aria-label="Chiudi" onClick={onClose}>
+            <span className="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
         </div>
-      )}
-    </AnimatePresence>
-  );
+        <div className="app-sheet-body">{children}</div>
+      </motion.div>
+    </div>}
+  </AnimatePresence>;
 }

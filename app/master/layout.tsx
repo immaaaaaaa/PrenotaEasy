@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionBusiness, isMaster } from "@/lib/auth";
+import "@/app/management-design.css";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export default async function MasterLayout({
   }
 
   return (
-    <div className="mx-auto min-h-[100dvh] max-w-[800px] px-4 py-8">
+    <div className="management-layout">
       {children}
     </div>
   );
